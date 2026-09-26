@@ -627,6 +627,10 @@ export class Media {
         description:
           'Send a file in this conversation: an attachment from it by media ID, text you write now as a named file (report.md, data.csv, page.html), or a file from the machine by absolute path when you have it. It goes out on the chat this conversation is on. Never claim delivery before it is confirmed.',
         inputSchema: z.object({
+          source: z
+            .enum(['mediaId', 'path', 'content'])
+            .optional()
+            .describe('Which field holds the file; the other two are ignored.'),
           mediaId: z.uuid().optional(),
           content: z.string().min(1).max(4_000_000).optional(),
           path: z.string().min(1).max(4096).optional(),
@@ -860,21 +864,37 @@ export class Media {
    */
   async sendFile(
     run: Run,
-    input: {
-      mediaId?: string;
-      path?: string;
-      content?: string;
-      name?: string;
-      caption?: string;
-      sessionId?: string;
+    given: {
+      source?: 'mediaId' | 'path' | 'content' | undefined;
+      mediaId?: string | undefined;
+      path?: string | undefined;
+      content?: string | undefined;
+      name?: string | undefined;
+      caption?: string | undefined;
+      sessionId?: string | undefined;
     },
     toolCallId: string,
   ) {
+    // Some models fill every field of a tool call, with placeholders in the ones they do not
+    // mean: an all-zero mediaId, content "x". Named by source, the file is that field alone.
+    const input = given.source
+      ? {
+          ...given,
+          mediaId: given.source === 'mediaId' ? given.mediaId : undefined,
+          path: given.source === 'path' ? given.path : undefined,
+          content: given.source === 'content' ? given.content : undefined,
+        }
+      : given;
     const target = await this.destination(run, input.sessionId);
     const sources = [input.mediaId, input.path, input.content].filter(
       (value) => value !== undefined,
     );
-    if (sources.length !== 1) throw new Error('Give exactly one of mediaId, path or content');
+    if (sources.length !== 1)
+      throw new Error(
+        input.source
+          ? `source is ${input.source}, but ${input.source} is empty`
+          : 'Give exactly one of mediaId, path or content, or name the one to use in source',
+      );
     const key = createHash('sha256')
       .update(JSON.stringify([run.id, toolCallId, 'file']))
       .digest('hex');

@@ -298,6 +298,26 @@ it('saves an attachment to disk and sends a file from it when the machine is on'
       mimeType: 'application/zip',
       data: base64('zip'),
     });
+
+    // A call with every field filled, placeholders in the ones not meant, as some models make.
+    const filled = {
+      path,
+      mediaId: '00000000-0000-0000-0000-000000000000',
+      content: 'placeholder',
+      name: 'photos.zip',
+      sessionId: run.sessionId,
+    };
+    await expect(
+      tools.send_file?.execute?.(filled, { ...call, toolCallId: 'filled' }),
+    ).rejects.toThrow('name the one to use in source');
+    const chosen = (await tools.send_file?.execute?.(
+      { ...filled, source: 'path' },
+      { ...call, toolCallId: 'chosen' },
+    )) as { mediaId: string };
+    expect(await f.services.media.read(f.profile.id, chosen.mediaId)).toMatchObject({
+      name: 'photos.zip',
+      data: base64('zip'),
+    });
   } finally {
     await rm(folder, { recursive: true, force: true });
   }
