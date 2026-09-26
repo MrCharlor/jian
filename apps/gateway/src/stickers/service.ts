@@ -5,7 +5,6 @@ import {
   type Run,
   type Sticker,
   stickerSchema,
-  stickerTagSchema,
   stickerTagsSchema,
 } from '@jian/contracts';
 import { type ToolSet, tool } from 'ai';
@@ -30,6 +29,17 @@ type StickerMedia = {
 };
 
 type Row = typeof stickers.$inferSelect;
+
+/**
+ * A tag as a tool takes it. stickerTagSchema's Unicode pattern (\p{L}) is not a regex OpenAI
+ * accepts in a function schema, and one refused schema fails the whole turn, so the model sees
+ * a plain string and the tag is checked on arrival: by stickerTagsSchema when it is written, and
+ * as an exact match, found or not, when it is searched.
+ */
+const toolTag = z
+  .string()
+  .max(31)
+  .describe('One lowercase word or short phrase: letters, digits, spaces or hyphens.');
 
 export type StickerOrder = 'relevance' | 'most_sent' | 'most_seen' | 'newest';
 
@@ -272,7 +282,7 @@ export class Stickers {
           'Find stickers in your collection, gathered from what people sent in your chats. Search by meaning ("laughing", "approving"), by an exact tag, or list the ones you send most or the ones people send most. Returns ids, what each shows, its tags, how often you sent it and how often people did.',
         inputSchema: z.object({
           query: z.string().max(200).optional(),
-          tag: stickerTagSchema.optional(),
+          tag: toolTag.optional(),
           order: z
             .enum(['relevance', 'most_sent', 'most_seen', 'newest'])
             .default('relevance')
@@ -319,7 +329,7 @@ export class Stickers {
           'Replace the tags of a sticker in your collection, when its tags miss how it is really used — "that one means we are done here". Tags are short lowercase words: the feeling, the reaction, the subject.',
         inputSchema: z.object({
           stickerId: z.uuid(),
-          tags: z.array(stickerTagSchema).min(1).max(12),
+          tags: z.array(toolTag).min(1).max(12),
         }),
         execute: async ({ stickerId, tags }) => {
           const tagged = await this.tag(run.profileId, stickerId, { tags });

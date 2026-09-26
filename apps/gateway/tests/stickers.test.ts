@@ -1,4 +1,5 @@
 import type { Run } from '@jian/contracts';
+import { asSchema } from 'ai';
 import { expect, it } from 'vitest';
 import { listDeliveries } from '../src/channels/repository.js';
 import { Channels } from '../src/channels/service.js';
@@ -325,4 +326,37 @@ it('leaves out a sticker the model declines, and keeps nothing while stickers ar
   });
 
   expect(f.stickers.tools(run)).toEqual({});
+});
+
+it('offers its tools in schemas OpenAI accepts, and still refuses a malformed tag', async () => {
+  const f = await collection();
+  const session = await f.services.sessions.createSession(f.profile.id, { title: 'Chat' });
+  const run = await f.services.runs.submit(f.profile.id, session.id, {
+    text: 'Hi',
+    requestKey: 'schemas',
+  });
+  const tools = f.stickers.tools(run);
+
+  // OpenAI refuses a function whose pattern holds a Unicode property escape, and with it the
+  // whole turn: "'^[\p{L}…' is not a 'regex'".
+  for (const offered of Object.values(tools)) {
+    const schema = JSON.stringify(await asSchema(offered.inputSchema).jsonSchema);
+    expect(schema).not.toContain('\\\\p{');
+  }
+
+  await f.stickers.keep(f.profile.id, {
+    mimeType: 'image/webp',
+    data: webp('thumbs'),
+    sticker: true,
+  });
+  await settle();
+  const [sticker] = await f.stickers.list(f.profile.id);
+
+  await expect(
+    tools.tag_sticker?.execute?.(
+      { stickerId: sticker?.id as string, tags: ['dog!'] },
+      { toolCallId: 'tag', messages: [], context: {} },
+    ),
+  ).rejects.toThrow();
+  expect((await f.stickers.list(f.profile.id))[0]?.tags).toEqual(['approval', 'ok', 'cat']);
 });
