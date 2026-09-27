@@ -53,6 +53,13 @@ describe('ChatGPT Codex model adapter', () => {
     let request: Record<string, unknown> = {};
     const fetcher: typeof fetch = async (_input, init) => {
       request = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      const item = {
+        id: 'msg_cache',
+        type: 'message',
+        role: 'assistant',
+        status: 'completed',
+        content: [{ type: 'output_text', text: 'Cached.', annotations: [] }],
+      };
       const response = {
         id: 'resp_cache',
         object: 'response',
@@ -62,10 +69,14 @@ describe('ChatGPT Codex model adapter', () => {
         output: [],
         usage: { input_tokens: 10, output_tokens: 2, total_tokens: 12 },
       };
-      return new Response(
-        `data: ${JSON.stringify({ type: 'response.completed', response })}\\n\\n`,
-        { status: 200, headers: { 'content-type': 'text/event-stream' } },
-      );
+      const events = [
+        { type: 'response.output_item.done', output_index: 0, item },
+        { type: 'response.completed', response },
+      ];
+      return new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(''), {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      });
     };
 
     await generateText({
