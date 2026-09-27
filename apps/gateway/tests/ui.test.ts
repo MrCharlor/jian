@@ -43,6 +43,24 @@ describe('the policy the panel is served with', () => {
     expect(policy).toContain("frame-ancestors 'none'");
   });
 
+  it("lets the viewer show a PDF from the panel's own blob address", async () => {
+    const { app } = await serve('window.__jian = 1');
+
+    const response = await app.inject({ method: 'GET', url: '/ui/' });
+    const policy = String(response.headers['content-security-policy']);
+
+    expect(policy).toContain("frame-src 'self' blob:");
+    expect(policy).toContain("object-src 'self' blob:");
+  });
+
+  it('lets videos and voice notes play from the data addresses the panel builds', async () => {
+    const { app } = await serve('window.__jian = 1');
+
+    const response = await app.inject({ method: 'GET', url: '/ui/' });
+
+    expect(String(response.headers['content-security-policy'])).toContain("media-src 'self' data:");
+  });
+
   it('follows a rebuild under a running gateway instead of blocking the new page', async () => {
     const { app, file } = await serve('window.__jian = 1');
 

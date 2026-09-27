@@ -19,7 +19,15 @@ const DIRECTIVES = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self'",
-  "object-src 'none'",
+  // Videos and voice notes play from data addresses the panel builds from an attachment it
+  // already fetched through the API; the default allows none, so they never started.
+  "media-src 'self' data:",
+  // The viewer opens a PDF from a blob address the panel itself creates, in a frame. That
+  // document inherits this policy, and the browser's reader draws it as an embedded object,
+  // so both the frame and the object have to accept the panel's own blobs or the page stays
+  // blank. Nothing from another origin is allowed by either.
+  "frame-src 'self' blob:",
+  "object-src 'self' blob:",
   "base-uri 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",

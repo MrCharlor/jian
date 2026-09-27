@@ -387,7 +387,7 @@ script(zero, ids.learning, [
 
 /* API Server: a scripted report in Markdown behind many tools, and a request that failed. */
 script(zero, ids.reportChat, [
-  user(60 * 26 + 5, 'Nightly report for 2026-09-23.', ['config']),
+  user(60 * 26 + 5, 'Nightly report for 2026-09-23.', ['config', 'statusPage', 'retryJob']),
   agent(
     60 * 26,
     [

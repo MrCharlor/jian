@@ -650,7 +650,8 @@
   .viewer {
     user-select: none;
   }
-  .viewer-text {
+  .viewer-code,
+  .viewer-document {
     user-select: text;
   }
   .zoom-frame {
@@ -685,8 +686,79 @@
   .viewer-file .button.primary {
     @apply mt-3;
   }
-  .viewer-text {
-    @apply h-full w-full max-w-4xl overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface p-6 font-mono text-sm leading-6 text-ink;
+  .viewer-html {
+    @apply flex h-full w-full max-w-5xl flex-col gap-2;
+  }
+  .viewer-html iframe {
+    @apply min-h-0 w-full flex-1 rounded-lg bg-white;
+  }
+  .viewer-note {
+    @apply rounded-lg bg-surface px-4 py-2 text-sm text-muted;
+    user-select: text;
+  }
+  .viewer-document {
+    @apply h-full w-full max-w-4xl overflow-auto rounded-lg bg-surface px-10 py-8 text-ink;
+  }
+  /* Code reads on a dark page in every theme, as it does in an editor; the colours are the
+     GitHub dark palette, keyed to the classes highlight.js gives each token. */
+  .viewer-code {
+    @apply h-full w-full max-w-5xl overflow-auto whitespace-pre-wrap break-words rounded-lg p-6 font-mono text-sm leading-6;
+    background: #0d1117;
+    color: #e6edf3;
+  }
+  .viewer-code :is(.hljs-keyword, .hljs-doctag, .hljs-template-tag) {
+    color: #ff7b72;
+  }
+  .viewer-code :is(.hljs-title, .hljs-title.class_, .hljs-title.function_) {
+    color: #d2a8ff;
+  }
+  .viewer-code
+    :is(
+      .hljs-attr,
+      .hljs-attribute,
+      .hljs-literal,
+      .hljs-meta,
+      .hljs-number,
+      .hljs-operator,
+      .hljs-variable,
+      .hljs-selector-attr,
+      .hljs-selector-class,
+      .hljs-selector-id
+    ) {
+    color: #79c0ff;
+  }
+  .viewer-code :is(.hljs-regexp, .hljs-string) {
+    color: #a5d6ff;
+  }
+  .viewer-code :is(.hljs-built_in, .hljs-symbol, .hljs-type) {
+    color: #ffa657;
+  }
+  .viewer-code :is(.hljs-comment, .hljs-code, .hljs-formula) {
+    color: #8b949e;
+  }
+  .viewer-code :is(.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo) {
+    color: #7ee787;
+  }
+  .viewer-code .hljs-section {
+    @apply font-bold;
+    color: #79c0ff;
+  }
+  .viewer-code .hljs-bullet {
+    color: #f2cc60;
+  }
+  .viewer-code .hljs-emphasis {
+    @apply italic;
+  }
+  .viewer-code .hljs-strong {
+    @apply font-bold;
+  }
+  .viewer-code .hljs-addition {
+    color: #aff5b4;
+    background: #033a16;
+  }
+  .viewer-code .hljs-deletion {
+    color: #ffdcd7;
+    background: #67060c;
   }
   .viewer-previous,
   .viewer-next {
