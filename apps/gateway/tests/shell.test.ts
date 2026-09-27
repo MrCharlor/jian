@@ -237,6 +237,9 @@ describe('running commands on the machine the gateway runs on', () => {
     const theirs = await toolsFor(true);
     const secret = join(theirs.home, 'secret.txt');
 
+    // A workspace is made on first use; neither profile has used one yet.
+    mkdirSync(mine.home, { recursive: true });
+    mkdirSync(theirs.home, { recursive: true });
     writeFileSync(secret, 'private');
     symlinkSync(secret, join(mine.home, 'link.txt'));
 
