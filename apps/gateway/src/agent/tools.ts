@@ -1,11 +1,17 @@
-import { agentCallSchema, memoryKeySchema, memorySchema, type Run } from '@jian/contracts';
+import {
+  agentCallSchema,
+  decisionUseSchema,
+  memoryKeySchema,
+  memorySchema,
+  type Run,
+} from '@jian/contracts';
 import { type ToolSet, tool } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { Coordination } from '../coordination/service.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
-import type { Decisions } from '../decisions/service.js';
+import type { Decisions, Question } from '../decisions/service.js';
 import type { Outreach } from '../errands/port.js';
 import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
@@ -22,6 +28,40 @@ import { artifactPage } from './results.js';
 import { shellTools } from './shell.js';
 
 /** What the tool set reaches for on the profile's behalf during a run. */
+const jevQuestionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('noul'),
+    instructions: z.string().trim().min(1).max(2_000),
+    criteria: z.object({ yes: z.string().min(1).max(600), no: z.string().min(1).max(600) }),
+  }),
+  z.object({
+    type: z.literal('choice'),
+    instructions: z.string().trim().min(1).max(2_000),
+    criteria: z
+      .record(z.string().min(1).max(100), z.string().max(600).nullable())
+      .refine(
+        (criteria) => Object.keys(criteria).length >= 2 && Object.keys(criteria).length <= 20,
+        'choice needs between two and twenty alternatives',
+      ),
+  }),
+  z.object({
+    type: z.literal('score'),
+    instructions: z.string().trim().min(1).max(2_000),
+    criteria: z.array(z.string().min(1).max(600)).min(2).max(20),
+  }),
+]);
+
+const jevInputSchema = z.object({
+  use: decisionUseSchema,
+  state: z
+    .record(z.string().max(100), z.unknown())
+    .refine(
+      (state) => JSON.stringify(state).length <= 24_000,
+      'state is too large; send only the facts needed for this judgment',
+    ),
+  question: jevQuestionSchema,
+});
+
 export type ToolServices = {
   profiles: ProfileAdmin;
   memories: MemoryWriter;
@@ -144,6 +184,29 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
         }
 
         return skill;
+      },
+    }),
+
+    ask_jev: tool({
+      description:
+        'Ask Jev for one narrow semantic judgment. It returns a probability, choice or score as a second opinion; unavailable means use the fixed rule.',
+      inputSchema: jevInputSchema,
+      execute: async ({ use, state, question }) => {
+        if (!services.decisions) {
+          return { available: false, reason: 'Jev is not configured in this gateway.' };
+        }
+
+        const normalized: Question =
+          question.type === 'noul'
+            ? {
+                ...question,
+                criteria: { true: question.criteria.yes, false: question.criteria.no },
+              }
+            : question;
+        const answers = await services.decisions.judge(state, { judgment: normalized }, { use });
+        const answer = answers?.judgment;
+
+        return answer ? { available: true, answer } : { available: false };
       },
     }),
 

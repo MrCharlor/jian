@@ -286,6 +286,56 @@ describe('judging the turn before it starts', () => {
   });
 });
 
+describe('the ask_jev tool', () => {
+  it('translates the public yes/no shape and returns Jev’s answer', async () => {
+    const f = await fixture();
+    const { judge, calls } = fakeJudge((id, question, state) => {
+      expect(id).toBe('judgment');
+      expect(question).toEqual({
+        type: 'noul',
+        instructions: 'Is this relevant?',
+        criteria: { true: 'Relevant', false: 'Not relevant' },
+      });
+      expect(state).toEqual({ item: 'appointment' });
+      return yes(0.8);
+    });
+    const tools = profileTools(
+      { ...f.services, decisions: { ask: async () => undefined, judge } },
+      f.run,
+    );
+
+    expect(
+      await call(tools.ask_jev, {
+        use: 'turn',
+        state: { item: 'appointment' },
+        question: {
+          type: 'noul',
+          instructions: 'Is this relevant?',
+          criteria: { yes: 'Relevant', no: 'Not relevant' },
+        },
+      }),
+    ).toEqual({ available: true, answer: { type: 'noul', noul: 0.8 } });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('reports unavailable without a decisions service', async () => {
+    const f = await fixture();
+    const tools = profileTools(f.services, f.run);
+
+    await expect(
+      call(tools.ask_jev, {
+        use: 'turn',
+        state: { item: 'appointment' },
+        question: {
+          type: 'score',
+          instructions: 'How relevant?',
+          criteria: ['low', 'high'],
+        },
+      }),
+    ).resolves.toEqual({ available: false, reason: 'Jev is not configured in this gateway.' });
+  });
+});
+
 describe('a memory on a subject already kept', () => {
   it('is held once with the existing key, then saved when the agent insists', async () => {
     const f = await fixture();
