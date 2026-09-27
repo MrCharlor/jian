@@ -5,6 +5,26 @@ Every release of Jian, newest first.
 <!-- Generated from docs/releases by scripts/changelog.mjs. Edit a note there and run
      `make changelog`; editing this file is editing the copy rather than the thing. -->
 
+## 2.3.0 — 2026-09-27
+
+Each agent works in its own workspace, confined by Landlock and without the gateway's secrets, and the panel's viewer previews PDFs, HTML, Markdown, code and video.
+
+### Features
+
+* **shell:** each profile works in its own workspace, `/home/node/workspaces/<profile id>`, its `HOME` and `TMPDIR` and where it installs, keeps SSH keys and logs in to Git and `gh`; `JIAN_WORKSPACES` moves the parent ([8c832d4](https://github.com/lucasaarch/jian/commit/8c832d4bce3310571166524a8b4054528d36dfef))
+* **shell:** commands run under `jian-sandbox`, which confines them with Landlock: full access in the workspace, read and execute in the system directories, nothing else, so a profile cannot read another's workspace, the gateway's files or the gateway's process; it needs no privilege and works with `no-new-privileges`, and on Linux 6.12 or later it also scopes signals and abstract sockets ([8c832d4](https://github.com/lucasaarch/jian/commit/8c832d4bce3310571166524a8b4054528d36dfef))
+* **files:** the file tools, `send_file` and `save_attachment` keep to the same line: they write only in the workspace and read in it or in the system directories, with links resolved ([8c832d4](https://github.com/lucasaarch/jian/commit/8c832d4bce3310571166524a8b4054528d36dfef))
+* **panel:** the viewer previews HTML in a sandboxed frame, lays out Markdown, colours code and plays video; it says when an HTML page is shown without the scripts or styles it loads from other sites ([be6262f](https://github.com/lucasaarch/jian/commit/be6262f1b083da2b9f2a79b82197ef5f2fd26406)) ([ffcc9d8](https://github.com/lucasaarch/jian/commit/ffcc9d8ff6cb0cea090676056d461383aeefd814))
+
+### Bug Fixes
+
+* **shell:** a command started with the gateway's whole environment, `DATABASE_URL`, `JIAN_MASTER_KEYS`, `JIAN_API_TOKEN` and provider keys included, so a project's database test could run against the gateway's own PostgreSQL; it now starts from an allow-list, and `NODE_ENV` stays out so a project's install keeps its dev dependencies ([7a82342](https://github.com/lucasaarch/jian/commit/7a823422bc87bfb701a82e438263932e14dba1ff))
+* **panel:** a PDF opened in the viewer showed a blank page, refused by the panel's policy; it now shows ([ac6608c](https://github.com/lucasaarch/jian/commit/ac6608c4c96a43f51059f0302b98a0c7d1627a73))
+
+### Upgrading
+
+No migration runs. Commands no longer see the rest of `/home/node`: repositories, SSH keys and Git and `gh` logins kept there before this version are out of an agent's reach until they are moved, once, into its workspace under `/home/node/workspaces/<profile id>`. On a kernel without Landlock, commands run unconfined and the gateway logs a warning once; the environment allow-list still applies.
+
 ## 2.2.2 — 2026-09-26
 
 Agents on OpenAI and Codex models answer again with stickers on, and send the files they make.
