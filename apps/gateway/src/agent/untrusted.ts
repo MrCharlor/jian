@@ -49,7 +49,7 @@ export async function markSteering(
         },
       },
     },
-    { timeoutMs: TIMEOUT_MS, ...(signal ? { signal } : {}) },
+    { use: 'outside', timeoutMs: TIMEOUT_MS, ...(signal ? { signal } : {}) },
   );
 
   if ((noul(answers?.steers) ?? 0) < STEERING_THRESHOLD) {

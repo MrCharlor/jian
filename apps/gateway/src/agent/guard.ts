@@ -108,33 +108,49 @@ const ASKED: Question = {
  * expose, and did the request ask for exactly that? It is a check, not containment — the judge
  * reads the same request an attacker could have written, and an outage lets the action
  * through, the way it ran before the judge existed.
+ *
+ * Two steps, for cost: the risks are judged on the action alone, which is short and repeats,
+ * so a repeat is answered from the cache. Most actions carry no risk, and only when one does
+ * is the request — the long part — sent to ask whether it asked for exactly that. The decision
+ * is the same as asking everything at once: the risk questions never read the request.
  */
 export function actionGuard(judge: Judge, run: Pick<Run, 'input'>): Guard {
   return async (tool, input, kind) => {
     const risks = Object.entries(RISKS).filter(([, risk]) => risk.kinds.includes(kind));
-    const answers = await judge(
-      {
-        request: run.input.slice(-MAX_REQUEST_CHARS),
-        action: { where: WHERE[kind], tool, input: bounded(input) },
-      },
-      {
-        ...Object.fromEntries(risks.map(([id, risk]) => [id, risk.question])),
-        asked: ASKED,
-      },
-      { timeoutMs: 5000 },
+    const action = { where: WHERE[kind], tool, input: bounded(input) };
+    const judged = await judge(
+      { action },
+      Object.fromEntries(risks.map(([id, risk]) => [id, risk.question])),
+      { use: 'actions', timeoutMs: 5000 },
     );
 
-    if (!answers) {
+    if (!judged) {
       return undefined;
     }
 
     const fired = risks
-      .filter(([id]) => (noul(answers[id]) ?? 0) >= RISK_THRESHOLD)
+      .filter(([id]) => (noul(judged[id]) ?? 0) >= RISK_THRESHOLD)
       .map(([, risk]) => risk.reason);
+
+    if (fired.length === 0) {
+      return undefined;
+    }
+
+    const answers = await judge(
+      { request: run.input.slice(-MAX_REQUEST_CHARS), action },
+      { asked: ASKED },
+      { use: 'actions', timeoutMs: 5000 },
+    );
+
+    // Unreachable now, the service decides nothing, as when the first step fails.
+    if (!answers) {
+      return undefined;
+    }
+
     // Without an answer on the request, a risk alone holds: the cheap mistake is asking.
     const asked = noul(answers.asked) ?? 0;
 
-    return fired.length > 0 && asked < ASKED_THRESHOLD
+    return asked < ASKED_THRESHOLD
       ? `Held back: this action ${fired.join(', and ')}, and the request did not ask for exactly that. Tell whoever asked what it would do, and run it only after the owner asks for exactly that in this conversation.`
       : undefined;
   };

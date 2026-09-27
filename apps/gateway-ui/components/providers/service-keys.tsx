@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
 import { Badge, Button, Field, ProviderLogo, ResourceRow } from '../ui';
+import { DecisionsSpending } from './decisions-spending';
 
 type Status = { configured: boolean; updatedAt?: string };
 type RowProps = Pick<SectionProps, 'api' | 'mutate' | 'busy'>;
@@ -13,7 +14,7 @@ type RowProps = Pick<SectionProps, 'api' | 'mutate' | 'busy'>;
  * A service the whole installation shares through one key. These sit beside the model
  * providers because each is a credential of the installation, but none of them chooses a model.
  */
-function ServiceKeyRow({
+function ServiceKeyRow<S extends Status>({
   id,
   icon,
   title,
@@ -23,6 +24,7 @@ function ServiceKeyRow({
   load,
   save,
   remove,
+  more,
   mutate,
   busy,
 }: {
@@ -32,11 +34,16 @@ function ServiceKeyRow({
   vendor: string;
   children: string;
   source: string;
-  load: () => Promise<Status>;
-  save: (key: string) => Promise<Status>;
-  remove: () => Promise<Status>;
+  load: () => Promise<S>;
+  save: (key: string) => Promise<S>;
+  remove: () => Promise<S>;
+  /** What the service offers besides its key, shown once the row is open and the state known. */
+  more?: (
+    status: S,
+    change: (action: () => Promise<S>, done: string) => Promise<boolean>,
+  ) => ReactNode;
 } & Pick<SectionProps, 'mutate' | 'busy'>) {
-  const [status, setStatus] = useState<Status>();
+  const [status, setStatus] = useState<S>();
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -52,8 +59,8 @@ function ServiceKeyRow({
     };
   }, [load]);
 
-  const change = async (action: () => Promise<Status>, done: string) => {
-    let next: Status | undefined;
+  const change = async (action: () => Promise<S>, done: string) => {
+    let next: S | undefined;
     const ok = await mutate(async () => {
       next = await action();
     }, done);
@@ -130,6 +137,7 @@ function ServiceKeyRow({
           </p>
         )}
       </form>
+      {status && more?.(status, change)}
     </ResourceRow>
   );
 }
@@ -165,6 +173,13 @@ export function DecisionsRow({ api, mutate, busy }: RowProps) {
       load={api.decisions}
       save={api.setDecisions}
       remove={api.removeDecisions}
+      more={(status, change) => (
+        <DecisionsSpending
+          status={status}
+          busy={busy}
+          save={(patch, done) => change(() => api.updateDecisions(patch), done)}
+        />
+      )}
       mutate={mutate}
       busy={busy}
     >
@@ -172,7 +187,9 @@ export function DecisionsRow({ api, mutate, busy }: RowProps) {
       expose private data beyond what was asked, marks outside content that tries to steer an agent,
       picks the memories and skill that fit each turn, thinks less on plainly light ones, and tells
       whether a group message is speaking to an agent. Each check sends the message, action or short
-      list it judges to TypeSafe. Without a key, the fixed rules decide.
+      list it judges to TypeSafe, which bills by token. A repeated question is answered from a
+      cache, and each use can be switched off or capped by a daily ceiling. Without a key, the fixed
+      rules decide.
     </ServiceKeyRow>
   );
 }

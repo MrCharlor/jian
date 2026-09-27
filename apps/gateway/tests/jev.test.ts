@@ -95,6 +95,7 @@ describe('asking Jev several questions at once', () => {
         second: { type: 'choice', instructions: 'Which one?', criteria: { a: 'A', b: 'B' } },
         third: { type: 'score', instructions: 'How urgent?', criteria: ['low', 'high'] },
       },
+      { use: 'turn' },
     );
 
     expect(bodies).toHaveLength(1);
@@ -136,7 +137,24 @@ describe('the action guard', () => {
 
     await actionGuard(judge, run)('send_file', { path: 'a.pdf' }, 'message');
 
-    expect(Object.keys(calls[0]?.questions ?? {}).sort()).toEqual(['asked', 'exposes']);
+    expect(Object.keys(calls[0]?.questions ?? {})).toEqual(['exposes']);
+  });
+
+  it('sends the request only when the action carries a risk', async () => {
+    const safe = fakeJudge(() => yes(0.1));
+
+    await actionGuard(safe.judge, run)('run_command', { command: 'ls' }, 'machine');
+
+    expect(safe.calls).toHaveLength(1);
+    expect(JSON.stringify(safe.calls[0]?.state)).not.toContain(run.input);
+
+    const risky = fakeJudge((id) => yes(id === 'destroys' ? 0.9 : 0.1));
+    const held = await actionGuard(risky.judge, run)('run_command', { command: 'rm x' }, 'machine');
+
+    expect(risky.calls).toHaveLength(2);
+    expect(Object.keys(risky.calls[1]?.questions ?? {})).toEqual(['asked']);
+    expect(JSON.stringify(risky.calls[1]?.state)).toContain(run.input);
+    expect(held).toContain('deletes or overwrites existing data');
   });
 
   it('runs nothing that is held, and leaves unclassified tools alone', async () => {

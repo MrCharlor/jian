@@ -349,6 +349,23 @@ export const gatewaySettings = pgTable('gateway_settings', {
 });
 
 /**
+ * What the installation spent on the decisions service, per UTC day and use. It holds counts
+ * only — never what was asked — and feeds the owner's daily ceiling and the panel.
+ */
+export const decisionUsage = pgTable(
+  'decision_usage',
+  {
+    day: text('day').notNull(),
+    use: text('use').notNull(),
+    requests: integer('requests').notNull().default(0),
+    cached: integer('cached').notNull().default(0),
+    inputTokens: bigint('input_tokens', { mode: 'number' }).notNull().default(0),
+    outputTokens: bigint('output_tokens', { mode: 'number' }).notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.day, table.use] })],
+);
+
+/**
  * Two memories recalled together. A link has no direction, so it is stored once, the smaller
  * key first, and goes when either memory does.
  */

@@ -135,18 +135,21 @@ export class Groups {
       if (profile) others.push(profile.name);
     }
 
-    const yes = await this.ask({
-      state: {
-        room: message.groupName ?? message.chatId,
-        agent: self.name,
-        ...(others.length ? { otherAgents: others } : {}),
-        from: message.displayName ?? message.actorId,
-        message: message.text.slice(0, 4000),
+    const yes = await this.ask(
+      {
+        state: {
+          room: message.groupName ?? message.chatId,
+          agent: self.name,
+          ...(others.length ? { otherAgents: others } : {}),
+          from: message.displayName ?? message.actorId,
+          message: message.text.slice(0, 4000),
+        },
+        instructions: `Is this group message speaking to ${self.name} — asking them to answer or to do something now — rather than only talking about them${others.length ? ' or speaking to one of `otherAgents`' : ''}?`,
+        yes: `The message addresses ${self.name} and expects them to respond.`,
+        no: `The message only mentions ${self.name}, quotes them, or is meant for someone else.`,
       },
-      instructions: `Is this group message speaking to ${self.name} — asking them to answer or to do something now — rather than only talking about them${others.length ? ' or speaking to one of `otherAgents`' : ''}?`,
-      yes: `The message addresses ${self.name} and expects them to respond.`,
-      no: `The message only mentions ${self.name}, quotes them, or is meant for someone else.`,
-    });
+      { use: 'groups' },
+    );
 
     return yes === undefined ? undefined : yes >= VERDICT_THRESHOLD;
   }

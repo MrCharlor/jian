@@ -20,7 +20,11 @@ import {
   mailSchema,
   pageQuerySchema,
 } from './coordination.js';
-import { decisionsInputSchema, decisionsStatusSchema } from './decisions.js';
+import {
+  decisionsInputSchema,
+  decisionsSettingsPatchSchema,
+  decisionsStatusSchema,
+} from './decisions.js';
 import {
   inlineMediaSchema,
   mediaContentSchema,
@@ -165,6 +169,14 @@ export const operations: Operation[] = [
     operationId: 'setDecisions',
     access: 'admin',
     body: decisionsInputSchema,
+    response: decisionsStatusSchema,
+  },
+  {
+    method: 'PATCH',
+    path: '/v1/decisions',
+    operationId: 'updateDecisionsSettings',
+    access: 'admin',
+    body: decisionsSettingsPatchSchema,
     response: decisionsStatusSchema,
   },
   {

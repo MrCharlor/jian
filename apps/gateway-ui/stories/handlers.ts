@@ -13,6 +13,32 @@ const byProfile = <T extends { profileId: string }>(items: T[], profileId: strin
 
 let settings = { timeZone: 'America/Sao_Paulo', timeZoneSource: 'setting' };
 
+const decisions = (configured: boolean) => ({
+  provider: 'jev',
+  configured,
+  ...(configured ? { updatedAt: new Date().toISOString() } : {}),
+  uses: { actions: true, outside: true, turn: true, memories: true, learning: true, groups: false },
+  dailyTokenLimit: 200_000,
+  usage: [
+    {
+      day: new Date().toISOString().slice(0, 10),
+      use: 'actions',
+      requests: 42,
+      cached: 9,
+      inputTokens: 18_400,
+      outputTokens: 840,
+    },
+    {
+      day: new Date().toISOString().slice(0, 10),
+      use: 'turn',
+      requests: 17,
+      cached: 0,
+      inputTokens: 51_000,
+      outputTokens: 1_200,
+    },
+  ],
+});
+
 export const handlers = [
   http.get('*/v1/profiles', () => ok(data.profiles)),
   http.get('*/v1/profiles/:profileId', ({ params }) =>
@@ -468,11 +494,10 @@ export const handlers = [
     ok({ provider: 'tavily', configured: true, updatedAt: new Date().toISOString() }),
   ),
   http.delete('*/v1/web-search', () => ok({ provider: 'tavily', configured: false })),
-  http.get('*/v1/decisions', () => ok({ provider: 'jev', configured: false })),
-  http.put('*/v1/decisions', () =>
-    ok({ provider: 'jev', configured: true, updatedAt: new Date().toISOString() }),
-  ),
-  http.delete('*/v1/decisions', () => ok({ provider: 'jev', configured: false })),
+  http.get('*/v1/decisions', () => ok(decisions(false))),
+  http.put('*/v1/decisions', () => ok(decisions(true))),
+  http.patch('*/v1/decisions', () => ok(decisions(true))),
+  http.delete('*/v1/decisions', () => ok(decisions(false))),
 
   // Most stories are about a screen, not about the update dialog opening over it.
   http.get('*/v1/releases', () => ok({ ...data.releases, unseen: [] })),

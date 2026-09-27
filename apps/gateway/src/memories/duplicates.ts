@@ -47,6 +47,7 @@ export async function sameSubject(
         },
       },
     },
+    { use: 'memories' },
   );
   const same = answers?.same;
 

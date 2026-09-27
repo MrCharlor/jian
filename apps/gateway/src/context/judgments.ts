@@ -99,7 +99,7 @@ export async function judgeTurn(
       ),
     },
     questions,
-    { timeoutMs: TIMEOUT_MS },
+    { use: 'turn', timeoutMs: TIMEOUT_MS },
   );
 
   if (!answers) {

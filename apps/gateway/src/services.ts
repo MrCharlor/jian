@@ -70,7 +70,13 @@ export function buildServices({
   const memories = new Memories(store, profiles, sessions, clock);
   const runs = new Runs(store, profiles, sessions, providers, clock);
   const settings = new Settings(store);
-  const decisions = new Decisions(store, gatewayVault, fetcher ?? createSafeFetch().fetch);
+  const decisions = new Decisions(
+    store,
+    gatewayVault,
+    fetcher ?? createSafeFetch().fetch,
+    undefined,
+    clock,
+  );
   const media = new Media(store, providers, gatewayVault, fetcher ?? createSafeFetch().fetch);
 
   return {

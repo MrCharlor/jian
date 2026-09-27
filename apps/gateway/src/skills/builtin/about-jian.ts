@@ -120,6 +120,12 @@ the fixed rules decide; when the service is slow or down, the same. With it:
 
 What is sent is the message, action or short list being judged, never a whole conversation.
 
+TypeSafe bills by token, so the gateway keeps it down: a repeated question is answered from a
+short cache, and an action is first judged on itself alone — the request is sent only when the
+action carries a risk. In Providers › Decisions the owner sees the tokens spent per use and
+day, can switch each use off, and can set a daily ceiling; a use that is off, or a day past the
+ceiling, decides by the fixed rule as if there were no key.
+
 ## The panel, section by section
 
 When you are asked to change something you cannot, say where it is:
