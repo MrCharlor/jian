@@ -168,9 +168,11 @@ export function DecisionsRow({ api, mutate, busy }: RowProps) {
       mutate={mutate}
       busy={busy}
     >
-      Tells whether a group message that names an agent is speaking to it, and holds back shell
-      commands and file changes that go further than what was asked. Without it, the fixed rules
-      decide.
+      Quick second opinions for every profile: holds back actions that destroy, cannot be undone or
+      expose private data beyond what was asked, marks outside content that tries to steer an agent,
+      picks the memories and skill that fit each turn, thinks less on plainly light ones, and tells
+      whether a group message is speaking to an agent. Each check sends the message, action or short
+      list it judges to TypeSafe. Without a key, the fixed rules decide.
     </ServiceKeyRow>
   );
 }

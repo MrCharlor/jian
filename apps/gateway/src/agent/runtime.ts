@@ -18,7 +18,7 @@ import type { ContextSource } from '../context/port.js';
 import type { Learning } from '../learning/service.js';
 import type { Media } from '../media/service.js';
 import { anthropicCredential, withClaudeCodeIdentity } from '../providers/claude-subscription.js';
-import { reasoningProviderOptions } from '../providers/effort.js';
+import { lightEffort, reasoningProviderOptions } from '../providers/effort.js';
 import { resolveModel } from '../providers/models.js';
 import { readModelDefaults } from '../providers/repository.js';
 import type { Providers } from '../providers/service.js';
@@ -27,12 +27,14 @@ import { createSafeFetch } from '../security/outbound.js';
 import type { Stickers } from '../stickers/service.js';
 import type { WebSearch } from '../web/service.js';
 import { type CacheTtl, cacheable, cacheableInstructions } from './cache.js';
+import { ACTION_KINDS, actionGuard, guardTools, mcpActionKind } from './guard.js';
 import { availableNote, connectMcpTools, unavailableNote } from './mcp.js';
 import { Narrator } from './narrator.js';
 import { ProgressReporter } from './progress.js';
 import { boundToolResult, redactOutput, redactText } from './results.js';
 import { deferTools, profileTools, type ToolServices } from './tools.js';
 import type { ModelResolver, RuntimeOptions } from './types.js';
+import { markSteering, outsideContent } from './untrusted.js';
 
 /**
  * How long a model call or a tool may go without a sign of life before the turn is given up.
@@ -296,6 +298,16 @@ export class AgentRuntime {
         console.warn(`jian: MCP server ${server.name} is unavailable — ${server.reason}`);
       }
 
+      // One guard for every tool that acts beyond the conversation, the gateway's own and those
+      // of any MCP server alike, applied once the whole set is known.
+      const judge = this.services.decisions?.judge;
+
+      if (judge) {
+        guardTools(tools, actionGuard(judge, run), (name, definition) =>
+          mcpToolNames.includes(name) ? mcpActionKind(definition) : ACTION_KINDS[name],
+        );
+      }
+
       const guarded: ToolSet = {};
       // Serializing tool execution prevents another effect from starting after one remote outcome is uncertain.
       let toolQueue: Promise<void> = Promise.resolve();
@@ -359,7 +371,12 @@ export class AgentRuntime {
                   });
                 }
 
-                return await boundToolResult(output, name, run, secrets, this.options);
+                const result = await boundToolResult(output, name, run, secrets, this.options);
+
+                // Read after secrets are masked: the judge sees no more than the agent will.
+                return judge && outsideContent(name, mcpToolNames)
+                  ? await markSteering(judge, result, signal)
+                  : result;
               } catch (error) {
                 // The call never came back, so whether the server acted on it is unknowable.
                 // Everything stops: another tool starting now could act on a state nobody has
@@ -409,8 +426,12 @@ export class AgentRuntime {
       }
 
       const context = await this.services.contexts.context(run);
-      // The effort the owner picked next to the model, in the dialect this provider reads.
-      const reasoning = reasoningProviderOptions(config, policy.outputTokens);
+      // The effort the owner picked next to the model, in the dialect this provider reads;
+      // lowered, never raised, for a turn judged plainly light.
+      const reasoning = reasoningProviderOptions(
+        context.light ? lightEffort(config) : config,
+        policy.outputTokens,
+      );
       let usedTokens = 0;
       let preparedInputTokens = 0;
       let preparedPrompt: unknown;

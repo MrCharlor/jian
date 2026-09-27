@@ -123,14 +123,27 @@ export class Groups {
       return undefined;
     }
 
+    // With several agents in a room, one message often names two of them and speaks to one.
+    // Knowing who else is there is what lets the answer tell them apart.
+    const others: string[] = [];
+
+    for (const member of members) {
+      if (member.profileId === channel.profileId) continue;
+
+      const profile = await this.profiles.profile(member.profileId).catch(() => null);
+
+      if (profile) others.push(profile.name);
+    }
+
     const yes = await this.ask({
       state: {
         room: message.groupName ?? message.chatId,
         agent: self.name,
+        ...(others.length ? { otherAgents: others } : {}),
         from: message.displayName ?? message.actorId,
         message: message.text.slice(0, 4000),
       },
-      instructions: `Is this group message speaking to ${self.name} — asking them to answer or to do something now — rather than only talking about them?`,
+      instructions: `Is this group message speaking to ${self.name} — asking them to answer or to do something now — rather than only talking about them${others.length ? ' or speaking to one of `otherAgents`' : ''}?`,
       yes: `The message addresses ${self.name} and expects them to respond.`,
       no: `The message only mentions ${self.name}, quotes them, or is meant for someone else.`,
     });

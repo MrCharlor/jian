@@ -3,7 +3,6 @@ import { isAbsolute, join } from 'node:path';
 import { type ToolSet, tool } from 'ai';
 import { z } from 'zod';
 import { fileTools } from './files.js';
-import type { Guard } from './guard.js';
 import { confine, confined, workspaceOf } from './workspace.js';
 
 /**
@@ -11,8 +10,9 @@ import { confine, confined, workspaceOf } from './workspace.js';
  *
  * What bounds them first is the profile switch that hands them out at all — everything here is
  * off unless `allowShell` is on for that profile. Anyone who can make this agent act, including
- * an approved contact on a chat channel, can make it run a command. A `guard`, when given, is
- * asked before each action that changes the machine; it is a second opinion, not a boundary.
+ * an approved contact on a chat channel, can make it run a command. The runtime puts a guard in
+ * front of each action that changes the machine (see guard.ts); it is a second opinion, not a
+ * boundary.
  *
  * The boundary is the profile's workspace (see workspace.ts): a command starts there, with it as
  * `HOME` and `TMPDIR`, confined by Landlock to it and to the system's tools. It also starts
@@ -89,11 +89,8 @@ function clip(text: string, limit: number): string {
     : text;
 }
 
-/** The tools whose action changes the machine, and so pass the guard first. */
-const GUARDED = ['run_command', 'write_file', 'edit_file'];
-
-export function shellTools(profileId: string, guard?: Guard): ToolSet {
-  const tools: ToolSet = {
+export function shellTools(profileId: string): ToolSet {
+  return {
     run_command: tool({
       description:
         'Run a command on the machine this gateway runs on and read what it printed. It starts in your workspace, which is also $HOME, and can write only there. Prefer a single command over a shell pipeline you cannot inspect. Anything destructive needs the owner to have asked for it in this conversation.',
@@ -135,26 +132,4 @@ export function shellTools(profileId: string, guard?: Guard): ToolSet {
 
     ...fileTools(profileId),
   };
-
-  if (!guard) {
-    return tools;
-  }
-
-  for (const name of GUARDED) {
-    const original = tools[name];
-    const execute = original?.execute;
-
-    if (original && execute) {
-      tools[name] = {
-        ...original,
-        execute: async (input, options) => {
-          const held = await guard(name, input);
-
-          return held ? { held } : execute(input, options);
-        },
-      };
-    }
-  }
-
-  return tools;
 }

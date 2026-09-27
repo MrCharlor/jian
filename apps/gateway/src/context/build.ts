@@ -16,10 +16,34 @@ export interface ContextSources {
   history: Message[];
   /** What the turns before this history held, once they stopped fitting in a request. */
   summary?: string;
+  /** For memories judged on their meaning, the probability that each helps with this turn. */
+  relevance?: Record<string, number>;
+  /** A skill judged to fit this turn, named to the agent as a hint. */
+  suggestedSkill?: string;
 }
+
+/** A memory judged this unlikely to help is left out, and its room goes to one that may. */
+const IRRELEVANT = 0.1;
 
 function terms(text: string): Set<string> {
   return new Set(text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []);
+}
+
+/**
+ * The memories that share words with the request, most shared words first, then most recently
+ * changed. This is the fast shortlist; a judgement on meaning, when there is one, reorders it.
+ */
+export function rankMemories(input: string, memories: Memory[]) {
+  const query = terms(input);
+
+  return memories
+    .map((memory) => {
+      const words = terms(`${memory.key} ${memory.content}`);
+
+      return { memory, score: [...query].filter((word) => words.has(word)).length };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || b.memory.updatedAt.localeCompare(a.memory.updatedAt));
 }
 
 const localTime = (iso: string, zone: string) =>
@@ -36,16 +60,14 @@ export function buildContext(
   const policy = run.contextPolicy ?? run.profile.contextPolicy;
   const model = run.model ?? run.profile.model;
   const count = tokenCounter(model.provider, model.modelId);
-  const query = terms(run.input);
-
-  const ranked = sources.memories
-    .map((memory) => {
-      const words = terms(`${memory.key} ${memory.content}`);
-
-      return { memory, score: [...query].filter((word) => words.has(word)).length };
-    })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score || b.memory.updatedAt.localeCompare(a.memory.updatedAt));
+  const relevance = sources.relevance ?? {};
+  const judged = (key: string) => relevance[key] ?? -1;
+  // Judged memories lead, by how much they help; those the judgement did not reach follow in
+  // the order the words gave them, and those it found irrelevant are left out.
+  const ranked = rankMemories(run.input, sources.memories)
+    .filter(({ memory }) => judged(memory.key) === -1 || judged(memory.key) >= IRRELEVANT)
+    .map((entry, order) => ({ ...entry, order }))
+    .sort((a, b) => judged(b.memory.key) - judged(a.memory.key) || a.order - b.order);
 
   type Recalled = Pick<Memory, 'key' | 'content' | 'version' | 'sourceSessionId'> & {
     /** Present on a memory that came because it is linked to this one. */
@@ -244,8 +266,13 @@ export function buildContext(
     count(system) + messages.reduce((sum, message) => sum + count(message.content) + 8, 0);
   const share = Math.min(100, Math.round((used / policy.inputTokens) * 100));
 
+  // Said after the part a provider caches, like the context line: it changes every turn.
+  const hint = sources.suggestedSkill
+    ? `A quick check suggests the skill ${JSON.stringify(sources.suggestedSkill)} fits this turn. Load it if it matches what was actually asked; otherwise ignore this.\n\n`
+    : '';
+
   return {
-    system: `${system}\n\nContext: this turn starts at about ${used.toLocaleString('en')} of ${policy.inputTokens.toLocaleString('en')} tokens (${share}%). Tool results add to it as you work; near the limit the older part is summarised automatically. See managing-context.`,
+    system: `${system}\n\n${hint}Context: this turn starts at about ${used.toLocaleString('en')} of ${policy.inputTokens.toLocaleString('en')} tokens (${share}%). Tool results add to it as you work; near the limit the older part is summarised automatically. See managing-context.`,
     messages,
   };
 }

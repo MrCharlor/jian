@@ -46,6 +46,17 @@ export function takesAdaptiveThinking(modelId: string): boolean {
 }
 
 /**
+ * The effort for a turn judged light: `low` in place of anything above it, never higher than
+ * the owner's pick and never switched off — a model the owner set to think still thinks, and
+ * `low` is a level every provider that offers `medium` or `high` also offers.
+ */
+export function lightEffort(config: ModelConfig): ModelConfig {
+  return config.reasoningEffort === 'medium' || config.reasoningEffort === 'high'
+    ? { ...config, reasoningEffort: 'low' }
+    : config;
+}
+
+/**
  * Translates the stored effort into each provider's own dialect. Returns undefined when there
  * is nothing to say, so a model without reasoning is called exactly as before.
  */
