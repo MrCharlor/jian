@@ -687,7 +687,14 @@
     @apply mt-3;
   }
   .viewer-html {
-    @apply h-full w-full max-w-5xl rounded-lg bg-white;
+    @apply flex h-full w-full max-w-5xl flex-col gap-2;
+  }
+  .viewer-html iframe {
+    @apply min-h-0 w-full flex-1 rounded-lg bg-white;
+  }
+  .viewer-note {
+    @apply rounded-lg bg-surface px-4 py-2 text-sm text-muted;
+    user-select: text;
   }
   .viewer-document {
     @apply h-full w-full max-w-4xl overflow-auto rounded-lg bg-surface px-10 py-8 text-ink;

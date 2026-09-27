@@ -1,7 +1,7 @@
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it } from 'vitest';
-import { Code, HtmlPage, languageOf, textOf } from './preview';
+import { Code, HtmlPage, languageOf, reachesBeyond, textOf } from './preview';
 
 const encode = (text: string) => btoa(unescape(encodeURIComponent(text)));
 
@@ -54,4 +54,23 @@ it('draws an HTML page in a frame that runs none of its scripts', async () => {
 
   expect(frame?.getAttribute('sandbox')).toBe('');
   expect(frame?.getAttribute('srcdoc')).toContain('<h1>Report</h1>');
+  expect(element.querySelector('[role="note"]')?.textContent).toContain('scripts do not run');
+});
+
+it('warns only about pages that need a script or another site', async () => {
+  expect(reachesBeyond('<link rel="stylesheet" href="https://cdn.example/a.css">')).toBe(true);
+  expect(reachesBeyond('<img src=//cdn.example/logo.png>')).toBe(true);
+  expect(reachesBeyond('<style>@import "https://fonts.example/f.css";</style>')).toBe(true);
+  expect(reachesBeyond('<div style="background: url(https://cdn.example/bg.png)"></div>')).toBe(
+    true,
+  );
+  expect(reachesBeyond('<style>@import url("//fonts.example/f.css");</style>')).toBe(true);
+  expect(reachesBeyond('<a href="https://example.com">link</a>')).toBe(false);
+  expect(reachesBeyond('<style>h1{color:red}</style><img src="data:image/png;base64,AA">')).toBe(
+    false,
+  );
+
+  const element = await show(<HtmlPage text="<h1>Plain</h1>" title="plain.html" />);
+
+  expect(element.querySelector('[role="note"]')).toBeNull();
 });

@@ -146,11 +146,34 @@ export function MarkdownPage({ text }: { text: string }) {
 }
 
 /**
+ * Whether a page relies on what its preview blocks: a script, or a stylesheet, font or image
+ * from another site (`https://…` or `//…` in a `<link>`, a `src`, a CSS `url()` or `@import`).
+ * A plain link to another site is not counted: it does not change how the page looks.
+ */
+const BEYOND =
+  /<script\b|(?:<link\b[^>]*\bhref|\bsrc(?:set)?)\s*=\s*["']?(?:https?:)?\/\/|(?:url\(|@import)\s*["']?(?:url\(\s*["']?)?(?:https?:)?\/\//i;
+
+export function reachesBeyond(html: string) {
+  return BEYOND.test(html);
+}
+
+/**
  * An HTML page drawn in a sandboxed frame. The empty sandbox gives it an origin of its own and
  * no scripts, forms, popups or navigation of the panel; the page also inherits the panel's
  * policy, so it loads nothing from other origins. Inline styles and embedded images still
- * show, which is what a generated page or report needs to be read.
+ * show, which is what a generated page or report needs to be read. A page that needs more is
+ * told so, rather than left to look broken.
  */
 export function HtmlPage({ text, title }: { text: string; title: string }) {
-  return <iframe className="viewer-html" sandbox="" srcDoc={text} title={title} />;
+  return (
+    <div className="viewer-html">
+      {reachesBeyond(text) && (
+        <p className="viewer-note" role="note">
+          This preview is isolated: scripts do not run and styles, fonts or images from other sites
+          do not load, so the page may look incomplete. Download it to open it in full.
+        </p>
+      )}
+      <iframe sandbox="" srcDoc={text} title={title} />
+    </div>
+  );
 }
