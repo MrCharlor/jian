@@ -1,11 +1,15 @@
-import type { Run } from '@jian/contracts';
+import { LEARNING_SESSION_CHANNEL, type Run } from '@jian/contracts';
 import { listConversations } from '../channels/repository.js';
+import type { Judge } from '../decisions/service.js';
 import { findMemories, searchMemories, withLinks } from '../memories/repository.js';
 import type { RunReader } from '../runs/port.js';
 import type { SessionReader } from '../sessions/port.js';
 import { findGatewaySession } from '../sessions/repository.js';
+import { availableSkills } from '../skills/builtin/index.js';
 import type { Store } from '../storage/database.js';
-import { buildContext } from './build.js';
+import { buildContext, rankMemories } from './build.js';
+import { judgeTurn } from './judgments.js';
+import type { ContextSource } from './port.js';
 
 export class Contexts {
   constructor(
@@ -13,9 +17,11 @@ export class Contexts {
     private readonly runs: RunReader,
     private readonly sessions: SessionReader,
     private readonly settings?: { timeZone(): Promise<string> },
+    /** Reads the shortlist for meaning when the installation has a Jev key; see judgments.ts. */
+    private readonly judge?: Judge,
   ) {}
 
-  async context(run: Run) {
+  async context(run: Run): ReturnType<ContextSource['context']> {
     const words = [...new Set(run.input.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? [])].slice(
       0,
       12,
@@ -46,7 +52,26 @@ export class Contexts {
       ),
     );
 
-    return buildContext(run, {
+    const before = history.findLast(
+      (message) => message.role === 'assistant' && message.runId !== run.id,
+    )?.content;
+    // A look back reads its own brief and loads no skill; judging it would only cost a call.
+    const judged =
+      this.judge && session.channel !== LEARNING_SESSION_CHANNEL
+        ? await judgeTurn(this.judge, {
+            request: run.input,
+            ...(before ? { before } : {}),
+            memories: rankMemories(run.input, memories).map(({ memory }) => memory),
+            skills: availableSkills(run.profile).map(({ name, description }) => ({
+              name,
+              description,
+            })),
+          })
+        : {};
+
+    const built = buildContext(run, {
+      ...(judged.relevance ? { relevance: judged.relevance } : {}),
+      ...(judged.skill ? { suggestedSkill: judged.skill } : {}),
       ...(this.settings ? { timeZone: await this.settings.timeZone() } : {}),
       memories,
       linked,
@@ -67,5 +92,7 @@ export class Contexts {
       history,
       ...(session.summary ? { summary: session.summary } : {}),
     });
+
+    return judged.light ? { ...built, light: true as const } : built;
   }
 }

@@ -7,6 +7,7 @@ import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
 import type { Decisions } from '../decisions/service.js';
 import type { Outreach } from '../errands/port.js';
+import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
 import type { PeerAgents } from '../peers/port.js';
 import type { ProfileAdmin } from '../profiles/port.js';
@@ -17,7 +18,6 @@ import { findSkill } from '../skills/builtin/index.js';
 import { skillTools } from '../skills/tools.js';
 import type { Store } from '../storage/database.js';
 import { artifacts, checkpoints } from '../storage/schema.js';
-import { actionGuard } from './guard.js';
 import { artifactPage } from './results.js';
 import { shellTools } from './shell.js';
 
@@ -31,13 +31,14 @@ export type ToolServices = {
   lifecycle: RunExecution;
   errands: Outreach;
   store: Store;
-  decisions?: Pick<Decisions, 'ask'>;
+  decisions?: Pick<Decisions, 'ask' | 'judge'>;
   schedules?: Pick<Schedules, 'list' | 'create' | 'update' | 'remove'>;
   settings?: { timeZone(): Promise<string> };
 };
 
 export function profileTools(services: ToolServices, run: Run): ToolSet {
   const coordination = new Coordination(services);
+  const rechecked = new Set<string>();
 
   const tools: ToolSet = {
     list_activities: tool({
@@ -64,7 +65,29 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
       description:
         'Save a fact or decision shared by all sessions of this profile. Use expectedVersion=0 for a new key, or the current version for an update.',
       inputSchema: memorySchema,
-      execute: async (input) => services.memories.remember(run.profileId, input, run.sessionId),
+      execute: async (input) => {
+        // Checked once per key and turn: an agent told of a near-duplicate that saves again
+        // under the same key has read the other memory and decided they differ.
+        if (input.expectedVersion === 0 && services.decisions && !rechecked.has(input.key)) {
+          rechecked.add(input.key);
+
+          const existing = await sameSubject(
+            services.decisions.judge,
+            services.memories,
+            run.profileId,
+            input,
+          );
+
+          if (existing) {
+            return {
+              held: `Not saved: the memory ${JSON.stringify(existing.key)} (version ${existing.version}) looks like the same subject. Update it with that key and version instead. If the two are truly different, call remember again with the same key to save this one.`,
+              existing: { key: existing.key, version: existing.version, content: existing.content },
+            };
+          }
+        }
+
+        return services.memories.remember(run.profileId, input, run.sessionId);
+      },
     }),
 
     ...(services.schedules
@@ -310,13 +333,7 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
   }
 
   if (run.profile.allowShell) {
-    Object.assign(
-      tools,
-      shellTools(
-        run.profileId,
-        services.decisions ? actionGuard(services.decisions.ask, run) : undefined,
-      ),
-    );
+    Object.assign(tools, shellTools(run.profileId));
   }
 
   // Writing its own skills is part of every agent's work, not of managing itself: what it

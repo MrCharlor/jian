@@ -1,4 +1,5 @@
 import { LEARNING_SESSION_CHANNEL, type Profile, type Run, type Session } from '@jian/contracts';
+import { type Judge, noul } from '../decisions/service.js';
 import { listRecentRuns } from '../runs/repository.js';
 import { findOwnSession } from '../sessions/repository.js';
 import type { Store } from '../storage/database.js';
@@ -13,6 +14,11 @@ const COOLDOWN_MS = 10 * 60_000;
 const QUOTE_CHARS = 600;
 /** The brief is a message, and a message holds this much. */
 const BRIEF_CHARS = 7_800;
+/**
+ * Below this probability that the work holds something to keep, the look back is skipped. Low
+ * on purpose: a review that finds nothing costs one turn, a lesson missed is gone.
+ */
+const NOTHING_TO_KEEP = 0.15;
 
 export type TurnWork = {
   tools: Array<{ name: string; error?: string }>;
@@ -23,6 +29,8 @@ type LearningServices = {
   store: Store;
   profiles: { profile(id: string): Promise<Profile> };
   sessions: { learningSession(profileId: string): Promise<Session> };
+  /** Asks whether the work holds anything to keep before a whole turn is spent finding out. */
+  judge?: Judge;
   runs: {
     submit(
       profileId: string,
@@ -90,6 +98,48 @@ export class Learning {
 
     const periodic = work.tools.length < MANY_TOOLS && !failed.length;
     const yours = profile.skills.filter((skill) => skill.writtenBy === 'agent');
+    const material = periodic
+      ? [
+          'Recent turns, oldest first:',
+          ...since
+            .slice(0, REVIEW_EVERY)
+            .reverse()
+            .map(
+              (item) =>
+                `- Asked: ${quote(item.input, 300)}\n  Answered: ${quote(item.output ?? '', 300)}`,
+            ),
+        ]
+      : [
+          `Request: ${quote(run.input)}`,
+          `Tools, in order: ${work.tools
+            .map((tool) =>
+              tool.error ? `${tool.name} (failed: ${quote(tool.error, 160)})` : tool.name,
+            )
+            .join(', ')}`,
+          `Answer: ${quote(work.answer)}`,
+        ];
+
+    if (this.services.judge) {
+      const answers = await this.services.judge(
+        { work: material.join('\n') },
+        {
+          teaches: {
+            type: 'noul',
+            instructions:
+              'Does `work` hold something an assistant should keep for next time: a correction or a stated preference from the person, a fact about a person or a decision, or a way of doing a kind of task that worked after something failed?',
+            criteria: {
+              true: 'There is a correction, preference, fact or working method worth keeping.',
+              false: 'Routine requests and answers with nothing new to keep.',
+            },
+          },
+        },
+        { use: 'learning' },
+      );
+      const yes = noul(answers?.teaches);
+
+      if (yes !== undefined && yes < NOTHING_TO_KEEP) return undefined;
+    }
+
     const brief = [
       `[Learning] Looking back at ${reason}: "${quote(run.input, 80)}"`,
       'This is your own review, not a message from anyone. Look back at the work below and decide whether something in it will help you next time:',
@@ -99,26 +149,7 @@ export class Learning {
       'Most turns teach nothing new. Then change nothing. Never keep what is private to one conversation in a skill: skills are how you work everywhere.',
       'End with one or two lines for the owner: what you kept and why, or "Nothing to keep."',
       '',
-      ...(periodic
-        ? [
-            'Recent turns, oldest first:',
-            ...since
-              .slice(0, REVIEW_EVERY)
-              .reverse()
-              .map(
-                (item) =>
-                  `- Asked: ${quote(item.input, 300)}\n  Answered: ${quote(item.output ?? '', 300)}`,
-              ),
-          ]
-        : [
-            `Request: ${quote(run.input)}`,
-            `Tools, in order: ${work.tools
-              .map((tool) =>
-                tool.error ? `${tool.name} (failed: ${quote(tool.error, 160)})` : tool.name,
-              )
-              .join(', ')}`,
-            `Answer: ${quote(work.answer)}`,
-          ]),
+      ...material,
       '',
       yours.length
         ? `Skills you wrote: ${yours.map((skill) => `${skill.name} — ${skill.description}`).join('; ')}`

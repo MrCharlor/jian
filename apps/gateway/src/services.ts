@@ -70,7 +70,13 @@ export function buildServices({
   const memories = new Memories(store, profiles, sessions, clock);
   const runs = new Runs(store, profiles, sessions, providers, clock);
   const settings = new Settings(store);
-  const decisions = new Decisions(store, gatewayVault, fetcher ?? createSafeFetch().fetch);
+  const decisions = new Decisions(
+    store,
+    gatewayVault,
+    fetcher ?? createSafeFetch().fetch,
+    undefined,
+    clock,
+  );
   const media = new Media(store, providers, gatewayVault, fetcher ?? createSafeFetch().fetch);
 
   return {
@@ -86,7 +92,7 @@ export function buildServices({
     decisions,
     runs,
     peers: new Peers({ profiles, sessions, runs, store }, clock),
-    learning: new Learning({ store, profiles, sessions, runs }, clock),
+    learning: new Learning({ store, profiles, sessions, runs, judge: decisions.judge }, clock),
     stickers: new Stickers(store, media, profiles),
     // Without a catalog nothing has a list price, and every model counts as unknown.
     stats: new Stats(
@@ -99,7 +105,7 @@ export function buildServices({
     schedules: new Schedules(store, profiles, sessions, runs, clock),
     settings,
     lifecycle: new RunLifecycle(store, runs, clock),
-    contexts: new Contexts(store, runs, sessions, settings),
+    contexts: new Contexts(store, runs, sessions, settings, decisions.judge),
     errands: new Errands(store, clock),
     vault,
     gatewayVault,

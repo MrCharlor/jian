@@ -1,6 +1,6 @@
 import { type Client, profile } from './params';
 import { result } from './result';
-import type { ModelDefaultsInput, NewProvider } from './types';
+import type { DecisionsSettingsPatch, ModelDefaultsInput, NewProvider } from './types';
 
 /**
  * A credential belongs to the installation; the roles it is bound to belong to a profile. That
@@ -24,6 +24,8 @@ export const providerCalls = (client: Client) => ({
   decisions: () => result(client.GET('/v1/decisions')),
   setDecisions: (apiKey: string) =>
     result(client.PUT('/v1/decisions', { body: { provider: 'jev', apiKey } })),
+  updateDecisions: (body: DecisionsSettingsPatch) =>
+    result(client.PATCH('/v1/decisions', { body })),
   removeDecisions: () => result(client.DELETE('/v1/decisions')),
   setModelDefaults: (profileId: string, body: ModelDefaultsInput) =>
     result(
