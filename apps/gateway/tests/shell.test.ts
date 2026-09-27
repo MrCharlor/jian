@@ -69,6 +69,41 @@ describe('running commands on the machine the gateway runs on', () => {
     });
   });
 
+  it("keeps the gateway's credentials out of a command's environment", async () => {
+    const tools = await toolsFor(true);
+    const planted = {
+      DATABASE_URL: 'postgres://synthetic:synthetic@127.0.0.1:1/synthetic',
+      JIAN_MASTER_KEYS: '{"synthetic":"c3ludGhldGlj"}',
+      OPENAI_API_KEY: 'sk-synthetic',
+    };
+    const before = { ...process.env };
+
+    Object.assign(process.env, planted, { LC_ALL: 'C.UTF-8' });
+
+    try {
+      const { stdout } = (await call(tools.run_command, { command: 'env', timeoutMs: 5000 })) as {
+        stdout: string;
+      };
+      const names = stdout.split('\n').map((line) => line.split('=')[0]);
+
+      for (const name of Object.keys(planted)) {
+        expect(names).not.toContain(name);
+      }
+      // The runtime's mode stays out too, and a shell still finds its tools and its locale.
+      expect(names).not.toContain('NODE_ENV');
+      expect(names).toContain('PATH');
+      expect(names).toContain('LC_ALL');
+    } finally {
+      for (const name of [...Object.keys(planted), 'LC_ALL']) {
+        if (before[name] === undefined) {
+          delete process.env[name];
+        } else {
+          process.env[name] = before[name];
+        }
+      }
+    }
+  });
+
   it('reads, writes and lists real paths', async () => {
     const tools = await toolsFor(true);
     const directory = mkdtempSync(join(tmpdir(), 'jian-shell-'));

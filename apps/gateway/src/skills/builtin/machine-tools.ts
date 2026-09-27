@@ -10,6 +10,11 @@ Commands run with \`run_command\`, in the \`shell\` tool group: load it with \`l
 first. They run on the machine the gateway runs on, as whoever started it. There is no
 sandbox.
 
+A command does not inherit the gateway's environment: it gets \`PATH\`, \`HOME\`, the locale
+and a few install paths, and nothing else — no \`DATABASE_URL\`, no \`NODE_ENV\`, no keys.
+When a project needs a variable, set it in the command itself. Point database tests at a
+database made for them, never at the gateway's own.
+
 Check where you are: \`echo $JIAN_TOOLBOX\`. If it prints \`1\` you are in the Jian image and
 what follows holds. Otherwise the gateway runs directly on the owner's machine: find what
 exists with \`command -v <tool>\`, and install nothing there unless the owner asks.

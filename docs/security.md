@@ -12,6 +12,8 @@ Profiles speak to each other by exchanging text, and only text: discovery shows 
 
 Vendor credentials belong to the installation rather than to a profile, and live in a vault of their own. Deleting a profile takes its own secrets with it and leaves the shared credentials alone.
 
+A profile with the shell switch on runs commands as the same user as the gateway, with no sandbox. A command does not inherit the gateway's environment: it starts with `PATH`, `HOME`, the locale and the image's install paths, never `DATABASE_URL`, `JIAN_MASTER_KEYS`, `JIAN_API_TOKEN` or a provider key. That keeps a project's tests and scripts from reaching the gateway's database by accident. It is not containment: a command can still read what that user can read, including the gateway's process. Give the shell only to profiles whose every sender you trust.
+
 ## Encryption and rotation
 
 `JIAN_MASTER_KEYS` is a JSON object mapping identifiers to 32-byte keys in Base64. `JIAN_ACTIVE_KEY_ID` chooses the key used for new writes. Setup creates a keyring in `.env` with mode `0600`; when hosting, inject it through a secret manager. Do not put that keyring in the database, in Git, or in the same backup as the database.
