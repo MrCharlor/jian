@@ -320,7 +320,8 @@ describe('the ask_jev tool', () => {
 
   it('reports unavailable without a decisions service', async () => {
     const f = await fixture();
-    const tools = profileTools(f.services, f.run);
+    const { decisions: _decisions, ...servicesWithoutDecisions } = f.services;
+    const tools = profileTools(servicesWithoutDecisions, f.run);
 
     await expect(
       call(tools.ask_jev, {
