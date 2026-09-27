@@ -26,7 +26,7 @@ import { providerSecret } from '../providers/service.js';
 import { createSafeFetch } from '../security/outbound.js';
 import type { Stickers } from '../stickers/service.js';
 import type { WebSearch } from '../web/service.js';
-import { type CacheTtl, cacheable, cacheableInstructions } from './cache.js';
+import { type CacheTtl, cacheable, cacheableInstructions, withOpenAiPromptCache } from './cache.js';
 import { ACTION_KINDS, actionGuard, guardTools, mcpActionKind } from './guard.js';
 import { availableNote, connectMcpTools, unavailableNote } from './mcp.js';
 import { Narrator } from './narrator.js';
@@ -658,6 +658,12 @@ export class AgentRuntime {
                 : fitted.messages,
             activeTools: spent ? [] : activeNames,
             maxOutputTokens: policy.outputTokens,
+            providerOptions: withOpenAiPromptCache(
+              reasoning,
+              profileId,
+              config.provider,
+              config.modelId,
+            ),
           };
         },
         onStepEnd: async ({ text, toolCalls, toolResults, finishReason, usage }) => {

@@ -129,6 +129,10 @@ export function createCodexModel(token: string, modelId: string, fetcher: typeof
         : {}),
       ...(original.reasoning ? { reasoning: original.reasoning } : {}),
       ...(original.include ? { include: original.include } : {}),
+      ...(original.prompt_cache_key ? { prompt_cache_key: original.prompt_cache_key } : {}),
+      ...(original.prompt_cache_retention
+        ? { prompt_cache_retention: original.prompt_cache_retention }
+        : {}),
     };
     const headers = new Headers(init?.headers);
     headers.set('authorization', `Bearer ${token}`);
