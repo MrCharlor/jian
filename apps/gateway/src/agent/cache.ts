@@ -1,5 +1,35 @@
+import { createHash } from 'node:crypto';
 import type { JSONValue, ModelMessage, SystemModelMessage } from 'ai';
 import { CLAUDE_CODE_IDENTITY } from '../providers/claude-subscription.js';
+
+/** OpenAI uses this key to keep unrelated profiles from sharing a prompt-cache partition. */
+export function openAiPromptCacheOptions(
+  profileId: string,
+  provider: string,
+  modelId: string,
+): { openai: { promptCacheKey: string } } | undefined {
+  if (provider !== 'openai' && provider !== 'openai-codex') return undefined;
+
+  const promptCacheKey = createHash('sha256')
+    .update(`jian:${profileId}:${provider}:${modelId}`)
+    .digest('hex')
+    .slice(0, 48);
+
+  return { openai: { promptCacheKey } };
+}
+
+/** Merge provider options without replacing reasoning settings already selected for the turn. */
+export function withOpenAiPromptCache(
+  options: Record<string, Record<string, JSONValue>> | undefined,
+  profileId: string,
+  provider: string,
+  modelId: string,
+): Record<string, Record<string, JSONValue>> | undefined {
+  const cache = openAiPromptCacheOptions(profileId, provider, modelId);
+  if (!cache) return options;
+
+  return { ...options, openai: { ...options?.openai, ...cache.openai } };
+}
 
 /** What Anthropic accepts per request. Anything past it is refused and silently not cached. */
 const BREAKPOINTS = 4;

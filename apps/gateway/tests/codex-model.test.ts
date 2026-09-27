@@ -49,6 +49,34 @@ describe('ChatGPT Codex model adapter', () => {
     expect(headers.get('authorization')).toBe('Bearer synthetic-token');
   });
 
+  it('forwards an OpenAI prompt cache key to the Codex endpoint', async () => {
+    let request: Record<string, unknown> = {};
+    const fetcher: typeof fetch = async (_input, init) => {
+      request = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      const response = {
+        id: 'resp_cache',
+        object: 'response',
+        created_at: 1,
+        model: 'gpt-5.6-terra',
+        status: 'completed',
+        output: [],
+        usage: { input_tokens: 10, output_tokens: 2, total_tokens: 12 },
+      };
+      return new Response(
+        `data: ${JSON.stringify({ type: 'response.completed', response })}\\n\\n`,
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      );
+    };
+
+    await generateText({
+      model: createCodexModel('synthetic-token', 'gpt-5.6-terra', fetcher),
+      prompt: 'Reuse the stable prefix.',
+      providerOptions: { openai: { promptCacheKey: 'profile-cache' } },
+    });
+
+    expect(request.prompt_cache_key).toBe('profile-cache');
+  });
+
   it('passes tool calls through the same agent interface', async () => {
     const bodies: Array<Record<string, unknown>> = [];
     const fetcher: typeof fetch = async (_input, init) => {
