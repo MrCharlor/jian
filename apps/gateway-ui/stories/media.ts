@@ -203,6 +203,22 @@ export const assets = {
   agentVoice: { mimeType: 'audio/wav', data: voice(11, 240, 2.8) },
   mayaVoice: { mimeType: 'audio/wav', data: voice(5, 260, 3.1) },
   memberVoice: { mimeType: 'audio/wav', data: voice(9, 150, 2) },
+  statusPage: {
+    mimeType: 'text/html',
+    name: 'status.html',
+    data: encode(
+      '<!doctype html><html><head><style>body{font-family:sans-serif;margin:40px;color:#1f2430}h1{color:#1f7a4d}td{padding:4px 16px 4px 0}</style></head>' +
+        '<body><h1>All systems normal</h1><table><tr><td>API</td><td>99.98%</td></tr><tr><td>Workers</td><td>100%</td></tr></table></body></html>',
+    ),
+  },
+  // Code arrives as bytes of no known type; its name is what says it is TypeScript.
+  retryJob: {
+    mimeType: 'application/octet-stream',
+    name: 'retry.ts',
+    data: encode(
+      "// Retries a webhook with a growing pause, up to five times.\nexport async function retry(send: () => Promise<Response>, attempts = 5) {\n  for (let attempt = 1; attempt <= attempts; attempt += 1) {\n    const response = await send();\n    if (response.ok) return response;\n    await new Promise((done) => setTimeout(done, 2 ** attempt * 100));\n  }\n  throw new Error('The webhook never answered');\n}\n",
+    ),
+  },
 } satisfies Record<string, Asset>;
 
 export type AssetKey = keyof typeof assets;

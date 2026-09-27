@@ -1,15 +1,31 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CodeXml, Download, Eye, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { kindNames, type LoadedMedia, nameOf, readsAsText, size } from './media';
+import { Code, HtmlPage, languageOf, MarkdownPage, textOf } from './preview';
 import { ZoomableImage } from './zoom';
 
 /** How long the viewer takes to fade out; the CSS animation runs for the same time. */
 const CLOSING_MS = 160;
 
-const decode = (data: string) =>
-  new TextDecoder().decode(Uint8Array.from(atob(data), (char) => char.charCodeAt(0)));
+/** Documents drawn as they read, with their source one click away. */
+const RENDERED = new Set(['text/html', 'text/markdown']);
+
+/**
+ * What a document is shown as: text formats, and files of an unnamed type whose name says
+ * code, as text; anything whose bytes turn out not to be text, as a download.
+ */
+function textView(media: LoadedMedia) {
+  const language = languageOf(media.mimeType, media.name);
+  const declared = readsAsText(media.mimeType);
+
+  if (!declared && !(media.mimeType === 'application/octet-stream' && language)) return undefined;
+
+  const text = textOf(media.data, declared);
+
+  return text === undefined ? undefined : { text, language };
+}
 
 /**
  * A PDF shown by the browser's own reader. It reads from a local blob address, released when
@@ -47,6 +63,7 @@ export function MediaViewer({
   const ref = useRef<HTMLDialogElement>(null);
   const [index, setIndex] = useState(Math.max(start, 0));
   const [closing, setClosing] = useState(false);
+  const [source, setSource] = useState(false);
   // Plays the way out before the dialog goes; a second request while it plays changes nothing.
   const leave = () => {
     if (closing) return;
@@ -55,7 +72,11 @@ export function MediaViewer({
   };
   const media = items[index];
   const many = items.length > 1;
-  const step = (by: number) => setIndex((current) => (current + by + items.length) % items.length);
+  const step = (by: number) => {
+    setIndex((current) => (current + by + items.length) % items.length);
+    setSource(false);
+  };
+  const text = useMemo(() => (media ? textView(media) : undefined), [media]);
 
   useEffect(() => {
     ref.current?.showModal();
@@ -95,6 +116,17 @@ export function MediaViewer({
             {index + 1} / {items.length}
           </span>
         )}
+        {text && RENDERED.has(media.mimeType) && (
+          <button
+            type="button"
+            className="viewer-button"
+            aria-label={source ? 'Show preview' : 'Show source'}
+            aria-pressed={source}
+            onClick={() => setSource(!source)}
+          >
+            {source ? <Eye size={18} /> : <CodeXml size={18} />}
+          </button>
+        )}
         <a
           className="viewer-button"
           href={media.url}
@@ -120,8 +152,12 @@ export function MediaViewer({
         ) : media.mimeType.startsWith('video/') ? (
           // biome-ignore lint/a11y/useMediaCaption: A file someone sent; it has no captions to offer.
           <video className="viewer-video" src={media.url} controls />
-        ) : readsAsText(media.mimeType) ? (
-          <pre className="viewer-text">{decode(media.data)}</pre>
+        ) : text && !source && media.mimeType === 'text/html' ? (
+          <HtmlPage key={media.id} text={text.text} title={nameOf(media)} />
+        ) : text && !source && media.mimeType === 'text/markdown' ? (
+          <MarkdownPage key={media.id} text={text.text} />
+        ) : text ? (
+          <Code key={media.id} text={text.text} language={text.language} />
         ) : (
           <div className="viewer-file">
             <strong>{nameOf(media)}</strong>
