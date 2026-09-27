@@ -7,8 +7,19 @@ export const machineTools: Skill = {
   instructions: `# The machine you run commands on
 
 Commands run with \`run_command\`, in the \`shell\` tool group: load it with \`load_tools\`
-first. They run on the machine the gateway runs on, as whoever started it. There is no
-sandbox.
+first. They run on the machine the gateway runs on, as whoever started it.
+
+You work in a workspace of your own: a directory that is your \`$HOME\`, where a command
+starts and where \`$TMPDIR\` points. Keep repositories, logins and installs there. A command
+may write only in it and read only it and the system's tools (\`/usr\`, \`/etc\` and the
+like); another profile's workspace and the gateway's files are refused, by the kernel where
+it supports it. \`/tmp\` is not yours: use \`$TMPDIR\`. The file tools, \`send_file\` and
+\`save_attachment\` follow the same line.
+
+A command does not inherit the gateway's environment: it gets \`PATH\`, \`HOME\`, the locale
+and a few install paths, and nothing else — no \`DATABASE_URL\`, no \`NODE_ENV\`, no keys.
+When a project needs a variable, set it in the command itself. Point database tests at a
+database made for them, never at the gateway's own. The network is not restricted.
 
 Check where you are: \`echo $JIAN_TOOLBOX\`. If it prints \`1\` you are in the Jian image and
 what follows holds. Otherwise the gateway runs directly on the owner's machine: find what
@@ -28,8 +39,8 @@ exists with \`command -v <tool>\`, and install nothing there unless the owner as
 
 ## Installing more
 
-You are the user \`node\`, without root and without \`sudo\`. Everything under \`/home/node\`
-lives on a volume that survives a new image, so install there:
+You are the user \`node\`, without root and without \`sudo\`. Your workspace lives on a
+volume that survives a new image, so install there:
 
 - Node: \`npm install -g <pkg>\` (lands in \`~/.local\`).
 - Python tools: \`uv tool install <pkg>\`. A project: \`uv venv\`, then \`uv pip install\`. A
@@ -48,7 +59,7 @@ the image. Install what the task needs, not what might be handy, and say what yo
 - SSH keys go in \`~/.ssh\` with mode \`600\`.
 - Git needs \`git config --global user.name\` and \`user.email\` before a commit.
 
-All of them persist in the home volume. Never print a token, a password or a private key
+All of them persist in your workspace, and no other profile can read them. Never print a token, a password or a private key
 into the conversation, and never send one anywhere the owner did not ask.
 
 ## Limits of a command

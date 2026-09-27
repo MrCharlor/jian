@@ -12,6 +12,16 @@ Profiles speak to each other by exchanging text, and only text: discovery shows 
 
 Vendor credentials belong to the installation rather than to a profile, and live in a vault of their own. Deleting a profile takes its own secrets with it and leaves the shared credentials alone.
 
+A profile with the shell switch on works in a workspace of its own, `/home/node/workspaces/<profile id>` in the image (`JIAN_WORKSPACES` moves the parent). It is the profile's `HOME` and `TMPDIR`, so its repositories, SSH keys and Git and `gh` logins are its own.
+
+Each command runs under `jian-sandbox`, a small helper built into the image that confines it with [Landlock](https://docs.kernel.org/userspace-api/landlock.html) before it starts: it may write only in its workspace, read only its workspace and the system's directories (`/usr`, `/etc`, `/opt`, `/proc`, `/sys` and the libraries), and nothing else — not another profile's workspace, not the gateway's files. Landlock also refuses it the private files of any process outside the sandbox, so `/proc/<gateway>/environ` stays closed, and on Linux 6.12 and later it cannot signal those processes or reach their abstract Unix sockets. Landlock needs no privilege, no capability and no user namespace, so it works in a container with `no-new-privileges` and the runtime's default seccomp profile, on Kubernetes and on a PaaS. It is the kernel's restriction: the command and everything it starts inherit it and cannot lift it.
+
+The file tools, `send_file` and `save_attachment` run inside the gateway, so the same line is checked there: the path with its links resolved, and for a file actually opened, the path of the open descriptor.
+
+A command does not inherit the gateway's environment either: it starts with `PATH`, the locale and its workspace paths, never `DATABASE_URL`, `JIAN_MASTER_KEYS`, `JIAN_API_TOKEN` or a provider key. That keeps a project's tests and scripts from reaching the gateway's database by accident, and keeps the secrets out even where Landlock is missing.
+
+What this does not cover: the network is not restricted, so a command reaches any address the container reaches (the database without its password, for one). On a kernel without Landlock (before 5.13, or with it left out of the LSM list) commands run unconfined, and the gateway logs a warning at the first one; each profile still has its own directory and the file tools still enforce it. Give the shell only to profiles whose every sender you trust.
+
 ## Encryption and rotation
 
 `JIAN_MASTER_KEYS` is a JSON object mapping identifiers to 32-byte keys in Base64. `JIAN_ACTIVE_KEY_ID` chooses the key used for new writes. Setup creates a keyring in `.env` with mode `0600`; when hosting, inject it through a secret manager. Do not put that keyring in the database, in Git, or in the same backup as the database.

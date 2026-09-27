@@ -274,9 +274,23 @@ it('saves an attachment to disk and sends a file from it when the machine is on'
   if (!mediaId) throw new Error('Missing media');
   const folder = await mkdtemp(join(tmpdir(), 'jian-files-'));
   const call = { messages: [], context: {} };
+  const before = process.env.JIAN_WORKSPACES;
+
+  process.env.JIAN_WORKSPACES = folder;
 
   try {
-    const path = join(folder, 'in', 'photos.zip');
+    const path = join(folder, f.profile.id, 'in', 'photos.zip');
+
+    // Outside the profile's workspace the gateway neither writes nor reads for it.
+    await expect(
+      tools.save_attachment?.execute?.(
+        { mediaId, path: join(folder, 'elsewhere.zip'), overwrite: false },
+        { ...call, toolCallId: 'outside' },
+      ),
+    ).rejects.toThrow('outside your workspace');
+    await expect(
+      tools.send_file?.execute?.({ path: '/proc/self/environ' }, { ...call, toolCallId: 'env' }),
+    ).rejects.toThrow('outside your workspace');
 
     await tools.save_attachment?.execute?.(
       { mediaId, path, overwrite: false },
@@ -319,6 +333,8 @@ it('saves an attachment to disk and sends a file from it when the machine is on'
       data: base64('zip'),
     });
   } finally {
+    if (before === undefined) delete process.env.JIAN_WORKSPACES;
+    else process.env.JIAN_WORKSPACES = before;
     await rm(folder, { recursive: true, force: true });
   }
 });

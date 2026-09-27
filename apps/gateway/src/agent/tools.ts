@@ -312,7 +312,10 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
   if (run.profile.allowShell) {
     Object.assign(
       tools,
-      shellTools(services.decisions ? actionGuard(services.decisions.ask, run) : undefined),
+      shellTools(
+        run.profileId,
+        services.decisions ? actionGuard(services.decisions.ask, run) : undefined,
+      ),
     );
   }
 

@@ -55,6 +55,11 @@ RUN case "${TARGETARCH}" in \
  && tar -C /usr/local -xzf /tmp/go.tgz && rm /tmp/go.tgz
 COPY --from=ghcr.io/astral-sh/uv:0.12.18 /uv /uvx /usr/local/bin/
 RUN corepack enable
+# The helper that confines each agent command to its profile's workspace with Landlock. It is
+# built here, where the C toolchain already is, so it matches this image's libc and architecture.
+COPY apps/gateway/native/jian-sandbox.c /tmp/jian-sandbox.c
+RUN gcc -O2 -Wall -Wextra -Werror -o /usr/local/bin/jian-sandbox /tmp/jian-sandbox.c \
+ && rm /tmp/jian-sandbox.c
 # The agent installs as the `node` user and never as root: hosts such as Cubeship start the
 # container with no-new-privileges, so a sudo that works here would fail there. Everything it
 # installs lands under /home/node, which compose keeps on a volume, so it survives a new image.
