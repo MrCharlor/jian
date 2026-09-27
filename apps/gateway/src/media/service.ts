@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, isAbsolute } from 'node:path';
+import { basename, isAbsolute } from 'node:path';
 import {
   type InlineMedia,
   inlineMediaSchema,
@@ -13,6 +12,7 @@ import {
 import { generateText, type ModelMessage, type ToolSet, tool } from 'ai';
 import { and, count, desc, eq, inArray, isNull, like } from 'drizzle-orm';
 import { z } from 'zod';
+import { openToRead, writeInWorkspace } from '../agent/workspace.js';
 import { findContactBySession, insertDelivery } from '../channels/repository.js';
 import { findConnection } from '../channels/whatsapp/repository.js';
 import { GatewayError } from '../core/errors.js';
@@ -912,10 +912,17 @@ export class Media {
     if (input.path !== undefined) {
       if (!run.profile.allowShell) throw new Error('This profile cannot read files on the machine');
       if (!isAbsolute(input.path)) throw new Error('Use an absolute path');
-      const info = await stat(input.path);
-      if (!info.isFile()) throw new Error('That path is not a file');
-      if (info.size > MAX_MEDIA_BYTES) throw new Error('Files over 16 MB cannot be sent');
-      data = await readFile(input.path);
+      // Held to the profile's workspace, like the file tools: the gateway reads it, not a
+      // confined command.
+      const handle = await openToRead(run.profileId, input.path);
+      try {
+        const info = await handle.stat();
+        if (!info.isFile()) throw new Error('That path is not a file');
+        if (info.size > MAX_MEDIA_BYTES) throw new Error('Files over 16 MB cannot be sent');
+        data = await handle.readFile();
+      } finally {
+        await handle.close();
+      }
       name ||= basename(input.path);
     } else {
       if (!name) throw new Error('Name the file, with its extension, such as report.md');
@@ -960,14 +967,13 @@ export class Media {
     const asset = await findMedia(this.store.db, run.profileId, mediaId);
     if (asset.sessionId !== run.sessionId)
       throw new Error('Media is not part of this conversation');
-    const exists = await stat(path).then(
-      () => true,
-      () => false,
-    );
-    if (exists && !overwrite)
-      throw new Error('A file is already there; pass overwrite to replace it');
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, Buffer.from(asset.data, 'base64'));
-    return { path, bytes: asset.bytes, mimeType: asset.mimeType };
+    const saved = await writeInWorkspace(run.profileId, path, Buffer.from(asset.data, 'base64'), {
+      exclusive: !overwrite,
+    }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'EEXIST')
+        throw new Error('A file is already there; pass overwrite to replace it');
+      throw error;
+    });
+    return { path: saved, bytes: asset.bytes, mimeType: asset.mimeType };
   }
 }

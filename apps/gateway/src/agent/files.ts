@@ -1,8 +1,9 @@
 import { execFile } from 'node:child_process';
-import { glob, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, isAbsolute, resolve } from 'node:path';
+import { glob, readdir, stat } from 'node:fs/promises';
+import { basename, isAbsolute, resolve } from 'node:path';
 import { type ToolSet, tool } from 'ai';
 import { z } from 'zod';
+import { confine, confined, openToRead, workspaceOf, writeInWorkspace } from './workspace.js';
 
 /**
  * Reading, searching and changing files on the machine the gateway runs on, shaped for working
@@ -13,6 +14,10 @@ import { z } from 'zod';
  * changed only after this run has read it, and only if nobody changed it since: otherwise the
  * edit would be computed against text that is no longer there. Both are checked here, where the
  * write happens, rather than asked of the model.
+ *
+ * They run inside the gateway, not in a confined command, so each path is held to the profile's
+ * workspace here (see workspace.ts): writes only inside it, reads inside it or in the system's
+ * directories.
  */
 
 /** Lines a read returns when it names no limit: a whole source file, rarely a whole log. */
@@ -50,31 +55,41 @@ const clip = (text: string) =>
   text.length > MAX_OUTPUT ? `${text.slice(0, MAX_OUTPUT)}\n… output cut` : text;
 
 /** The file as it is now, refused when it is not text this tool can safely rewrite. */
-async function textOf(file: string) {
-  const info = await stat(file);
+async function textOf(profileId: string, file: string) {
+  const handle = await openToRead(profileId, file);
 
-  if (!info.isFile()) {
-    throw new Error('That path is not a file');
+  try {
+    const info = await handle.stat();
+
+    if (!info.isFile()) {
+      throw new Error('That path is not a file');
+    }
+
+    if (info.size > MAX_FILE_BYTES) {
+      throw new Error(`The file has ${info.size} bytes; use run_command with head, tail or sed`);
+    }
+
+    const buffer = await handle.readFile();
+
+    if (buffer.subarray(0, 8000).includes(0)) {
+      throw new Error('The file is binary; inspect it with run_command instead');
+    }
+
+    return { text: buffer.toString('utf8'), mtime: info.mtimeMs };
+  } finally {
+    await handle.close();
   }
-
-  if (info.size > MAX_FILE_BYTES) {
-    throw new Error(`The file has ${info.size} bytes; use run_command with head, tail or sed`);
-  }
-
-  const buffer = await readFile(file);
-
-  if (buffer.subarray(0, 8000).includes(0)) {
-    throw new Error('The file is binary; inspect it with run_command instead');
-  }
-
-  return { text: buffer.toString('utf8'), mtime: info.mtimeMs };
 }
 
-function run(command: string, args: string[]) {
+/** A search runs confined like a command, so a link inside the tree cannot lead it out. */
+async function run(profileId: string, command: string, args: string[]) {
+  const home = await workspaceOf(profileId);
+  const search = await confined(home, command, args);
+
   return new Promise<{ code: number | string; stdout: string; stderr: string }>((done) => {
     execFile(
-      command,
-      args,
+      search.file,
+      search.args,
       { timeout: SEARCH_TIMEOUT_MS, maxBuffer: MAX_OUTPUT * 8, encoding: 'utf8' },
       (error, stdout, stderr) => {
         const code = (error as { code?: number | string } | null)?.code ?? 0;
@@ -85,7 +100,7 @@ function run(command: string, args: string[]) {
   });
 }
 
-export function fileTools(): ToolSet {
+export function fileTools(profileId: string): ToolSet {
   // What this run read, and the modification time it saw: the proof an edit needs.
   const seen = new Map<string, number>();
 
@@ -122,8 +137,8 @@ export function fileTools(): ToolSet {
         limit: z.number().int().min(1).max(10_000).default(READ_LINES),
       }),
       execute: async ({ path, offset, limit }) => {
-        const file = resolve(path);
-        const { text, mtime } = await textOf(file);
+        const file = await confine(profileId, path, 'read');
+        const { text, mtime } = await textOf(profileId, file);
         const lines = text.split('\n');
 
         // A final newline is how files end, not an extra empty line to show.
@@ -162,11 +177,11 @@ export function fileTools(): ToolSet {
           .max(50),
       }),
       execute: async ({ path, edits }) => {
-        const file = resolve(path);
+        const file = await confine(profileId, path, 'write');
 
         await assertCurrent(file);
 
-        const { text } = await textOf(file);
+        const { text } = await textOf(profileId, file);
         const crlf = text.includes('\r\n');
         let next = text;
         let replacements = 0;
@@ -203,7 +218,7 @@ export function fileTools(): ToolSet {
           replacements += edit.replaceAll ? found : 1;
         }
 
-        await writeFile(file, next, 'utf8');
+        await writeInWorkspace(profileId, file, next);
         await remember(file);
 
         // A few numbered lines around the first change, so the result can be checked in place.
@@ -224,11 +239,10 @@ export function fileTools(): ToolSet {
         'Create a file, or replace one completely; missing folders are created. To change part of a file use edit_file instead. An existing file must have been read in this run.',
       inputSchema: z.object({ path: absolute, content: z.string().max(MAX_WRITE) }),
       execute: async ({ path, content }) => {
-        const file = resolve(path);
+        const file = await confine(profileId, path, 'write');
 
         await assertCurrent(file);
-        await mkdir(dirname(file), { recursive: true });
-        await writeFile(file, content, 'utf8');
+        await writeInWorkspace(profileId, file, content);
         await remember(file);
 
         return { path: file, bytes: Buffer.byteLength(content) };
@@ -244,7 +258,7 @@ export function fileTools(): ToolSet {
         limit: z.number().int().min(1).max(1000).default(MAX_MATCHES),
       }),
       execute: async ({ pattern, path, limit }) => {
-        const root = resolve(path);
+        const root = await confine(profileId, path, 'read');
         const found: Array<{ path: string; mtime: number }> = [];
 
         for await (const entry of glob(pattern, {
@@ -252,7 +266,12 @@ export function fileTools(): ToolSet {
           exclude: (name: string) => SKIPPED.includes(basename(name)),
         })) {
           const file = resolve(root, entry);
-          const info = await stat(file).catch(() => undefined);
+          // A link in the tree may point out of reach; it is left out rather than listed.
+          const reachable = await confine(profileId, file, 'read').then(
+            () => true,
+            () => false,
+          );
+          const info = reachable ? await stat(file).catch(() => undefined) : undefined;
 
           if (info?.isFile()) {
             found.push({ path: file, mtime: info.mtimeMs });
@@ -286,10 +305,10 @@ export function fileTools(): ToolSet {
         limit: z.number().int().min(1).max(2000).default(MAX_MATCHES),
       }),
       execute: async ({ pattern, path, glob: only, ignoreCase, contextLines, output, limit }) => {
-        const target = resolve(path);
+        const target = await confine(profileId, path, 'read');
         const mode = output === 'files' ? ['-l'] : output === 'count' ? ['-c'] : ['-n'];
 
-        let result = await run('rg', [
+        let result = await run(profileId, 'rg', [
           '--no-heading',
           '--color',
           'never',
@@ -304,8 +323,9 @@ export function fileTools(): ToolSet {
         ]);
 
         // Without ripgrep, grep answers the same question, minus .gitignore.
-        if (result.code === 'ENOENT') {
-          result = await run('grep', [
+        // Confined, a missing program is the helper's exit 127 rather than ENOENT.
+        if (result.code === 'ENOENT' || result.code === 127) {
+          result = await run(profileId, 'grep', [
             '-rE',
             ...mode,
             ...(ignoreCase ? ['-i'] : []),
@@ -336,7 +356,7 @@ export function fileTools(): ToolSet {
       description: 'List what is in a directory on the machine this gateway runs on.',
       inputSchema: z.object({ path: absolute }),
       execute: async ({ path }) => {
-        const directory = resolve(path);
+        const directory = await confine(profileId, path, 'read');
         const entries = await readdir(directory, { withFileTypes: true });
 
         return {

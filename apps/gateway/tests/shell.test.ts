@@ -1,12 +1,67 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { afterAll, describe, expect, it } from 'vitest';
 import { profileTools } from '../src/agent/tools.js';
+import { sandboxAbi } from '../src/agent/workspace.js';
 import { Decisions } from '../src/decisions/service.js';
 import { testServices } from './helpers/services.js';
 
 const model = { provider: 'openai' as const, modelId: 'test', apiKeyEnv: 'JIAN_PROVIDER_TEST' };
+
+// Every profile of this file works under a throwaway root, never under the real home.
+const root = realpathSync(mkdtempSync(join(tmpdir(), 'jian-workspaces-')));
+const saved = {
+  JIAN_WORKSPACES: process.env.JIAN_WORKSPACES,
+  JIAN_SANDBOX: process.env.JIAN_SANDBOX,
+};
+
+process.env.JIAN_WORKSPACES = root;
+
+/**
+ * The helper the image ships, built from its source when a compiler is here. Without one, or on
+ * a kernel without Landlock, the tests that need the kernel's confinement are skipped and say so.
+ */
+function buildHelper(): string {
+  const binary = join(root, 'jian-sandbox');
+
+  try {
+    execFileSync('cc', [
+      '-O2',
+      '-o',
+      binary,
+      fileURLToPath(new URL('../native/jian-sandbox.c', import.meta.url)),
+    ]);
+  } catch {
+    return join(root, 'no-compiler');
+  }
+
+  return binary;
+}
+
+process.env.JIAN_SANDBOX = buildHelper();
+
+const kernelConfines = (await sandboxAbi()) > 0;
+
+afterAll(() => {
+  for (const [name, value] of Object.entries(saved)) {
+    if (value === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = value;
+    }
+  }
+});
 
 async function toolsFor(allowShell: boolean, jev?: () => Response) {
   const services = await testServices();
@@ -33,7 +88,10 @@ async function toolsFor(allowShell: boolean, jev?: () => Response) {
     requestKey: 'one',
   });
 
-  return profileTools({ ...services, decisions, store: services.store }, run);
+  return {
+    tools: profileTools({ ...services, decisions, store: services.store }, run),
+    home: join(root, profile.id),
+  };
 }
 
 const call = async (tool: unknown, input: unknown) =>
@@ -43,34 +101,45 @@ const call = async (tool: unknown, input: unknown) =>
     context: {},
   });
 
+const sh = async (tool: unknown, command: string) =>
+  (await call(tool, { command, timeoutMs: 10_000 })) as {
+    exitCode: number | string;
+    stdout: string;
+    stderr: string;
+  };
+
 describe('running commands on the machine the gateway runs on', () => {
   it('hands out nothing unless the owner turned it on for this profile', async () => {
-    const off = await toolsFor(false);
+    const { tools: off } = await toolsFor(false);
 
     expect(off.run_command).toBeUndefined();
     expect(off.read_file).toBeUndefined();
     expect(off.write_file).toBeUndefined();
     expect(off.list_directory).toBeUndefined();
 
-    expect((await toolsFor(true)).run_command).toBeDefined();
+    expect((await toolsFor(true)).tools.run_command).toBeDefined();
   });
 
   it('reports what a command printed and how it ended', async () => {
-    const tools = await toolsFor(true);
+    const { tools } = await toolsFor(true);
 
-    expect(await call(tools.run_command, { command: 'echo oi', timeoutMs: 5000 })).toMatchObject({
-      exitCode: 0,
-      stdout: 'oi\n',
-    });
+    expect(await sh(tools.run_command, 'echo oi')).toMatchObject({ exitCode: 0, stdout: 'oi\n' });
 
     // A failure is a result to read, not an error that ends the run.
-    expect(await call(tools.run_command, { command: 'exit 3', timeoutMs: 5000 })).toMatchObject({
-      exitCode: 3,
+    expect(await sh(tools.run_command, 'exit 3')).toMatchObject({ exitCode: 3 });
+  });
+
+  it('starts in the profile workspace, which is its home and holds its temporary files', async () => {
+    const { tools, home } = await toolsFor(true);
+
+    expect(await sh(tools.run_command, 'pwd; echo "$HOME"; echo "$TMPDIR"')).toMatchObject({
+      exitCode: 0,
+      stdout: `${home}\n${home}\n${join(home, 'tmp')}\n`,
     });
   });
 
   it("keeps the gateway's credentials out of a command's environment", async () => {
-    const tools = await toolsFor(true);
+    const { tools } = await toolsFor(true);
     const planted = {
       DATABASE_URL: 'postgres://synthetic:synthetic@127.0.0.1:1/synthetic',
       JIAN_MASTER_KEYS: '{"synthetic":"c3ludGhldGlj"}',
@@ -81,9 +150,7 @@ describe('running commands on the machine the gateway runs on', () => {
     Object.assign(process.env, planted, { LC_ALL: 'C.UTF-8' });
 
     try {
-      const { stdout } = (await call(tools.run_command, { command: 'env', timeoutMs: 5000 })) as {
-        stdout: string;
-      };
+      const { stdout } = await sh(tools.run_command, 'env');
       const names = stdout.split('\n').map((line) => line.split('=')[0]);
 
       for (const name of Object.keys(planted)) {
@@ -104,12 +171,53 @@ describe('running commands on the machine the gateway runs on', () => {
     }
   });
 
-  it('reads, writes and lists real paths', async () => {
-    const tools = await toolsFor(true);
-    const directory = mkdtempSync(join(tmpdir(), 'jian-shell-'));
-    const file = join(directory, 'nota.txt');
+  it.skipIf(!kernelConfines)(
+    "keeps a command out of another profile's workspace and the gateway's process",
+    async () => {
+      const mine = await toolsFor(true);
+      const theirs = await toolsFor(true);
+      const secret = join(theirs.home, 'id_ed25519');
 
-    writeFileSync(file, 'primeira linha\n');
+      await sh(theirs.tools.run_command, 'echo private > id_ed25519');
+      expect(readFileSync(secret, 'utf8')).toBe('private\n');
+
+      // Its own workspace is open to it.
+      expect(await sh(mine.tools.run_command, 'echo mine > notes && cat notes')).toMatchObject({
+        exitCode: 0,
+        stdout: 'mine\n',
+      });
+
+      // Another profile's is not, neither to read nor to write, and not through a link.
+      expect((await sh(mine.tools.run_command, `cat ${secret}`)).exitCode).not.toBe(0);
+      expect(
+        (await sh(mine.tools.run_command, `echo x > ${theirs.home}/planted`)).exitCode,
+      ).not.toBe(0);
+      expect(
+        (await sh(mine.tools.run_command, `ln -s ${secret} link && cat link`)).stdout,
+      ).not.toContain('private');
+
+      // Nor the gateway: its environment in /proc, and files beside the workspaces.
+      expect(
+        (await sh(mine.tools.run_command, `cat /proc/${process.pid}/environ`)).exitCode,
+      ).not.toBe(0);
+      writeFileSync(join(root, 'gateway-file'), 'gateway');
+      expect(
+        (await sh(mine.tools.run_command, `cat ${join(root, 'gateway-file')}`)).exitCode,
+      ).not.toBe(0);
+
+      // The system's tools still run.
+      expect(await sh(mine.tools.run_command, 'ls /usr/bin >/dev/null && echo ok')).toMatchObject({
+        exitCode: 0,
+        stdout: 'ok\n',
+      });
+    },
+  );
+
+  it('reads, writes and lists paths in the workspace', async () => {
+    const { tools, home } = await toolsFor(true);
+    const file = join(home, 'nota.txt');
+
+    await call(tools.write_file, { path: file, content: 'primeira linha\n' });
 
     expect(await call(tools.read_file, { path: file, offset: 1, limit: 2000 })).toMatchObject({
       totalLines: 1,
@@ -119,13 +227,35 @@ describe('running commands on the machine the gateway runs on', () => {
     await call(tools.write_file, { path: file, content: 'segunda' });
 
     expect(readFileSync(file, 'utf8')).toBe('segunda');
-    expect(await call(tools.list_directory, { path: directory })).toMatchObject({
-      entries: [{ name: 'nota.txt', kind: 'file' }],
+    expect(await call(tools.list_directory, { path: home })).toMatchObject({
+      entries: expect.arrayContaining([{ name: 'nota.txt', kind: 'file' }]),
     });
   });
 
+  it("keeps the file tools in the workspace, links included, while the system's files stay readable", async () => {
+    const mine = await toolsFor(true);
+    const theirs = await toolsFor(true);
+    const secret = join(theirs.home, 'secret.txt');
+
+    writeFileSync(secret, 'private');
+    symlinkSync(secret, join(mine.home, 'link.txt'));
+
+    const read = (path: string) => call(mine.tools.read_file, { path, offset: 1, limit: 10 });
+
+    await expect(read(secret)).rejects.toThrow('outside your workspace');
+    await expect(read(join(mine.home, 'link.txt'))).rejects.toThrow('outside your workspace');
+    await expect(read('/proc/self/environ')).rejects.toThrow('outside your workspace');
+    await expect(
+      call(mine.tools.write_file, { path: join(theirs.home, 'planted.txt'), content: 'x' }),
+    ).rejects.toThrow('outside your workspace');
+    await expect(call(mine.tools.list_directory, { path: theirs.home })).rejects.toThrow(
+      'outside your workspace',
+    );
+    await expect(read('/etc/hosts')).resolves.toMatchObject({ path: realpathSync('/etc/hosts') });
+  });
+
   it('refuses a relative path, which would mean whatever the worker happened to be in', async () => {
-    const tools = await toolsFor(true);
+    const { tools } = await toolsFor(true);
     const schema = (
       tools.read_file as { inputSchema: { safeParse(i: unknown): { success: boolean } } }
     ).inputSchema;
@@ -136,13 +266,15 @@ describe('running commands on the machine the gateway runs on', () => {
 });
 
 describe('working on code', () => {
-  const workspace = () => {
-    const directory = mkdtempSync(join(tmpdir(), 'jian-code-'));
+  const workspace = async () => {
+    const { tools, home } = await toolsFor(true);
+    const directory = join(home, 'project');
     const file = join(directory, 'app.ts');
 
+    mkdirSync(directory, { recursive: true });
     writeFileSync(file, 'const a = 1;\nconst b = 2;\nconst c = 1;\n');
 
-    return { directory, file };
+    return { tools, directory, file };
   };
 
   const read = (tools: Record<string, unknown>, path: string) =>
@@ -152,8 +284,7 @@ describe('working on code', () => {
     call(tools.edit_file, { path, edits });
 
   it('changes only the passage named, and refuses one that is missing or ambiguous', async () => {
-    const tools = await toolsFor(true);
-    const { file } = workspace();
+    const { tools, file } = await workspace();
 
     await read(tools, file);
     await edit(tools, file, [{ oldString: 'const b = 2;', newString: 'const b = 3;' }]);
@@ -173,8 +304,7 @@ describe('working on code', () => {
   });
 
   it('applies a batch of edits all or nothing', async () => {
-    const tools = await toolsFor(true);
-    const { file } = workspace();
+    const { tools, file } = await workspace();
 
     await read(tools, file);
     await expect(
@@ -188,8 +318,7 @@ describe('working on code', () => {
   });
 
   it('changes a file only as this run read it', async () => {
-    const tools = await toolsFor(true);
-    const { file } = workspace();
+    const { tools, file } = await workspace();
 
     await expect(edit(tools, file, [{ oldString: 'const a', newString: 'let a' }])).rejects.toThrow(
       'Read the file',
@@ -202,7 +331,6 @@ describe('working on code', () => {
     // Someone else writes it in the meantime: the edit would be computed against old text.
     writeFileSync(file, 'const a = 5;\n');
     const later = new Date(Date.now() + 5000);
-    const { utimesSync } = await import('node:fs');
     utimesSync(file, later, later);
 
     await expect(edit(tools, file, [{ oldString: 'const a', newString: 'let a' }])).rejects.toThrow(
@@ -211,8 +339,7 @@ describe('working on code', () => {
   });
 
   it('keeps the line endings a file already uses', async () => {
-    const tools = await toolsFor(true);
-    const { directory } = workspace();
+    const { tools, directory } = await workspace();
     const file = join(directory, 'windows.txt');
 
     writeFileSync(file, 'one\r\ntwo\r\n');
@@ -223,9 +350,7 @@ describe('working on code', () => {
   });
 
   it('finds files by name and text across a tree, skipping dependencies', async () => {
-    const tools = await toolsFor(true);
-    const { directory, file } = workspace();
-    const { mkdirSync } = await import('node:fs');
+    const { tools, directory, file } = await workspace();
 
     mkdirSync(join(directory, 'node_modules', 'dep'), { recursive: true });
     writeFileSync(join(directory, 'node_modules', 'dep', 'index.ts'), 'const b = 2;\n');
@@ -255,16 +380,16 @@ describe('working on code', () => {
   });
 
   it('holds back an action Jev judges destructive, and runs nothing', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'jian-guard-'));
-    const file = join(dir, 'keep.txt');
     const risky = () => Response.json({ answers: { answer: { type: 'noul', noul: 0.95 } } });
-    const tools = await toolsFor(true, risky);
+    const { tools, home } = await toolsFor(true, risky);
+    const file = join(home, 'keep.txt');
 
+    mkdirSync(home, { recursive: true });
     writeFileSync(file, 'dados');
 
-    expect(await call(tools.run_command, { command: `rm ${file}`, timeoutMs: 5000 })).toMatchObject(
-      { held: expect.stringContaining('Held back') },
-    );
+    expect(await sh(tools.run_command, `rm ${file}`)).toMatchObject({
+      held: expect.stringContaining('Held back'),
+    });
     expect(readFileSync(file, 'utf8')).toBe('dados');
   });
 
@@ -274,9 +399,9 @@ describe('working on code', () => {
 
     // Each set of tools is used before the next is built: every test store starts empty.
     for (const jev of [safe, undefined, down]) {
-      const tools = await toolsFor(true, jev);
+      const { tools } = await toolsFor(true, jev);
 
-      expect(await call(tools.run_command, { command: 'echo oi', timeoutMs: 5000 })).toMatchObject({
+      expect(await sh(tools.run_command, 'echo oi')).toMatchObject({
         exitCode: 0,
         stdout: 'oi\n',
       });
