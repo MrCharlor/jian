@@ -28,6 +28,7 @@ FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ffmpeg ca-certificates gnupg \
       git openssh-client curl wget rsync \
+      chromium \
       jq ripgrep fd-find gawk sed grep diffutils patch file tree less nano vim-tiny \
       zip unzip xz-utils bzip2 zstd \
       procps psmisc lsof iproute2 iputils-ping dnsutils netcat-openbsd \
@@ -67,6 +68,7 @@ RUN gcc -O2 -Wall -Wextra -Werror -o /usr/local/bin/jian-sandbox /tmp/jian-sandb
 ENV GOPATH=/home/node/go \
     NPM_CONFIG_PREFIX=/home/node/.local \
     PATH=/home/node/.local/bin:/home/node/go/bin:/usr/local/go/bin:$PATH \
+    PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium \
     JIAN_TOOLBOX=1
 ARG JIAN_VERSION=0.0.0-dev
 ARG JIAN_REVISION=unknown
