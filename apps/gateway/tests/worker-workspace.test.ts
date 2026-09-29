@@ -77,7 +77,7 @@ it('gives two workers separate committed trees and preserves a worker tree on re
   expect(readFileSync(join(source, 'file.txt'), 'utf8')).toBe('committed');
   await expect(
     call(firstTools.write_file, { path: join(secondTree, 'file.txt'), content: 'escape' }),
-  ).rejects.toThrow('outside your workspace');
+  ).rejects.toThrow('belongs to another task worker');
   await expect(
     call(firstTools.write_file, { path: join(source, 'file.txt'), content: 'escape' }),
   ).rejects.toThrow('outside your workspace');

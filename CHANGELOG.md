@@ -18,6 +18,10 @@ GPT-6.1 Sol and model-specific higher reasoning levels for OpenAI.
 
 * Opening a task no longer highlights its title or Close task button. Keyboard navigation remains available inside the dialog.
 
+### Task workers
+
+* Workers now receive their own workspace and repository paths in their task context. When a report mentions another worker's path, the tools explain that it is isolated and direct the worker to its own worktree or the committed branch instead. The isolation boundary is unchanged.
+
 ### Upgrading
 
 No migration or configuration change is required. Model availability still depends on the connected account or API key. The model list refreshes automatically; saved defaults remain unchanged.

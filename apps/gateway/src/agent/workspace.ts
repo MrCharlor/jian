@@ -142,6 +142,11 @@ function assertWithin(real: string, home: string, access: Access, asked: string)
   const allowed = access === 'write' ? [home] : [home, ...SYSTEM];
 
   if (!allowed.some((root) => inside(real, root))) {
+    if (basename(dirname(dirname(home))) === '_workers' && inside(real, dirname(home))) {
+      throw new Error(
+        `${asked} belongs to another task worker. Your workspace is ${home}; use its own repository worktree or fetch the committed branch there.`,
+      );
+    }
     throw new Error(
       access === 'write'
         ? `${asked} is outside your workspace. Write only under ${home}`

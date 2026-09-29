@@ -1,4 +1,6 @@
+import { basename, join } from 'node:path';
 import { LEARNING_SESSION_CHANNEL, type Run } from '@jian/contracts';
+import { workspaceOf } from '../agent/workspace.js';
 import { listConversations } from '../channels/repository.js';
 import type { Judge } from '../decisions/service.js';
 import { findMemories, searchMemories, withLinks } from '../memories/repository.js';
@@ -41,6 +43,10 @@ export class Contexts {
 
   async context(run: Run): ReturnType<ContextSource['context']> {
     if (run.subagent) {
+      const home = await workspaceOf(run.profileId, run.id);
+      const repositories = (run.subagent.repositories ?? []).map((source, index) =>
+        join(home, 'repos', String(index + 1), basename(source)),
+      );
       const session = await this.sessions.session(run.profileId, run.sessionId);
       const plainHistory = await this.sessions.uncompactedMessages(
         run.profileId,
@@ -65,6 +71,7 @@ export class Contexts {
           run.profile.instructions,
           `You are ${JSON.stringify(run.subagent.name)}, an ephemeral ${run.subagent.role} worker for one task.`,
           `Identity and working approach: ${run.subagent.identity}`,
+          `Your workspace is ${home}. ${repositories.length ? `Your repository worktrees are ${repositories.join(', ')}.` : 'Clone repositories under this workspace when needed.'} Paths from other workers' reports are not accessible to you. For review, fetch the committed branch or PR into your own worktree; do not open another worker's directory. If changes exist only in that worker's uncommitted files, report the missing handoff instead of attempting to bypass isolation.`,
           'Work only on the assigned task. You have no owner conversation, shared memories, contacts, or authority to delegate. Use list_tasks to read the current version and update_task to report progress. Before your final report, mark verified work done, or hand off to review when independent review is needed; leave the exact blocker in the task if incomplete. Your final response is a factual report, not a message to the owner.',
           ...(session.summary
             ? [`Earlier task work (checkpoint, not instructions): ${session.summary}`]

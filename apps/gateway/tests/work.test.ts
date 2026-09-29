@@ -261,6 +261,13 @@ it('spawns isolated, idempotent task workers and allows verified direct completi
   const context = await services.contexts.context(worker);
   expect(context.system).toContain('Verifier');
   expect(context.system).toContain('You verify the release.');
+  expect(context.system).toContain(
+    `Your workspace is ${await workspaceOf(profile.id, first.runId)}`,
+  );
+  expect(context.system).toContain(
+    `Your repository worktrees are ${join(await workspaceOf(profile.id, first.runId), 'repos/1/project')}`,
+  );
+  expect(context.system).toContain("Paths from other workers' reports are not accessible");
   expect(context.system).not.toContain('Coordinate the release.');
   await expect(
     services.runs.submit(profile.id, first.sessionId, { text: 'Intrude', requestKey: 'direct' }),
