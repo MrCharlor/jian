@@ -4,6 +4,9 @@ import {
   memoryKeySchema,
   memorySchema,
   type Run,
+  spawnSubagentSchema,
+  workInputSchema,
+  workPatchSchema,
 } from '@jian/contracts';
 import { type ToolSet, tool } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
@@ -25,6 +28,7 @@ import { skillTools } from '../skills/tools.js';
 import type { Stats } from '../stats/service.js';
 import type { Store } from '../storage/database.js';
 import { artifacts, checkpoints } from '../storage/schema.js';
+import type { Work } from '../tasks/service.js';
 import { artifactPage } from './results.js';
 import { shellTools } from './shell.js';
 
@@ -76,7 +80,31 @@ export type ToolServices = {
   schedules?: Pick<Schedules, 'list' | 'create' | 'update' | 'remove'>;
   settings?: { timeZone(): Promise<string> };
   stats?: Pick<Stats, 'stats' | 'usageRuns'>;
+  work?: Pick<Work, 'list' | 'create' | 'update' | 'spawn' | 'executions'>;
 };
+
+/** Task workers inherit machine/web/media work, not the principal's people or profile. */
+const TASK_WORKER_TOOLS = new Set([
+  'list_tasks',
+  'update_task',
+  'read_artifact',
+  'compact_context',
+  'read_file',
+  'edit_file',
+  'write_file',
+  'find_files',
+  'search_files',
+  'list_directory',
+  'run_command',
+  'web_search',
+  'fetch_url',
+  'analyze_media',
+  'generate_image',
+]);
+
+export function restrictTaskWorkerTools(tools: ToolSet): void {
+  for (const name of Object.keys(tools)) if (!TASK_WORKER_TOOLS.has(name)) delete tools[name];
+}
 
 export function profileTools(services: ToolServices, run: Run): ToolSet {
   const coordination = new Coordination(services);
@@ -95,6 +123,49 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
           updatedAt: r.updatedAt,
         })),
     }),
+
+    ...(services.work
+      ? {
+          list_tasks: tool({
+            description:
+              'Read your durable work board across conversations. These are commitments you maintain, not live runs or timed schedules.',
+            inputSchema: z.object({}),
+            execute: async () => {
+              const items = await services.work?.list(run.profileId);
+              return run.subagent ? items?.filter((item) => item.id === run.workItemId) : items;
+            },
+          }),
+          create_task: tool({
+            description:
+              'Record work that should survive this conversation. First check the board for an existing task. Creating a card does not start another run or schedule work.',
+            inputSchema: workInputSchema,
+            execute: async (input) => services.work?.create(run.profileId, input, run.sessionId),
+          }),
+          update_task: tool({
+            description:
+              'Move a task on your board or leave a progress/handoff note. Use the version from list_tasks; a stale update returns a conflict. Mark done only for verified work.',
+            inputSchema: z.object({ id: z.uuid(), ...workPatchSchema.shape }),
+            execute: async ({ id, ...patch }) =>
+              services.work?.update(run.profileId, id, patch, run),
+          }),
+          ...(!run.subagent
+            ? {
+                spawn_subagent: tool({
+                  description:
+                    'Start an anonymous, isolated task worker with its own identity and brief. It is a queued run, not an agent profile. An executor hands off to review; a reviewer verifies, fixes, and may mark done. This returns immediately; inspect task workers later.',
+                  inputSchema: spawnSubagentSchema,
+                  execute: async (input, options) =>
+                    services.work?.spawn(run, input, options.toolCallId),
+                }),
+                list_task_subagents: tool({
+                  description: 'Read the runs and outcomes of workers assigned to a task.',
+                  inputSchema: z.object({ taskId: z.uuid() }),
+                  execute: async ({ taskId }) => services.work?.executions(run.profileId, taskId),
+                }),
+              }
+            : {}),
+        }
+      : {}),
 
     ...(services.stats
       ? {
@@ -563,8 +634,12 @@ export const TOOL_GROUPS = {
   },
   tasks: {
     summary:
-      'long-running work: checkpoints, stored tool output, resource leases, and compacting your context now instead of waiting for it to fill',
+      'record and update durable tasks, read checkpoints and stored output, manage resource leases, or compact context',
     tools: [
+      'create_task',
+      'update_task',
+      'spawn_subagent',
+      'list_task_subagents',
       'read_run_checkpoints',
       'read_artifact',
       'acquire_resource',

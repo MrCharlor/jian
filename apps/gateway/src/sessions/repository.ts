@@ -4,6 +4,7 @@ import {
   type Message,
   type ModelSelection,
   type Session,
+  TASK_SESSION_CHANNEL,
 } from '@jian/contracts';
 import { and, desc, eq, gt, lt, or, sql } from 'drizzle-orm';
 import type { Queryable } from '../storage/database.js';
@@ -78,7 +79,9 @@ export async function listSessions(
   const rows = await db
     .select()
     .from(sessions)
-    .where(eq(sessions.profileId, profileId))
+    .where(
+      and(eq(sessions.profileId, profileId), sql`${sessions.channel} <> ${TASK_SESSION_CHANNEL}`),
+    )
     .orderBy(desc(sessions.createdAt), desc(sessions.id))
     .limit(limit);
 

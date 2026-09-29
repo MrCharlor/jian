@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { GatewayApi, Person, Run, ToolStep } from '../../lib/api';
 import { useWorkspace } from '../../lib/workspace';
 import { Badge, Button, Empty, Orb } from '../ui';
+import { useFollowBottom } from './follow-bottom';
 import { MessageMedia } from './media';
 import { authored, ChatMessage } from './message';
 import { RunProgress } from './progress';
@@ -62,33 +63,13 @@ export function History({
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const isRunning = running(run);
-  const scroller = useRef<HTMLElement>(null);
-  // Whether the reader is at the end: a chat opens there and follows new messages, but leaves
-  // alone someone who scrolled up to read.
-  const following = useRef(true);
+  const { scroller, follow, onScroll } = useFollowBottom();
 
   // Sending is a return to the end, wherever the reader had scrolled.
   useEffect(() => {
-    if (revision) following.current = true;
-  }, [revision]);
+    if (revision) follow();
+  }, [revision, follow]);
 
-  // Attachments load after their message and grow it, so the end is followed by size, not by
-  // what arrived.
-  useLayoutEffect(() => {
-    const element = scroller.current;
-    const content = element?.firstElementChild;
-
-    if (!element || !content) return;
-    const follow = () => {
-      if (following.current) element.scrollTop = element.scrollHeight;
-    };
-    const observer = new ResizeObserver(follow);
-
-    follow();
-    observer.observe(content);
-
-    return () => observer.disconnect();
-  }, []);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Retry and revision explicitly restart the read.
   useEffect(() => {
     let stopped = false;
@@ -204,9 +185,7 @@ export function History({
         aria-label="Session history"
         aria-busy={loading}
         onScroll={(event) => {
-          const element = event.currentTarget;
-
-          following.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+          onScroll(event.currentTarget);
         }}
       >
         <div className="message-list">

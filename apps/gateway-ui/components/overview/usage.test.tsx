@@ -36,11 +36,32 @@ it('shows progress bars only for providers with available subscription windows',
   await act(async () => root.render(<UsageSummary stats={statsFor(30) as ProfileStats} />));
 
   expect(element.textContent).toContain('32%');
-  expect(element.textContent).toContain('61%');
-  expect(element.querySelectorAll('.subscription-meter .share-bar')).toHaveLength(2);
+  expect(element.textContent).toContain('Weekly window');
+  expect(element.textContent).not.toContain('5-hour window');
+  expect(element.querySelectorAll('.subscription-meter .share-bar')).toHaveLength(1);
+  expect(element.querySelector('.subscription-windows.single')).not.toBeNull();
   expect(element.querySelectorAll('.stat-subscriptions .stat-row-card')).toHaveLength(1);
   expect(element.textContent).not.toContain('Unavailable');
   expect(element.textContent).not.toContain('Tools used most');
+
+  const sample = statsFor(30);
+  const withClaude = {
+    ...sample,
+    subscriptions: [
+      sample.subscriptions[0],
+      {
+        provider: 'claude',
+        status: 'available',
+        fiveHour: { usedPercent: 18, resetsAt: null },
+        weekly: { usedPercent: 47, resetsAt: null },
+      },
+    ],
+  } as ProfileStats;
+  await act(async () => root.render(<UsageSummary stats={withClaude} />));
+  const claude = element.querySelectorAll('.stat-subscriptions .stat-row-card')[1];
+  expect(claude?.textContent).toContain('5-hour window');
+  expect(claude?.textContent).toContain('Weekly window');
+  expect(claude?.querySelectorAll('.subscription-meter .share-bar')).toHaveLength(2);
 
   const unavailable = {
     ...statsFor(30),

@@ -12,3 +12,4 @@ export * from './schedules.js';
 export * from './security.js';
 export * from './skills.js';
 export * from './web.js';
+export * from './work.js';

@@ -11,6 +11,7 @@ import type {
   ReasoningEffort,
   RunProgress,
   Skill,
+  Subagent,
   Usage,
 } from '@jian/contracts';
 import { sql } from 'drizzle-orm';
@@ -193,6 +194,9 @@ export const runs = pgTable(
     sessionId: uuid('session_id')
       .notNull()
       .references(() => sessions.id, { onDelete: 'cascade' }),
+    workItemId: uuid('work_item_id').references(() => workItems.id, { onDelete: 'set null' }),
+    subagent: jsonb('subagent').$type<Subagent>(),
+    subagentReportedAt: timestamp('subagent_reported_at', { withTimezone: true }),
     // The profile this run froze. The snapshot is read from the revision, never copied here.
     profileVersion: integer('profile_version').notNull(),
     requestKey: text('request_key').notNull(),
@@ -228,6 +232,19 @@ export const runs = pgTable(
     index('runs_running').on(table.status).where(sql`${table.status} = 'running'`),
     index('runs_queued').on(table.status).where(sql`${table.status} = 'queued'`),
     index('runs_session').on(table.profileId, table.sessionId, table.createdAt.desc()),
+    index('runs_work_item')
+      .on(table.profileId, table.workItemId, table.createdAt)
+      .where(sql`${table.workItemId} IS NOT NULL`),
+    uniqueIndex('runs_subagent_spawn')
+      .on(
+        table.profileId,
+        sql`(${table.subagent}->>'parentRunId')`,
+        sql`(${table.subagent}->>'spawnKey')`,
+      )
+      .where(sql`${table.subagent} IS NOT NULL`),
+    index('runs_unreported_subagent')
+      .on(table.status)
+      .where(sql`${table.subagent} IS NOT NULL AND ${table.subagentReportedAt} IS NULL`),
   ],
 );
 
@@ -282,6 +299,41 @@ export const memories = pgTable(
       'gin',
       sql`to_tsvector('simple', ${table.key} || ' ' || ${table.content})`,
     ),
+  ],
+);
+
+/** Durable work belongs to one profile; a run ending never changes its task status. */
+export const workItems = pgTable(
+  'work_items',
+  {
+    id: uuid('id').primaryKey(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    sourceSessionId: uuid('source_session_id').references(() => sessions.id, {
+      onDelete: 'set null',
+    }),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    mediaIds: jsonb('media_ids').$type<string[]>().notNull().default([]),
+    status: text('status')
+      .$type<'todo' | 'in_progress' | 'review' | 'blocked' | 'done'>()
+      .notNull()
+      .default('todo'),
+    note: text('note').notNull().default(''),
+    version: integer('version').notNull().default(1),
+    updatedBy: text('updated_by').$type<'agent' | 'owner'>().notNull(),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('work_items_profile_status').on(table.profileId, table.status, table.updatedAt.desc()),
+    check(
+      'work_items_status',
+      sql`${table.status} IN ('todo','in_progress','review','blocked','done')`,
+    ),
+    check('work_items_version', sql`${table.version} > 0`),
+    check('work_items_updated_by', sql`${table.updatedBy} IN ('agent','owner')`),
   ],
 );
 

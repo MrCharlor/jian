@@ -1,4 +1,11 @@
-import type { AgentCallOrigin, Checkpoint, GroupTurn, Run, RunProgress } from '@jian/contracts';
+import type {
+  AgentCallOrigin,
+  Checkpoint,
+  GroupTurn,
+  Run,
+  RunProgress,
+  Subagent,
+} from '@jian/contracts';
 import type { Queryable } from '../storage/database.js';
 
 /** What decides a run beyond its text: where it continues from, who asked, what it may cost. */
@@ -9,6 +16,9 @@ export type SubmitOptions = {
   group?: GroupTurn;
   /** Who wrote the message, when the conversation is a room with several people in it. */
   author?: { id: string; name?: string };
+  workItemId?: string;
+  subagent?: Subagent;
+  transaction?: Queryable;
 };
 
 export interface RunReader {

@@ -8,9 +8,10 @@ import {
   sessionModelSchema,
   sessionRenameSchema,
   sessionSchema,
+  TASK_SESSION_CHANNEL,
 } from '@jian/contracts';
 import { type Clock, nowIso } from '../core/clock.js';
-import { assertFound } from '../core/errors.js';
+import { assertFound, GatewayError } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import { sessionTimeline } from '../runs/timeline.js';
 import type { Queryable, Store } from '../storage/database.js';
@@ -71,6 +72,20 @@ export class Sessions {
     return transaction ? write(transaction) : this.store.transaction(profileId, write);
   }
 
+  /** A private transcript for one ephemeral worker, never a chat the owner can message. */
+  async taskSession(profileId: string, title: string, tx: Queryable): Promise<Session> {
+    await this.profiles.profile(profileId, tx);
+    const session: Session = {
+      id: randomUUID(),
+      profileId,
+      title: title.slice(0, 160),
+      channel: TASK_SESSION_CHANNEL,
+      createdAt: nowIso(this.clock),
+    };
+    await insertSession(tx, session);
+    return session;
+  }
+
   /**
    * Names a conversation. The owner may do this at any time; the agent does it once, from the
    * first message, and only while the name is still empty — a rename is never overwritten.
@@ -79,6 +94,9 @@ export class Sessions {
     const { title } = sessionRenameSchema.parse(input);
 
     return this.store.transaction(profileId, async (tx) => {
+      if ((await this.session(profileId, sessionId, tx)).channel === TASK_SESSION_CHANNEL) {
+        throw new GatewayError(403, 'Task worker sessions are read-only');
+      }
       const session = assertFound(await renameSession(tx, profileId, sessionId, title), 'Session');
 
       await recordEvent(tx, this.clock, profileId, 'session.renamed', session);
@@ -95,6 +113,9 @@ export class Sessions {
     const { model } = sessionModelSchema.parse(input);
 
     return this.store.transaction(profileId, async (tx) => {
+      if ((await this.session(profileId, sessionId, tx)).channel === TASK_SESSION_CHANNEL) {
+        throw new GatewayError(403, 'Task worker sessions are read-only');
+      }
       const session = assertFound(
         await setSessionModel(tx, profileId, sessionId, model),
         'Session',

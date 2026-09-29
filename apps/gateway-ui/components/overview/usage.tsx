@@ -116,12 +116,15 @@ function SubscriptionLimits({ subscriptions }: { subscriptions: ProfileStats['su
               </span>
               <strong>{subscription.provider === 'codex' ? 'Codex' : 'Claude'}</strong>
             </header>
-            <dl className="subscription-windows">
-              {(
-                [
-                  ['5-hour window', subscription.fiveHour],
-                  ['Weekly window', subscription.weekly],
-                ] as const
+            <dl
+              className={`subscription-windows${subscription.provider === 'codex' ? ' single' : ''}`}
+            >
+              {(subscription.provider === 'codex'
+                ? ([['Weekly window', subscription.weekly]] as const)
+                : ([
+                    ['5-hour window', subscription.fiveHour],
+                    ['Weekly window', subscription.weekly],
+                  ] as const)
               ).map(([label, window]) => (
                 <div key={label}>
                   <dt>{label}</dt>

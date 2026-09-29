@@ -288,6 +288,20 @@
       "when": 1790858000000,
       "tag": "0040_stickers-default-off",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790862000000,
+      "tag": "0041_work-items",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790866000000,
+      "tag": "0042_task-subagents",
+      "breakpoints": true
     }
   ]
 }

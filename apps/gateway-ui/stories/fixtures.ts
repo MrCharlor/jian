@@ -14,6 +14,8 @@ import type {
   Run,
   Schedule,
   Session,
+  WorkHistory,
+  WorkItem,
 } from '../lib/api';
 
 /**
@@ -30,7 +32,7 @@ import {
   runs as scriptedRuns,
   timelines as scriptedTimelines,
 } from './conversations';
-import { portrait, media as scriptedMedia } from './media';
+import { mediaId, portrait, media as scriptedMedia } from './media';
 
 export const ids = {
   ...chats,
@@ -44,6 +46,67 @@ export const ids = {
   designContact: '2b3c4d5e-6f7a-4b2c-9d3e-4f5a6b7c8d9e',
   launchContact: '7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d',
   strangerContact: '3c4d5e6f-7a8b-4c3d-8e4f-5a6b7c8d9e0f',
+};
+
+export const work = [
+  {
+    id: 'a1b2c3d4-1111-4111-8111-111111111111',
+    profileId: ids.zero,
+    sourceSessionId: ids.gatewayChat,
+    title: 'Verify gateway release',
+    description: 'Run checks and review the release before publishing.',
+    mediaIds: [mediaId('whiteboard')],
+    status: 'review',
+    note: 'Gateway checks passed; review is pending.',
+    version: 3,
+    updatedBy: 'agent',
+    createdAt: at(60 * 24 * 2),
+    updatedAt: at(60 * 4),
+  },
+  {
+    id: 'a1b2c3d4-2222-4222-8222-222222222222',
+    profileId: ids.zero,
+    sourceSessionId: null,
+    title: 'Audit provider fallbacks',
+    description: 'Check error handling when subscription usage is unavailable.',
+    mediaIds: [],
+    status: 'in_progress',
+    note: 'Reviewing the fallback path.',
+    version: 2,
+    updatedBy: 'agent',
+    createdAt: at(60 * 24),
+    updatedAt: at(60),
+  },
+] satisfies [WorkItem, WorkItem];
+
+export const workHistory: Record<string, WorkHistory> = {
+  [work[0].id]: [
+    { id: 1, type: 'work.created', status: 'todo', note: '', createdAt: work[0].createdAt },
+    {
+      type: 'work.updated',
+      id: 2,
+      status: 'in_progress',
+      note: 'Starting checks.',
+      createdAt: at(60 * 24),
+    },
+    {
+      id: 3,
+      type: 'work.updated',
+      status: 'review',
+      note: work[0].note,
+      createdAt: work[0].updatedAt,
+    },
+  ],
+  [work[1].id]: [
+    { id: 4, type: 'work.created', status: 'todo', note: '', createdAt: work[1].createdAt },
+    {
+      type: 'work.updated',
+      id: 5,
+      status: 'in_progress',
+      note: work[1].note,
+      createdAt: work[1].updatedAt,
+    },
+  ],
 };
 
 const profileBase = {
@@ -661,8 +724,8 @@ export const statsFor = (days: number) => {
       {
         provider: 'codex' as const,
         status: 'available' as const,
-        fiveHour: { usedPercent: 32, resetsAt: null },
-        weekly: { usedPercent: 61, resetsAt: null },
+        fiveHour: null,
+        weekly: { usedPercent: 32, resetsAt: null },
       },
       {
         provider: 'claude' as const,

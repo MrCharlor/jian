@@ -3,6 +3,7 @@ import { groupTurnSchema } from './channels.js';
 import { agentCallOriginSchema } from './peers.js';
 import { contextPolicySchema, modelSchema, profileSchema, sessionSchema } from './profile.js';
 import { modelSelectionSchema } from './providers.js';
+import { subagentSchema } from './work.js';
 
 const uuid = z.uuid();
 const timestamp = z.iso.datetime();
@@ -120,6 +121,8 @@ export const runRecordSchema = z.strictObject({
   id: uuid,
   profileId: uuid,
   sessionId: uuid,
+  workItemId: uuid.optional(),
+  subagent: subagentSchema.optional(),
   requestKey: z.string(),
   input: z.string(),
   status: z.enum(['queued', 'running', 'completed', 'failed', 'interrupted', 'cancelled']),

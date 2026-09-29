@@ -22,6 +22,20 @@ export class Contexts {
   ) {}
 
   async context(run: Run): ReturnType<ContextSource['context']> {
+    if (run.subagent) {
+      const history = await this.sessions.messages(run.profileId, run.sessionId, 40);
+      return {
+        system: [
+          run.profile.instructions,
+          `You are ${JSON.stringify(run.subagent.name)}, an ephemeral ${run.subagent.role} worker for one task.`,
+          `Identity and working approach: ${run.subagent.identity}`,
+          'Work only on the assigned task. You have no owner conversation, shared memories, contacts, or authority to delegate. Use list_tasks to read the current version and update_task to report progress. An executor hands off to review; a reviewer verifies, fixes issues, and may mark done. Your final response is a factual report, not a message to the owner.',
+        ].join('\n\n'),
+        messages: history
+          .filter((message) => message.role === 'user' || message.role === 'assistant')
+          .map((message) => ({ role: message.role, content: message.content })),
+      };
+    }
     const words = [...new Set(run.input.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? [])].slice(
       0,
       12,

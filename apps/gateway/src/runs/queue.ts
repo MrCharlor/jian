@@ -1,8 +1,9 @@
 import type { PgBoss } from 'pg-boss';
 import type { AgentRuntime } from '../agent/runtime.js';
 import type { Store } from '../storage/database.js';
+import type { Work } from '../tasks/service.js';
 import type { RunRecovery } from './port.js';
-import { listQueuedRuns } from './repository.js';
+import { listQueuedRuns, listUnreportedTaskWorkers } from './repository.js';
 
 const queueName = 'jian-agent-runs';
 
@@ -13,7 +14,7 @@ export class RunQueue {
 
   constructor(
     private boss: PgBoss,
-    private services: { lifecycle: RunRecovery; store: Store },
+    private services: { lifecycle: RunRecovery; store: Store; work: Pick<Work, 'reportWorker'> },
     private runtime: AgentRuntime,
     private report: (message: string) => void = console.error,
   ) {}
@@ -44,6 +45,13 @@ export class RunQueue {
 
   private async dispatch() {
     await this.services.lifecycle.recover();
+
+    for (const worker of await listUnreportedTaskWorkers(this.services.store.db, 100)) {
+      if (this.stopped) return;
+      await this.services.work
+        .reportWorker(worker.profileId, worker.id)
+        .catch(() => this.report(`jian: task worker ${worker.id} handoff failed; will retry`));
+    }
 
     const queued = await listQueuedRuns(this.services.store.db, 1000);
 

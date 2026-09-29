@@ -30,6 +30,7 @@ import type { Skills } from './skills/service.js';
 import { registerStatsRoutes } from './stats/routes.js';
 import { registerStickerRoutes } from './stickers/routes.js';
 import type { Store } from './storage/database.js';
+import { registerWorkRoutes } from './tasks/routes.js';
 import { registerWebRoutes } from './web/routes.js';
 
 export function createApp(
@@ -116,6 +117,7 @@ export function createApp(
   registerStickerRoutes(app, options);
   registerStatsRoutes(app, options);
   registerScheduleRoutes(app, options);
+  registerWorkRoutes(app, options);
   registerSettingsRoutes(app, options);
   registerMediaRoutes(app, options);
   registerRunRoutes(app, options);

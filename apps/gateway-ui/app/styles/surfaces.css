@@ -1077,6 +1077,9 @@
   }
 }
 @media (max-width: 760px) {
+  .sidebar-footer {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
   .sidebar {
     @apply invisible inset-0 w-full border-0 opacity-0;
     transform: scale(1.06);

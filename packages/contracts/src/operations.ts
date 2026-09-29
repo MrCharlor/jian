@@ -85,6 +85,7 @@ import {
 import { panelSessionEndSchema, panelSessionInputSchema, panelSessionSchema } from './security.js';
 import { catalogQuerySchema, catalogSchema, skillImportSchema } from './skills.js';
 import { webSearchInputSchema, webSearchStatusSchema } from './web.js';
+import { workExecutionSchema, workHistorySchema, workItemSchema } from './work.js';
 
 /**
  * `access` is the whole authorization model: the host token opens everything marked `admin`,
@@ -113,6 +114,29 @@ export const cursorSchema = z.strictObject({
 });
 
 export const operations: Operation[] = [
+  {
+    method: 'GET',
+    path: `${profile}/work`,
+    operationId: 'listWork',
+    access: 'admin',
+    response: z.array(workItemSchema),
+  },
+  {
+    method: 'GET',
+    path: `${profile}/work/:workId/history`,
+    operationId: 'getWorkHistory',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid(), workId: z.uuid() }),
+    response: workHistorySchema,
+  },
+  {
+    method: 'GET',
+    path: `${profile}/work/:workId/executions`,
+    operationId: 'listWorkExecutions',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid(), workId: z.uuid() }),
+    response: workExecutionSchema,
+  },
   {
     method: 'GET',
     path: '/v1/releases',

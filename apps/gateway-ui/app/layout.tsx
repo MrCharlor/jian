@@ -8,7 +8,6 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Jian · Gateway',
   description: 'Configure your agents, their channels and their connections in one place.',
-  icons: { icon: '/ui/brand/jian.svg', apple: '/ui/brand/apple-touch-icon.png' },
   manifest: '/ui/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Jian' },
   robots: { index: false, follow: false },

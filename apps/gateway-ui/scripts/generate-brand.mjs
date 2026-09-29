@@ -4,6 +4,7 @@ import sharp from 'sharp';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const web = `${root}/apps/gateway-ui/public/brand`;
+const app = `${root}/apps/gateway-ui/app`;
 const wing =
   'M8 68C28 64 45 51 60 27c2 14-2 27-11 37 13-5 26-16 37-33-2 25-15 42-38 50-16 5-30 1-40-13Z';
 const body = 'M54 71c11-2 21-8 29-17l10-1-9 7c-7 14-21 24-41 25-8 0-16-2-22-5 13 1 24-2 33-9Z';
@@ -54,7 +55,23 @@ const touchIcon = svg(
   `<rect width="1024" height="1024" fill="#050505"/><g transform="translate(0 0) scale(10.67)" fill="#f5f5f3">${bird}</g>`,
   1024,
 );
-await sharp(Buffer.from(touchIcon)).resize(180).png().toFile(`${web}/apple-touch-icon.png`);
+const appleIcon = await sharp(Buffer.from(touchIcon)).resize(180).png().toBuffer();
+const favicon = await sharp(Buffer.from(touchIcon)).resize(32).png().toBuffer();
+// ICO accepts a PNG payload; keep the legacy favicon identical to the app icon.
+const faviconIco = Buffer.alloc(22 + favicon.length);
+faviconIco.writeUInt16LE(1, 2);
+faviconIco.writeUInt16LE(1, 4);
+faviconIco[6] = 32;
+faviconIco[7] = 32;
+faviconIco.writeUInt16LE(1, 10);
+faviconIco.writeUInt16LE(32, 12);
+faviconIco.writeUInt32LE(favicon.length, 14);
+faviconIco.writeUInt32LE(22, 18);
+favicon.copy(faviconIco, 22);
+await writeFile(`${web}/apple-touch-icon.png`, appleIcon);
+await writeFile(`${app}/apple-icon.png`, appleIcon);
+await writeFile(`${app}/icon.png`, favicon);
+await writeFile(`${app}/favicon.ico`, faviconIco);
 for (const size of [192, 512]) {
   await sharp(Buffer.from(touchIcon)).resize(size).png().toFile(`${web}/icon-${size}.png`);
 }

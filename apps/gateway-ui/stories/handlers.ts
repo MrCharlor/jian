@@ -11,6 +11,18 @@ const ok = <T>(value: T) => HttpResponse.json(value as never);
 const byProfile = <T extends { profileId: string }>(items: T[], profileId: string) =>
   items.filter((item) => item.profileId === profileId);
 
+const taskWorker = {
+  runId: 'e4b8f462-1615-4de3-82df-f8f8e1308101',
+  sessionId: 'c9768216-c155-4751-bf8c-f8f8e1308101',
+  role: 'execute',
+  name: 'Release verifier',
+  status: 'completed',
+  input: 'Run checks and report.',
+  output: 'Gateway checks passed; ready for independent review.',
+  createdAt: data.work[0].createdAt,
+  updatedAt: data.work[0].updatedAt,
+};
+
 const settings = { timeZone: 'America/Sao_Paulo', timeZoneSource: 'setting' };
 
 const decisions = (configured: boolean) => ({
@@ -40,6 +52,15 @@ const decisions = (configured: boolean) => ({
 });
 
 export const handlers = [
+  http.get('*/v1/profiles/:profileId/work', ({ params }) =>
+    ok(byProfile(data.work, String(params.profileId))),
+  ),
+  http.get('*/v1/profiles/:profileId/work/:workId/history', ({ params }) =>
+    ok(data.workHistory[String(params.workId)] ?? []),
+  ),
+  http.get('*/v1/profiles/:profileId/work/:workId/executions', ({ params }) =>
+    ok(params.workId === data.work[0].id ? [taskWorker] : []),
+  ),
   http.get('*/v1/profiles', () => ok(data.profiles)),
   http.get('*/v1/profiles/:profileId', ({ params }) =>
     ok(data.profiles.find((profile) => profile.id === params.profileId) ?? data.profiles[0]),
@@ -72,7 +93,30 @@ export const handlers = [
     ),
   ),
   http.get('*/v1/profiles/:profileId/sessions/:sessionId/messages', ({ params }) =>
-    ok(data.messages.filter((message) => message.sessionId === params.sessionId)),
+    ok(
+      params.sessionId === taskWorker.sessionId
+        ? [
+            {
+              id: 'a5bf11e2-918d-4634-a181-f8f8e1308101',
+              profileId: data.work[0].profileId,
+              sessionId: taskWorker.sessionId,
+              runId: taskWorker.runId,
+              role: 'user',
+              content: taskWorker.input,
+              createdAt: taskWorker.createdAt,
+            },
+            {
+              id: 'a5bf11e2-918d-4634-a181-f8f8e1308102',
+              profileId: data.work[0].profileId,
+              sessionId: taskWorker.sessionId,
+              runId: taskWorker.runId,
+              role: 'assistant',
+              content: taskWorker.output,
+              createdAt: taskWorker.updatedAt,
+            },
+          ]
+        : data.messages.filter((message) => message.sessionId === params.sessionId),
+    ),
   ),
   http.get('*/v1/profiles/:profileId/media/:mediaId', ({ params }) => {
     const item = data.media[String(params.mediaId)];

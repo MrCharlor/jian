@@ -6,6 +6,7 @@ import {
   type ModelSelection,
   type Run,
   submitSchema,
+  TASK_SESSION_CHANNEL,
 } from '@jian/contracts';
 import { type Clock, nowIso } from '../core/clock.js';
 import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
@@ -101,7 +102,15 @@ export class Runs {
   }
 
   async submit(profileId: string, sessionId: string, input: unknown, options: SubmitOptions = {}) {
-    const { continuationOf, activity = 'conversation', call, group, author } = options;
+    const {
+      continuationOf,
+      activity = 'conversation',
+      call,
+      group,
+      author,
+      workItemId,
+      subagent,
+    } = options;
     const parsed = submitSchema.parse(input);
     const data = {
       ...parsed,
@@ -112,11 +121,11 @@ export class Runs {
     // must not be held across a network call — so it is resolved before the transaction and
     // used only if nothing is configured by the time the transaction reads it.
     const automatic =
-      data.model || (await this.configured(profileId, sessionId, activity))
+      data.model || options.transaction || (await this.configured(profileId, sessionId, activity))
         ? null
         : await this.fallback?.pick().catch(() => null);
 
-    return this.store.transaction(profileId, async (tx) => {
+    const write = async (tx: Queryable) => {
       const profile = await this.profiles.profile(profileId, tx);
 
       if (continuationOf) {
@@ -131,6 +140,9 @@ export class Runs {
       }
 
       const session = await this.sessions.session(profileId, sessionId, tx);
+      if (session.channel === TASK_SESSION_CHANNEL && !subagent) {
+        throw new GatewayError(403, 'Task worker sessions cannot receive direct messages');
+      }
 
       await bindMedia(tx, profileId, sessionId, data.mediaIds ?? []);
 
@@ -207,6 +219,8 @@ export class Runs {
         id: randomUUID(),
         profileId,
         sessionId,
+        ...(workItemId ? { workItemId } : {}),
+        ...(subagent ? { subagent } : {}),
         requestKey: data.requestKey,
         input: data.text,
         profile,
@@ -252,7 +266,10 @@ export class Runs {
       );
 
       return run;
-    });
+    };
+    return options.transaction
+      ? write(options.transaction)
+      : this.store.transaction(profileId, write);
   }
 
   async run(profileId: string, runId: string, reader: Queryable = this.store.db) {
@@ -287,6 +304,7 @@ export class Runs {
   async continueRun(profileId: string, runId: string, input: unknown) {
     const data = continuationSchema.parse(input);
     const parent = await this.run(profileId, runId);
+    if (parent.subagent) throw new GatewayError(403, 'Task workers are managed by the agent');
     const text = `${data.text}\n\nContinuation of run ${runId}. Previously completed external effects must not be repeated. Operator reconciliation (data): ${JSON.stringify(data.reconciliation)}. Use read_run_checkpoints to inspect saved results before acting.`;
 
     // A continuation stays in the chain, and in the room, that started the run: both budgets
@@ -306,6 +324,7 @@ export class Runs {
   async cancel(profileId: string, runId: string) {
     return this.store.transaction(profileId, async (tx) => {
       const run = await this.run(profileId, runId, tx);
+      if (run.subagent) throw new GatewayError(403, 'Task workers are managed by the agent');
 
       if (!active(run)) {
         return run;

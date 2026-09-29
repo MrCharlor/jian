@@ -282,6 +282,7 @@ export const profilePatchSchema = profileSchema.partial().extend({
 export const GATEWAY_SESSION_CHANNEL = 'gateway';
 /** Where an agent reviews its own turns and says what it kept: one per profile. */
 export const LEARNING_SESSION_CHANNEL = 'learning';
+export const TASK_SESSION_CHANNEL = 'task';
 
 export const sessionSchema = z.strictObject({
   // Absent on purpose: the agent names the conversation from its first message, and the owner
@@ -292,9 +293,12 @@ export const sessionSchema = z.strictObject({
     .string()
     .regex(/^[a-z0-9_-]{1,40}$/)
     .refine(
-      (channel) => channel !== GATEWAY_SESSION_CHANNEL && channel !== LEARNING_SESSION_CHANNEL,
+      (channel) =>
+        channel !== GATEWAY_SESSION_CHANNEL &&
+        channel !== LEARNING_SESSION_CHANNEL &&
+        channel !== TASK_SESSION_CHANNEL,
       {
-        message: 'The gateway and learning conversations are opened by the gateway itself',
+        message: 'Internal conversations are opened by the gateway itself',
       },
     )
     .default('api'),

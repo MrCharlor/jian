@@ -51,7 +51,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // The one screen that is an app of its own: it takes the whole area and scrolls inside.
-  const fill = pathname.startsWith('/sessions');
+  const fill = pathname.startsWith('/sessions') || pathname.startsWith('/tasks');
   const { profiles, profile, data, loading, refresh, adopt } = useWorkspace();
   const [mobile, setMobile] = useState(false);
   const [creating, setCreating] = useState(false);

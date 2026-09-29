@@ -23,6 +23,22 @@ type CheckpointRow = typeof checkpoints.$inferSelect;
 /** Queued and running hold the session and count against the profile's cap; nothing else does. */
 const activeStatuses: Run['status'][] = ['queued', 'running'];
 
+/** Terminal task workers still waiting for an atomic handoff to their principal. */
+export async function listUnreportedTaskWorkers(db: Queryable, limit: number) {
+  return db
+    .select({ id: runs.id, profileId: runs.profileId })
+    .from(runs)
+    .where(
+      and(
+        isNotNull(runs.subagent),
+        isNull(runs.subagentReportedAt),
+        inArray(runs.status, ['completed', 'failed', 'interrupted']),
+      ),
+    )
+    .orderBy(asc(runs.updatedAt))
+    .limit(limit);
+}
+
 /**
  * A run keeps the profile version it froze, and the document itself lives once in the revision
  * it came from. Reading puts the two back together, so `Run.profile` still carries the profile
@@ -33,6 +49,8 @@ function toRun(row: RunRow, document: Profile): Run {
     id: row.id,
     profileId: row.profileId,
     sessionId: row.sessionId,
+    ...(row.workItemId ? { workItemId: row.workItemId } : {}),
+    ...(row.subagent ? { subagent: row.subagent } : {}),
     requestKey: row.requestKey,
     input: row.input,
     status: row.status,
@@ -62,6 +80,8 @@ function toRow(run: Run): typeof runs.$inferInsert {
     id: run.id,
     profileId: run.profileId,
     sessionId: run.sessionId,
+    workItemId: run.workItemId ?? null,
+    subagent: run.subagent ?? null,
     profileVersion: run.profile.version,
     requestKey: run.requestKey,
     input: run.input,

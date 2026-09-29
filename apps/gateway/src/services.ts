@@ -23,6 +23,7 @@ import { Settings } from './settings/service.js';
 import { Stats } from './stats/service.js';
 import { Stickers } from './stickers/service.js';
 import type { Store } from './storage/database.js';
+import { Work } from './tasks/service.js';
 import { WebSearch } from './web/service.js';
 
 export type Services = {
@@ -46,6 +47,7 @@ export type Services = {
   lifecycle: RunLifecycle;
   contexts: Contexts;
   errands: Errands;
+  work: Work;
   vault: Vault;
   gatewayVault: GatewayVault;
 };
@@ -119,6 +121,7 @@ export function buildServices({
     lifecycle: new RunLifecycle(store, runs, clock),
     contexts: new Contexts(store, runs, sessions, settings, decisions.judge),
     errands: new Errands(store, clock),
+    work: new Work(store, profiles, sessions, runs, clock),
     vault,
     gatewayVault,
   };

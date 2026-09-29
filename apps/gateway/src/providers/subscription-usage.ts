@@ -119,22 +119,17 @@ export class SubscriptionUsageReader {
           if (!body.success) return unavailable(kind);
           const windows =
             kind === 'codex'
-              ? z
-                  .object({ primary_window: z.unknown(), secondary_window: z.unknown() })
-                  .safeParse(body.data.rate_limit)
+              ? z.object({ primary_window: z.unknown() }).safeParse(body.data.rate_limit)
               : z.object({ five_hour: z.unknown(), seven_day: z.unknown() }).safeParse(body.data);
           if (!windows.success) return unavailable(kind);
           const fiveHour =
             kind === 'codex'
-              ? windowOf(
-                  (windows.data as { primary_window: unknown }).primary_window,
-                  'used_percent',
-                )
+              ? null
               : windowOf((windows.data as { five_hour: unknown }).five_hour, 'utilization');
           const weekly =
             kind === 'codex'
               ? windowOf(
-                  (windows.data as { secondary_window: unknown }).secondary_window,
+                  (windows.data as { primary_window: unknown }).primary_window,
                   'used_percent',
                 )
               : windowOf((windows.data as { seven_day: unknown }).seven_day, 'utilization');

@@ -4,6 +4,20 @@ import type { ScheduleInput, SchedulePatch } from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
 export const resourceCalls = (client: Client) => ({
+  work: (profileId: string) =>
+    result(client.GET('/v1/profiles/{profileId}/work', { params: profile(profileId) })),
+  workHistory: (profileId: string, workId: string) =>
+    result(
+      client.GET('/v1/profiles/{profileId}/work/{workId}/history', {
+        params: { path: { profileId, workId } },
+      }),
+    ),
+  workExecutions: (profileId: string, workId: string) =>
+    result(
+      client.GET('/v1/profiles/{profileId}/work/{workId}/executions', {
+        params: { path: { profileId, workId } },
+      }),
+    ),
   memories: (profileId: string) =>
     result(client.GET('/v1/profiles/{profileId}/memories', { params: profile(profileId) })),
   forget: (profileId: string, memoryKey: string) =>

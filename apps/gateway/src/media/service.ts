@@ -8,6 +8,7 @@ import {
   type ModelConfig,
   mediaMimeOf,
   type Run,
+  TASK_SESSION_CHANNEL,
 } from '@jian/contracts';
 import { generateText, type ModelMessage, type ToolSet, tool } from 'ai';
 import { and, count, desc, eq, inArray, isNull, like } from 'drizzle-orm';
@@ -230,8 +231,11 @@ export class Media {
       throw new GatewayError(413, 'Media exceeds the 16 MB limit');
 
     return this.store.transaction(profileId, async (tx) => {
-      if (!(await findSession(tx, profileId, sessionId)))
-        throw new GatewayError(404, 'Session not found');
+      const session = await findSession(tx, profileId, sessionId);
+      if (!session) throw new GatewayError(404, 'Session not found');
+      if (session.channel === TASK_SESSION_CHANNEL) {
+        throw new GatewayError(403, 'Task worker sessions are read-only');
+      }
 
       const [waiting] = await tx
         .select({ total: count() })

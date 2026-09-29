@@ -1,8 +1,9 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { Button } from './button';
+import { useDialogMotion } from './dialog-motion';
 import { Field } from './field';
 
 /**
@@ -28,23 +29,18 @@ export function Modal({
   /** Room for reading, as a document shown whole needs. */
   wide?: boolean;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const { ref, closing, requestClose } = useDialogMotion(close);
   const heading = useId();
-
-  useEffect(() => {
-    ref.current?.showModal();
-
-    return () => ref.current?.close();
-  }, []);
 
   return (
     <dialog
       ref={ref}
       className={`modal ${wide ? 'wide' : ''}`}
+      data-closing={closing}
       aria-labelledby={heading}
       onCancel={(event) => {
         event.preventDefault();
-        close();
+        requestClose();
       }}
     >
       <header>
@@ -52,7 +48,7 @@ export function Modal({
           <h2 id={heading}>{title}</h2>
           {description && <p>{description}</p>}
         </div>
-        <button className="icon-button" type="button" aria-label="Close" onClick={close}>
+        <button className="icon-button" type="button" aria-label="Close" onClick={requestClose}>
           <X size={20} />
         </button>
       </header>
