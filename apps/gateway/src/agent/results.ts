@@ -81,12 +81,45 @@ export function artifactPage(content: string, offset: number, limit: number, run
   return page(low);
 }
 
+/** Keep the beginning and outcome of long local reads; the artifact retains every byte. */
+function concisePreview(output: unknown, toolName: string, size: number): string | undefined {
+  if (!output || typeof output !== 'object' || Array.isArray(output)) return undefined;
+  const data = output as Record<string, unknown>;
+  const clip = (value: string, count: number) => {
+    if (value.length <= count) return value;
+    const head = Math.ceil(count / 2);
+    const tail = count - head;
+    return `${value.slice(0, head)}\n[${value.length - count} characters omitted; read artifact for full output]\n${tail ? value.slice(-tail) : ''}`;
+  };
+
+  if (
+    toolName === 'run_command' &&
+    typeof data.stdout === 'string' &&
+    typeof data.stderr === 'string'
+  ) {
+    const failed = data.exitCode !== 0;
+    return JSON.stringify({
+      exitCode: data.exitCode,
+      stderr: clip(data.stderr, failed ? size : Math.floor(size / 4)),
+      stdout: clip(data.stdout, failed ? Math.floor(size / 4) : size),
+    });
+  }
+  if (toolName === 'read_file' && typeof data.content === 'string') {
+    return JSON.stringify({ ...data, content: clip(data.content, size) });
+  }
+  if (toolName === 'search_files' && typeof data.matches === 'string') {
+    return JSON.stringify({ ...data, matches: clip(data.matches, size) });
+  }
+  return undefined;
+}
+
 export async function boundToolResult(
   output: unknown,
   toolName: string,
   run: Run,
   secrets: ReadonlySet<string>,
   options: Pick<RuntimeOptions, 'storeArtifact'>,
+  concise = false,
 ): Promise<unknown> {
   const sanitized = redactOutput(
     toolName.startsWith('mcp__') ? structuredMcpResult(output) : output,
@@ -109,7 +142,11 @@ export async function boundToolResult(
     // Tool execution already happened. Keep a bounded preview rather than retrying the effect.
   }
 
-  let preview = json.slice(0, Math.min(json.length, limit));
+  let previewSize = Math.min(json.length, limit);
+  const previewAt = (size: number) =>
+    (concise && artifact ? concisePreview(sanitized, toolName, size) : undefined) ??
+    json.slice(0, size);
+  let preview = previewAt(previewSize);
 
   let result: { truncated: true; preview: string; artifactId?: string; bytes: number } = {
     truncated: true,
@@ -118,8 +155,9 @@ export async function boundToolResult(
     bytes: Buffer.byteLength(json),
   };
 
-  while (preview.length > 0 && count(JSON.stringify(result)) > limit) {
-    preview = preview.slice(0, Math.floor(preview.length / 2));
+  while (previewSize > 0 && count(JSON.stringify(result)) > limit) {
+    previewSize = Math.floor(previewSize / 2);
+    preview = previewAt(previewSize);
     result = { ...result, preview };
   }
 

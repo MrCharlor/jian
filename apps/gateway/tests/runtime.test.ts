@@ -169,6 +169,212 @@ async function fixture(contextPolicy?: Record<string, number>, subscription = fa
   return { services, profile, session, run };
 }
 
+it('makes Ponytail available for code review before tools load, unless this agent disabled it', async () => {
+  for (const disabled of [false, true]) {
+    const services = await testServices();
+    const profile = await services.profiles.createProfile({
+      ...input,
+      allowShell: true,
+      disabledSkills: disabled ? ['discernment-nudge', 'ponytail'] : ['discernment-nudge'],
+    });
+    const session = await services.sessions.createSession(profile.id, { title: 'Code' });
+    const run = await services.runs.submit(profile.id, session.id, {
+      text: 'Review this code',
+      requestKey: 'ponytail',
+    });
+    const prompts: string[] = [];
+    const model = mockModel({
+      doGenerate: async (options) => {
+        prompts.push(JSON.stringify(options.prompt.filter((message) => message.role === 'system')));
+        return prompts.length === 1
+          ? {
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'load-files',
+                  toolName: 'load_tools',
+                  input: JSON.stringify({ groups: ['files'] }),
+                },
+              ],
+              finishReason: { unified: 'tool-calls' as const, raw: 'tool-calls' },
+              usage,
+              warnings: [],
+            }
+          : answer('Reviewed.');
+      },
+    });
+
+    await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+
+    expect(prompts).toHaveLength(2);
+    expect(prompts[0]?.includes('Ponytail — coding work')).toBe(!disabled);
+    expect(prompts[1]?.includes('Ponytail — coding work')).toBe(!disabled);
+  }
+});
+
+it('keeps an explicit Ponytail mode across turns in one conversation', async () => {
+  const services = await testServices();
+  const profile = await services.profiles.createProfile({ ...input, allowShell: true });
+  const session = await services.sessions.createSession(profile.id, { title: 'Code' });
+  let number = 0;
+
+  const promptFor = async (text: string, sessionId = session.id) => {
+    const run = await services.runs.submit(
+      profile.id,
+      sessionId,
+      {
+        text,
+        requestKey: `mode-${number++}`,
+      },
+      { ownerMessage: true },
+    );
+    let system = '';
+    const model = mockModel({
+      doGenerate: async (options) => {
+        system = JSON.stringify(options.prompt.filter((message) => message.role === 'system'));
+        return answer('Done.');
+      },
+    });
+    await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+    return system;
+  };
+
+  expect(await promptFor('/ponytail ultra')).toContain('Ponytail mode: ultra');
+  expect(await promptFor('Review this code')).toContain('Ponytail mode: ultra');
+  const other = await services.sessions.createSession(profile.id, { title: 'Other' });
+  expect(await promptFor('Review unrelated code', other.id)).toContain('Ponytail mode: full');
+  expect(await promptFor('/ponytail off')).not.toContain('Ponytail — coding work');
+  expect(await promptFor('Review more code')).toContain('Ponytail mode: off');
+  expect(await promptFor('/ponytail lite')).toContain('Ponytail mode: lite');
+  expect(await promptFor('Please use /ponytail ultra in this review')).toContain(
+    'Ponytail mode: lite',
+  );
+  expect(await promptFor('Normal mode')).toContain('Ponytail mode: off');
+  expect(await promptFor('/ponytail')).toContain('Ponytail mode: full');
+});
+
+it('ignores Ponytail commands submitted by internal runs', async () => {
+  const services = await testServices();
+  const profile = await services.profiles.createProfile({ ...input, allowShell: true });
+  const session = await services.sessions.createSession(profile.id, { title: 'Code' });
+  const run = await services.runs.submit(profile.id, session.id, {
+    text: '/ponytail off',
+    requestKey: 'internal-mode',
+  });
+  let system = '';
+  const model = mockModel({
+    doGenerate: async (options) => {
+      system = JSON.stringify(options.prompt.filter((message) => message.role === 'system'));
+      return answer('Done.');
+    },
+  });
+  await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+  expect(system).toContain('Ponytail mode: full');
+});
+
+it('applies an owner mode change sent while a run is active on its next step', async () => {
+  const services = await testServices();
+  const profile = await services.profiles.createProfile({ ...input, allowShell: true });
+  const session = await services.sessions.createSession(profile.id, { title: 'Code' });
+  const run = await services.runs.submit(profile.id, session.id, {
+    text: 'Review this code',
+    requestKey: 'first',
+  });
+  const prompts: string[] = [];
+  const model = mockModel({
+    doGenerate: async (options) => {
+      prompts.push(JSON.stringify(options.prompt.filter((message) => message.role === 'system')));
+      if (prompts.length === 1) {
+        await services.runs.submit(
+          profile.id,
+          session.id,
+          { text: '/ponytail off', requestKey: 'change-mode' },
+          { ownerMessage: true },
+        );
+        return {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'load-files',
+              toolName: 'load_tools',
+              input: JSON.stringify({ groups: ['files'] }),
+            },
+          ],
+          finishReason: { unified: 'tool-calls' as const, raw: 'tool-calls' },
+          usage,
+          warnings: [],
+        };
+      }
+      return answer('Done.');
+    },
+  });
+
+  await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+
+  expect(prompts).toHaveLength(2);
+  expect(prompts[0]).toContain('Ponytail mode: full');
+  expect(prompts[1]).toContain('Ponytail mode: off');
+  expect(prompts[1]).not.toContain('Ponytail — coding work');
+});
+
+it('keeps Caveman opt-in and scoped to the owner, conversation and agent switch', async () => {
+  const services = await testServices();
+  const profile = await services.profiles.createProfile(input);
+  const session = await services.sessions.createSession(profile.id, { title: 'Main' });
+  const other = await services.sessions.createSession(profile.id, { title: 'Other' });
+  let number = 0;
+  const promptFor = async (text: string, sessionId = session.id, ownerMessage = true) => {
+    const run = await services.runs.submit(
+      profile.id,
+      sessionId,
+      { text, requestKey: `caveman-${number++}` },
+      { ownerMessage },
+    );
+    let system = '';
+    const model = mockModel({
+      doGenerate: async (options) => {
+        system = JSON.stringify(options.prompt.filter((message) => message.role === 'system'));
+        return answer('Done.');
+      },
+    });
+    await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+    return system;
+  };
+
+  expect(await promptFor('Hello')).not.toContain('Caveman — concise replies');
+  expect(await promptFor('/caveman ultra')).toContain('Caveman mode: ultra');
+  expect(await promptFor('Hello again')).toContain('Caveman mode: ultra');
+  expect(await promptFor('Hello elsewhere', other.id)).not.toContain('Caveman — concise replies');
+  expect(await promptFor('Please use /caveman off')).toContain('Caveman mode: ultra');
+  expect(await promptFor('/caveman off', session.id, false)).toContain('Caveman mode: ultra');
+  expect(await promptFor('/caveman lite')).toContain('Caveman mode: lite');
+  expect(await promptFor('stop caveman')).not.toContain('Caveman — concise replies');
+  expect(await promptFor('/caveman')).toContain('Caveman mode: full');
+
+  const disabled = await services.profiles.createProfile({
+    ...input,
+    name: 'No Caveman',
+    disabledSkills: ['caveman'],
+  });
+  const disabledSession = await services.sessions.createSession(disabled.id, { title: 'Disabled' });
+  const run = await services.runs.submit(
+    disabled.id,
+    disabledSession.id,
+    { text: '/caveman ultra', requestKey: 'disabled' },
+    { ownerMessage: true },
+  );
+  let disabledPrompt = '';
+  await new AgentRuntime(services, () =>
+    mockModel({
+      doGenerate: async (options) => {
+        disabledPrompt = JSON.stringify(options.prompt);
+        return answer('Done.');
+      },
+    }),
+  ).execute(disabled.id, run.id);
+  expect(disabledPrompt).not.toContain('Caveman — concise replies');
+});
+
 it('hides disabled generation tools but keeps saved stickers available to the agent', async () => {
   const { services, profile, run } = await fixture();
   let step = 0;

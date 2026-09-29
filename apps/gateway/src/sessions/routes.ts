@@ -41,11 +41,11 @@ export function registerSessionRoutes(app: FastifyInstance, deps: SessionRouteSe
   app.post<{ Params: SessionParams }>(
     '/v1/profiles/:profileId/sessions/:sessionId/messages',
     async (request, reply) =>
-      reply
-        .code(202)
-        .send(
-          await deps.runs.submit(request.params.profileId, request.params.sessionId, request.body),
-        ),
+      reply.code(202).send(
+        await deps.runs.submit(request.params.profileId, request.params.sessionId, request.body, {
+          ownerMessage: true,
+        }),
+      ),
   );
 
   app.get<{ Params: SessionParams }>(

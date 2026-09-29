@@ -17,7 +17,13 @@ import type { ModelFallback } from '../providers/fallback.js';
 import type { ProviderSelection } from '../providers/port.js';
 import { readModelDefaults, writeModelDefaults } from '../providers/repository.js';
 import type { SessionReader } from '../sessions/port.js';
-import { insertMessage } from '../sessions/repository.js';
+import {
+  insertMessage,
+  parseCavemanMode,
+  parsePonytailMode,
+  setCavemanMode,
+  setPonytailMode,
+} from '../sessions/repository.js';
 import type { Queryable, Store } from '../storage/database.js';
 import type { SubmitOptions } from './port.js';
 import {
@@ -112,6 +118,10 @@ export class Runs {
       subagent,
     } = options;
     const parsed = submitSchema.parse(input);
+    const modeChange =
+      options.ownerMessage && !parsed.mediaIds?.length ? parsePonytailMode(parsed.text) : undefined;
+    const cavemanChange =
+      options.ownerMessage && !parsed.mediaIds?.length ? parseCavemanMode(parsed.text) : undefined;
     const data = {
       ...parsed,
       text: [parsed.text, ...(parsed.mediaIds ?? []).map(mediaMarker)].filter(Boolean).join('\n'),
@@ -169,6 +179,9 @@ export class Runs {
           ...(author ? { author } : {}),
           createdAt: nowIso(this.clock),
         });
+
+        if (modeChange) await setPonytailMode(tx, profileId, sessionId, modeChange);
+        if (cavemanChange) await setCavemanMode(tx, profileId, sessionId, cavemanChange);
 
         await appendSteer(tx, inFlight.id, data.text);
 
@@ -255,6 +268,8 @@ export class Runs {
       };
 
       await insertMessage(tx, message);
+      if (modeChange) await setPonytailMode(tx, profileId, sessionId, modeChange);
+      if (cavemanChange) await setCavemanMode(tx, profileId, sessionId, cavemanChange);
 
       await recordEvent(
         tx,

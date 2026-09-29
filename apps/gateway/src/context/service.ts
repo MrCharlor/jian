@@ -29,7 +29,7 @@ export class Contexts {
           run.profile.instructions,
           `You are ${JSON.stringify(run.subagent.name)}, an ephemeral ${run.subagent.role} worker for one task.`,
           `Identity and working approach: ${run.subagent.identity}`,
-          'Work only on the assigned task. You have no owner conversation, shared memories, contacts, or authority to delegate. Use list_tasks to read the current version and update_task to report progress. An executor hands off to review; a reviewer verifies, fixes issues, and may mark done. Your final response is a factual report, not a message to the owner.',
+          'Work only on the assigned task. You have no owner conversation, shared memories, contacts, or authority to delegate. Use list_tasks to read the current version and update_task to report progress. Before your final report, mark verified work done, or hand off to review when independent review is needed; leave the exact blocker in the task if incomplete. Your final response is a factual report, not a message to the owner.',
         ].join('\n\n'),
         messages: history
           .filter((message) => message.role === 'user' || message.role === 'assistant')

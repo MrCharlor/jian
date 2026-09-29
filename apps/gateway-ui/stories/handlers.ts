@@ -30,7 +30,6 @@ const decisions = (configured: boolean) => ({
   configured,
   ...(configured ? { updatedAt: new Date().toISOString() } : {}),
   uses: { actions: true, outside: true, turn: true, memories: true, learning: true, groups: false },
-  dailyTokenLimit: 200_000,
   usage: [
     {
       day: new Date().toISOString().slice(0, 10),

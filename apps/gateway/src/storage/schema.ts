@@ -164,6 +164,14 @@ export const sessions = pgTable(
     summary: text('summary'),
     summarizedUpTo: timestamp('summarized_up_to', { withTimezone: true }),
     model: jsonb('model').$type<ModelSelection>(),
+    ponytailMode: text('ponytail_mode')
+      .$type<'lite' | 'full' | 'ultra' | 'off'>()
+      .notNull()
+      .default('full'),
+    cavemanMode: text('caveman_mode')
+      .$type<'lite' | 'full' | 'ultra' | 'off'>()
+      .notNull()
+      .default('off'),
     createdAt,
   },
   (table) => [
@@ -402,7 +410,7 @@ export const gatewaySettings = pgTable('gateway_settings', {
 
 /**
  * What the installation spent on the decisions service, per UTC day and use. It holds counts
- * only — never what was asked — and feeds the owner's daily ceiling and the panel.
+ * only — never what was asked — for usage reporting.
  */
 export const decisionUsage = pgTable(
   'decision_usage',

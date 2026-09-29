@@ -5,7 +5,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
 import { Badge, Button, Field, ProviderLogo, ResourceRow } from '../ui';
-import { DecisionsSpending } from './decisions-spending';
+import { DecisionsControls } from './decisions-controls';
 
 type Status = { configured: boolean; updatedAt?: string };
 type RowProps = Pick<SectionProps, 'api' | 'mutate' | 'busy'>;
@@ -174,7 +174,7 @@ export function DecisionsRow({ api, mutate, busy }: RowProps) {
       save={api.setDecisions}
       remove={api.removeDecisions}
       more={(status, change) => (
-        <DecisionsSpending
+        <DecisionsControls
           status={status}
           busy={busy}
           save={(patch, done) => change(() => api.updateDecisions(patch), done)}
@@ -187,9 +187,8 @@ export function DecisionsRow({ api, mutate, busy }: RowProps) {
       expose private data beyond what was asked, marks outside content that tries to steer an agent,
       picks the memories and skill that fit each turn, thinks less on plainly light ones, and tells
       whether a group message is speaking to an agent. Each check sends the message, action or short
-      list it judges to TypeSafe, which bills by token. A repeated question is answered from a
-      cache, and each use can be switched off or capped by a daily ceiling. Without a key, the fixed
-      rules decide.
+      list it judges to TypeSafe. A repeated question is answered from a cache, and each use can be
+      switched off. Without a key, the fixed rules decide.
     </ServiceKeyRow>
   );
 }

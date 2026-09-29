@@ -20,6 +20,9 @@ services:
       JIAN_ROLE: ${JIAN_ROLE:-all}
       JIAN_TIME_ZONE: ${JIAN_TIME_ZONE:-}
       JIAN_ALLOW_PRIVATE_ORIGINS: ${JIAN_ALLOW_PRIVATE_ORIGINS:-}
+      # Opt in to the bundled record-only listener; override URL for an external proxy.
+      JIAN_CAVEMAN_ENABLED: ${JIAN_CAVEMAN_ENABLED:-false}
+      JIAN_CAVEMAN_PROXY_URL: ${JIAN_CAVEMAN_PROXY_URL:-http://127.0.0.1:8788}
       # Bound inside the container; JIAN_BIND_ADDRESS decides who reaches it.
       HOST: 0.0.0.0
       PORT: 4310

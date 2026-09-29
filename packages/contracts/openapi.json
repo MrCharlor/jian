@@ -2322,11 +2322,6 @@
                       ],
                       "additionalProperties": false
                     },
-                    "dailyTokenLimit": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 9007199254740991
-                    },
                     "usage": {
                       "type": "array",
                       "items": {
@@ -2657,11 +2652,6 @@
                       ],
                       "additionalProperties": false
                     },
-                    "dailyTokenLimit": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 9007199254740991
-                    },
                     "usage": {
                       "type": "array",
                       "items": {
@@ -2939,14 +2929,6 @@
                       }
                     },
                     "additionalProperties": false
-                  },
-                  "dailyTokenLimit": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
-                    "minimum": 1000,
-                    "maximum": 1000000000
                   }
                 },
                 "additionalProperties": false
@@ -3007,11 +2989,6 @@
                         "groups"
                       ],
                       "additionalProperties": false
-                    },
-                    "dailyTokenLimit": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 9007199254740991
                     },
                     "usage": {
                       "type": "array",
@@ -3313,11 +3290,6 @@
                         "groups"
                       ],
                       "additionalProperties": false
-                    },
-                    "dailyTokenLimit": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 9007199254740991
                     },
                     "usage": {
                       "type": "array",

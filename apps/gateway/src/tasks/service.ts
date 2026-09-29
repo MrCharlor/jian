@@ -280,9 +280,6 @@ export class Work {
       if (actor.profileId !== profileId || actor.workItemId !== id) {
         throw new GatewayError(403, 'A worker can update only its own task');
       }
-      if (actor.subagent.role === 'execute' && patch.status === 'done') {
-        throw new GatewayError(403, 'An executor must hand work to review');
-      }
     }
     return this.store.transaction(profileId, async (tx) => {
       const [current] = await tx

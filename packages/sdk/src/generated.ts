@@ -2510,7 +2510,6 @@ export interface operations {
                             learning: boolean;
                             groups: boolean;
                         };
-                        dailyTokenLimit?: number;
                         usage: {
                             /** Format: date */
                             day: string;
@@ -2662,7 +2661,6 @@ export interface operations {
                             learning: boolean;
                             groups: boolean;
                         };
-                        dailyTokenLimit?: number;
                         usage: {
                             /** Format: date */
                             day: string;
@@ -2806,7 +2804,6 @@ export interface operations {
                             learning: boolean;
                             groups: boolean;
                         };
-                        dailyTokenLimit?: number;
                         usage: {
                             /** Format: date */
                             day: string;
@@ -2939,7 +2936,6 @@ export interface operations {
                         learning?: boolean;
                         groups?: boolean;
                     };
-                    dailyTokenLimit?: number | null;
                 };
             };
         };
@@ -2964,7 +2960,6 @@ export interface operations {
                             learning: boolean;
                             groups: boolean;
                         };
-                        dailyTokenLimit?: number;
                         usage: {
                             /** Format: date */
                             day: string;

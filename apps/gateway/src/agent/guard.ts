@@ -95,10 +95,11 @@ const RISKS: Record<string, Risk> = {
 const ASKED: Question = {
   type: 'noul',
   instructions:
-    'Does `request` ask for exactly this action — this operation, on these targets, to these recipients — rather than something the agent decided on its own?',
+    'Does the latest `request`, read with the recent `conversation`, authorize exactly this action — this operation, on these targets, to these recipients? A short confirmation may approve an explicit proposal immediately before it; an older request alone does not authorize a new action.',
   criteria: {
-    true: 'Whoever wrote the request asked for this very action.',
-    false: 'The request asks for something else, or leaves this action to the agent’s choice.',
+    true: 'The latest request asks for this very action, either directly or by confirming the specific preceding proposal.',
+    false:
+      'Only an older message asks for it, or the latest request leaves this action to the agent’s choice.',
   },
 };
 
@@ -114,7 +115,11 @@ const ASKED: Question = {
  * is the request — the long part — sent to ask whether it asked for exactly that. The decision
  * is the same as asking everything at once: the risk questions never read the request.
  */
-export function actionGuard(judge: Judge, run: Pick<Run, 'input'>): Guard {
+export function actionGuard(
+  judge: Judge,
+  run: Pick<Run, 'input'>,
+  conversation: ReadonlyArray<{ role: string; content: string }> = [],
+): Guard {
   return async (tool, input, kind) => {
     const risks = Object.entries(RISKS).filter(([, risk]) => risk.kinds.includes(kind));
     const action = { where: WHERE[kind], tool, input: bounded(input) };
@@ -137,7 +142,19 @@ export function actionGuard(judge: Judge, run: Pick<Run, 'input'>): Guard {
     }
 
     const answers = await judge(
-      { request: run.input.slice(-MAX_REQUEST_CHARS), action },
+      {
+        request: run.input.slice(-MAX_REQUEST_CHARS),
+        action,
+        // A short confirmation only makes sense beside the exchange it confirms. Never pass
+        // tool results or another session's messages as authority.
+        conversation: conversation
+          .filter((message) => message.role === 'user' || message.role === 'assistant')
+          .slice(-6)
+          .map((message) => ({
+            role: message.role,
+            content: message.content.slice(-MAX_FIELD_CHARS),
+          })),
+      },
       { asked: ASKED },
       { use: 'actions', timeoutMs: 5000 },
     );
@@ -164,6 +181,7 @@ export function guardTools(
   tools: ToolSet,
   guard: Guard,
   kindOf: (name: string, tool: ToolSet[string]) => ActionKind | undefined,
+  onHeld?: (result: object) => void,
 ): void {
   for (const [name, original] of Object.entries(tools)) {
     const kind = kindOf(name, original);
@@ -178,7 +196,13 @@ export function guardTools(
       execute: async (input, options) => {
         const held = await guard(name, input, kind);
 
-        return held ? { held } : execute(input, options);
+        if (held) {
+          const result = { held };
+          onHeld?.(result);
+          return result;
+        }
+
+        return execute(input, options);
       },
     };
   }

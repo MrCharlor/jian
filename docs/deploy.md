@@ -125,12 +125,37 @@ An agent with the shell switch on works in its workspace under `/home/node/works
 | `JIAN_ROLE` | no | `all` | `all`, `api` or `worker`. |
 | `JIAN_TIME_ZONE` | no | saved legacy value, then host zone | IANA zone for the agent's current time and new schedules, for example `America/Sao_Paulo`. Set the same value on API and worker replicas; it overrides but does not delete an older saved value. |
 | `JIAN_ALLOW_PRIVATE_ORIGINS` | no | empty | Exact private origins allowed for outbound calls, for example `http://127.0.0.1:11434`. |
+| `JIAN_CAVEMAN_ENABLED` | no | `false` | Set to `true` to route native OpenAI and Anthropic API-key model requests through Caveman. Otherwise provider calls remain direct. |
+| `JIAN_CAVEMAN_PROXY_URL` | no | `http://127.0.0.1:8788` | Exact proxy origin. The default starts the bundled listener when Caveman is enabled in the image; override it for a separately managed proxy. |
 | `JIAN_PUBLIC_URL` | no | — | Where the outside world reaches this gateway, over HTTPS. Telegram's webhook is registered there, rather than at whatever address the panel was opened on, and an MCP server that signs in with OAuth redirects the owner back to it; without it, that sign-in is unavailable. |
 | `JIAN_WORKSPACES` | no | `$HOME/workspaces` | Where each profile's workspace is created, one directory per profile. |
 | `POSTGRES_PASSWORD` | Compose only | — | The PostgreSQL password in `compose.yaml`; it also builds the service's `DATABASE_URL`. |
 | `JIAN_VERSION` | Compose only | `latest` | The image tag `compose.yaml` uses. |
 | `JIAN_BIND_ADDRESS` | Compose only | `127.0.0.1` | The host address the gateway port is published on. |
 | `JIAN_BIND_PORT` | Compose only | `4310` | The host port the gateway is published on. |
+
+The published image includes Caveman's local proxy but leaves it stopped by default. To start
+its private, record-only listener alongside Jian, set this variable in Compose or the container:
+
+```bash
+JIAN_CAVEMAN_ENABLED=true make up
+```
+
+For source development without the image, start a separate listener instead:
+
+```bash
+CAVEMAN_MODE=record caveman start --port 8788
+JIAN_CAVEMAN_ENABLED=true make dev
+```
+
+The image starts and supervises the bundled listener only when enabled with that exact loopback
+URL. For any other configured origin, provide a separately managed proxy reachable from the gateway
+container. Jian does not retry a failed model request directly, because a retry could duplicate
+work. Keep external listeners private; `127.0.0.1` inside a container is not the host.
+Only native OpenAI and Anthropic API-key requests use this route. Codex/Claude subscriptions,
+custom endpoints, OpenRouter and Google continue directly. Set `JIAN_CAVEMAN_ENABLED=false` to
+turn routing off. The bundled listener is forced to `record`, which preserves request bytes; Jian cannot
+change the mode of a separately managed listener.
 
 Provider, MCP and channel keys do not live in the environment: they are typed in the panel and stored encrypted with the keyring. See [security](security.md).
 

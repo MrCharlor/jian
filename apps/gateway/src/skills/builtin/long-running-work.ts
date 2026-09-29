@@ -3,7 +3,7 @@ import type { Skill } from '@jian/contracts';
 export const longRunningWork: Skill = {
   name: 'long-running-work',
   description:
-    'Use when work spans several turns or sessions, a tool result is too large to read at once, context is running out, or two sessions could repeat one effect.',
+    'Use when tracking or reviewing a task, delegating to a subagent, finishing a multi-step workflow, work spans turns, or context is running out.',
   instructions: `# Work that outlives one turn
 
 A run is one turn. It has no time limit, but it has a budget of steps and tokens, and a
@@ -22,6 +22,9 @@ board keeps private copies, and each worker receives its own copies in the task 
 \`update_task\` moves it through todo, in_progress, review, blocked and done, or leaves a
 progress note. Give the next agent/turn what remains or why it is blocked. Only mark verified
 work done. A card does not start a new run or act as a reminder: use a schedule for a time.
+After each meaningful checkpoint, update the card. Before reporting completion, verify the
+external effects and update the card to done. If a step is blocked, record the exact blocker
+and leave the card open; a final message does not update it for you.
 The board belongs only to this profile; another agent cannot read it implicitly.
 
 ## Delegating a board task
@@ -33,11 +36,16 @@ When a worker finishes or fails, a durable handoff starts or steers a principal 
 conversation so you can inspect the outcome and decide what to do next. Do not busy-poll.
 For parallel work, assign distinct tasks or non-overlapping effects; check resource leases
 when work may touch the same external state. Use \`list_task_subagents\` to inspect each
-worker's status and report. An executor should move its task to review and leave a handoff
-note; only then spawn a reviewer. A reviewer verifies the work, fixes problems it can handle,
-and marks done only after verification. For substantial rework, move it back to in_progress
-and spawn another executor. Workers cannot spawn workers or access your conversations and
-contacts. Do not claim a queued worker has completed; check its result before reporting.
+worker's status and report. Prefer a worker for an independent substantial task, including
+reviewing a PR, when it has enough context and access to finish; creating a card alone never
+delegates it. Do not spawn merely to add a handoff to a small task you can finish now. For a
+review-only task, move it to review before spawning a reviewer. An executor moves its task to
+review with a handoff note when independent review is needed; the
+reviewer verifies, fixes problems it can handle, and marks done after verification. When no
+independent review is useful, the executor may mark verified work done directly. For substantial
+rework, move it back to in_progress and spawn another executor. Workers cannot spawn workers or
+access your conversations and contacts. Do not claim a queued worker has completed; check its
+result before reporting.
 
 ## Before starting something with an effect
 

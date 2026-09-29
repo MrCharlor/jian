@@ -71,6 +71,82 @@ export async function findSession(
   return row ? toSession(row) : null;
 }
 
+export type PonytailMode = 'lite' | 'full' | 'ultra' | 'off';
+export type CavemanMode = PonytailMode;
+
+/** Caveman is opt-in and only an exact standalone owner command changes its mode. */
+export function parseCavemanMode(text: string): CavemanMode | undefined {
+  const command = text.trim().toLowerCase();
+  if (command === '/caveman' || command === '/caveman full') return 'full';
+  if (command === '/caveman lite') return 'lite';
+  if (command === '/caveman ultra') return 'ultra';
+  if (command === '/caveman off' || command === 'stop caveman') return 'off';
+  return undefined;
+}
+
+export async function cavemanMode(
+  db: Queryable,
+  profileId: string,
+  sessionId: string,
+): Promise<CavemanMode> {
+  const [row] = await db
+    .select({ mode: sessions.cavemanMode })
+    .from(sessions)
+    .where(and(eq(sessions.id, sessionId), eq(sessions.profileId, profileId)))
+    .limit(1);
+
+  return row?.mode ?? 'off';
+}
+
+export async function setCavemanMode(
+  db: Queryable,
+  profileId: string,
+  sessionId: string,
+  mode: CavemanMode,
+): Promise<void> {
+  await db
+    .update(sessions)
+    .set({ cavemanMode: mode })
+    .where(and(eq(sessions.id, sessionId), eq(sessions.profileId, profileId)));
+}
+
+/** Only a standalone owner message changes the conversation's coding mode. */
+export function parsePonytailMode(text: string): PonytailMode | undefined {
+  const command = text.trim().toLowerCase();
+  if (command === '/ponytail lite') return 'lite';
+  if (command === '/ponytail ultra') return 'ultra';
+  if (command === '/ponytail off' || command === 'stop ponytail' || command === 'normal mode')
+    return 'off';
+  if (command === '/ponytail' || command === '/ponytail full') return 'full';
+  return undefined;
+}
+
+export async function ponytailMode(
+  db: Queryable,
+  profileId: string,
+  sessionId: string,
+): Promise<PonytailMode> {
+  const [row] = await db
+    .select({ mode: sessions.ponytailMode })
+    .from(sessions)
+    .where(and(eq(sessions.id, sessionId), eq(sessions.profileId, profileId)))
+    .limit(1);
+
+  return row?.mode ?? 'full';
+}
+
+export async function setPonytailMode(
+  db: Queryable,
+  profileId: string,
+  sessionId: string,
+  mode: PonytailMode,
+): Promise<void> {
+  await db
+    .update(sessions)
+    .set({ ponytailMode: mode })
+    .where(and(eq(sessions.id, sessionId), eq(sessions.profileId, profileId)));
+}
+
 export async function listSessions(
   db: Queryable,
   profileId: string,

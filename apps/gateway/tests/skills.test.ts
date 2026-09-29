@@ -297,7 +297,18 @@ describe('the skills every profile carries', () => {
     });
     const names = (profile: typeof plain) => availableSkills(profile).map((skill) => skill.name);
 
-    for (const skill of ['coding-work', 'web-research', 'mcp-servers', 'machine-tools']) {
+    for (const skill of [
+      'coding-work',
+      'web-research',
+      'mcp-servers',
+      'machine-tools',
+      'ponytail',
+      'ponytail-review',
+      'ponytail-audit',
+      'ponytail-debt',
+      'ponytail-gain',
+      'ponytail-help',
+    ]) {
       expect(names(plain)).not.toContain(skill);
       expect(names(equipped)).toContain(skill);
     }

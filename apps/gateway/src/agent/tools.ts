@@ -150,7 +150,7 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
           }),
           update_task: tool({
             description:
-              'Move a task on your board or leave a progress/handoff note. Use the version from list_tasks; a stale update returns a conflict. Mark done only for verified work.',
+              'Move a task or leave a progress/handoff note. Use the version from list_tasks; stale updates conflict. After completing and verifying work, update the task before your final report. Move to review only when independent review is needed; otherwise mark done.',
             inputSchema: z.object({ id: z.uuid(), ...workPatchSchema.shape }),
             execute: async ({ id, ...patch }) =>
               services.work?.update(run.profileId, id, patch, run),
@@ -159,7 +159,7 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
             ? {
                 spawn_subagent: tool({
                   description:
-                    'Start an anonymous, isolated task worker with its own identity and brief. It is a queued run, not an agent profile. An executor hands off to review; a reviewer verifies, fixes, and may mark done. This returns immediately; inspect task workers later.',
+                    'Start an anonymous, isolated task worker with its own identity and brief. It is a queued run, not an agent profile. An executor moves to review when independent review is needed, or marks verified work done directly. This returns immediately; inspect task workers later.',
                   inputSchema: spawnSubagentSchema,
                   execute: async (input, options) =>
                     services.work?.spawn(run, input, options.toolCallId),

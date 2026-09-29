@@ -32,6 +32,26 @@ const config = z
     JIAN_ACTIVE_KEY_ID: z.string().min(1),
     JIAN_MASTER_KEYS: z.string().min(1),
     JIAN_ALLOW_PRIVATE_ORIGINS: z.string().default(''),
+    JIAN_CAVEMAN_ENABLED: z.enum(['true', 'false']).default('false'),
+    JIAN_CAVEMAN_PROXY_URL: z
+      .string()
+      .default('http://127.0.0.1:8788')
+      .refine((value) => {
+        if (!value) return true;
+        try {
+          const url = new URL(value);
+          return (
+            ['http:', 'https:'].includes(url.protocol) &&
+            url.origin === value.replace(/\/$/, '') &&
+            !url.username &&
+            !url.password &&
+            !url.search &&
+            !url.hash
+          );
+        } catch {
+          return false;
+        }
+      }, 'Use an exact HTTP(S) origin without credentials, path, query or fragment'),
     JIAN_API_TOKEN: z.string().min(32),
     HOST: z.string().default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4310),
@@ -72,9 +92,14 @@ try {
 }
 
 const outbound = createSafeFetch({
-  allowPrivateOrigins: config.data.JIAN_ALLOW_PRIVATE_ORIGINS.split(',')
-    .map((value) => value.trim())
-    .filter(Boolean),
+  allowPrivateOrigins: [
+    ...config.data.JIAN_ALLOW_PRIVATE_ORIGINS.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+    ...(config.data.JIAN_CAVEMAN_ENABLED === 'true'
+      ? [config.data.JIAN_CAVEMAN_PROXY_URL || 'http://127.0.0.1:8788']
+      : []),
+  ],
 });
 
 // What each model can do is read from a catalog maintained outside this repository, so a model

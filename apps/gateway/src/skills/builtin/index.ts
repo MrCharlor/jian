@@ -18,7 +18,9 @@ import { ownerAndContacts } from './owner-and-contacts.js';
 import { schedules } from './schedules.js';
 import { skillCreator } from './skill-creator.js';
 import { stickers } from './stickers.js';
+import { caveman } from './vendored/caveman.js';
 import { discernmentNudge } from './vendored/discernment-nudge.js';
+import { ponytailSkills } from './vendored/ponytail.js';
 import { webResearch } from './web-research.js';
 import { workingWithAgents } from './working-with-agents.js';
 
@@ -43,6 +45,7 @@ const ALWAYS: readonly Skill[] = [
   managingContext,
   handlingErrors,
   jevJudgment,
+  caveman,
   // Starts switched off on a new profile (OPT_IN_SKILLS); the owner turns it on in Skills.
   discernmentNudge,
 ];
@@ -54,7 +57,7 @@ const ALWAYS: readonly Skill[] = [
  */
 const SELF_MANAGED: readonly Skill[] = [managingYourself];
 const AGENTS: readonly Skill[] = [workingWithAgents];
-const SHELL: readonly Skill[] = [machineTools, codingWork];
+const SHELL: readonly Skill[] = [machineTools, codingWork, ...ponytailSkills];
 const WEB: readonly Skill[] = [webResearch];
 const MCP: readonly Skill[] = [mcpServers];
 const STICKERS: readonly Skill[] = [stickers];

@@ -14,15 +14,15 @@ import { decisionUsage, gatewaySecrets, gatewaySettings } from '../storage/schem
 
 /** Where the installation's Jev key lives in the gateway vault. */
 const SECRET = 'decisions:jev';
-/** Where the owner's choices about spending live among the installation's settings. */
+/** Where the owner's choices about which questions to ask live. */
 const SETTINGS = 'decisions';
 const ENDPOINT = 'https://api.typesafe.ai/v1/systemone';
 const MODEL = 'jev-latest';
 /** Jev answers in 70–500 ms. Past this the fixed rule answers instead of the caller waiting. */
 const DEFAULT_TIMEOUT_MS = 3000;
 /**
- * A question is about a message, an action or a short list of candidates, never a whole
- * transcript. Jev reads far more than this; the bound is on what leaves the machine.
+ * A question is about a message, an action or a short excerpt, never a whole transcript.
+ * Jev reads far more than this; the bound is on what leaves the machine.
  */
 const MAX_STATE_CHARS = 24_000;
 /**
@@ -33,8 +33,7 @@ const MAX_STATE_CHARS = 24_000;
 const CACHE_TTL_MS = 10 * 60_000;
 const CACHE_ENTRIES = 500;
 /**
- * The settings and today's total are read at most this often. Several gateway processes share
- * one database, so the ceiling can be passed by what the others spent in this window.
+ * Settings are read at most this often.
  */
 const REFRESH_MS = 30_000;
 /** What a day of usage shows in the panel. */
@@ -85,11 +84,10 @@ const responseSchema = z.object({
 const storedSettingsSchema = z
   .object({
     uses: z.record(z.string(), z.boolean()).optional(),
-    dailyTokenLimit: z.number().int().positive().optional(),
   })
   .catch({});
 
-type StoredSettings = { uses: DecisionUses; dailyTokenLimit?: number };
+type StoredSettings = { uses: DecisionUses };
 
 /** `use` says what the question is for: the owner can switch each use off, and it is billed to it. */
 export type JudgeOptions = { use: DecisionUse; timeoutMs?: number; signal?: AbortSignal };
@@ -118,15 +116,13 @@ export function noul(answer: Answer | undefined): number | undefined {
 
 /**
  * The gateway's questions to Jev. Every answer is advice: `undefined` — no key, a refused key,
- * an outage, a slow answer, a use the owner switched off, the daily ceiling reached — means the
+ * an outage, a slow answer, a use the owner switched off — means the
  * caller decides by its own rule, so a missing or broken service changes nothing that worked
- * without it. What is sent is the one message, action or short list being judged; the service
+ * without it. What is sent is the one message, action or short excerpt being judged; the service
  * keeps no conversation.
  */
 export class Decisions {
   private settingsRead?: { at: number; value: StoredSettings };
-  private spent?: { day: string; at: number; tokens: number };
-  private ceilingReported?: string;
   private readonly cache = new Map<
     string,
     { at: number; answers: Partial<Record<string, Answer>> }
@@ -159,7 +155,6 @@ export class Decisions {
       configured: row !== undefined,
       ...(row ? { updatedAt: row.updatedAt.toISOString() } : {}),
       uses: settings.uses,
-      ...(settings.dailyTokenLimit ? { dailyTokenLimit: settings.dailyTokenLimit } : {}),
       usage: usage.flatMap((item): DecisionUsage[] => {
         const use = decisionUseSchema.safeParse(item.use);
 
@@ -182,16 +177,11 @@ export class Decisions {
     return this.status();
   }
 
-  /** Which uses run and the daily ceiling. What the patch leaves out stays as it was. */
+  /** Which uses run. What the patch leaves out stays as it was. */
   async updateSettings(input: unknown): Promise<DecisionsStatus> {
     const patch = decisionsSettingsPatchSchema.parse(input);
     const current = await this.readSettings();
-    const limit =
-      patch.dailyTokenLimit === undefined ? current.dailyTokenLimit : patch.dailyTokenLimit;
-    const value = {
-      uses: { ...current.uses, ...patch.uses },
-      ...(limit ? { dailyTokenLimit: limit } : {}),
-    };
+    const value = { uses: { ...current.uses, ...patch.uses } };
 
     await this.store.db
       .insert(gatewaySettings)
@@ -234,10 +224,6 @@ export class Decisions {
         await this.record(options.use, { cached: 1 });
 
         return cached;
-      }
-
-      if (await this.overCeiling(settings)) {
-        return undefined;
       }
 
       const body = JSON.stringify({ model: MODEL, state: sent, questions });
@@ -315,10 +301,7 @@ export class Decisions {
       }
     }
 
-    return {
-      uses,
-      ...(stored.dailyTokenLimit ? { dailyTokenLimit: stored.dailyTokenLimit } : {}),
-    };
+    return { uses };
   }
 
   private async settings(): Promise<StoredSettings> {
@@ -329,40 +312,6 @@ export class Decisions {
     }
 
     return this.settingsRead.value;
-  }
-
-  /** Whether today's spending, over every use, has reached the owner's ceiling. */
-  private async overCeiling(settings: StoredSettings): Promise<boolean> {
-    if (!settings.dailyTokenLimit) {
-      return false;
-    }
-
-    const now = this.clock();
-    const day = utcDay(now);
-
-    if (!this.spent || this.spent.day !== day || now - this.spent.at >= REFRESH_MS) {
-      const [row] = await this.store.db
-        .select({
-          tokens: sql<string>`coalesce(sum(${decisionUsage.inputTokens} + ${decisionUsage.outputTokens}), 0)`,
-        })
-        .from(decisionUsage)
-        .where(eq(decisionUsage.day, day));
-
-      this.spent = { day, at: now, tokens: Number(row?.tokens ?? 0) };
-    }
-
-    if (this.spent.tokens < settings.dailyTokenLimit) {
-      return false;
-    }
-
-    if (this.ceilingReported !== day) {
-      this.ceilingReported = day;
-      this.report(
-        `jian: Jev reached the daily ceiling of ${settings.dailyTokenLimit} tokens; the fixed rules decide until 00:00 UTC`,
-      );
-    }
-
-    return true;
   }
 
   /** Counts only. A failure to count never costs the answer it is counting. */
@@ -377,10 +326,6 @@ export class Decisions {
       inputTokens: spent.inputTokens ?? 0,
       outputTokens: spent.outputTokens ?? 0,
     };
-
-    if (this.spent?.day === day) {
-      this.spent.tokens += values.inputTokens + values.outputTokens;
-    }
 
     try {
       await this.store.db

@@ -42,11 +42,9 @@ export const decisionUsesSchema = z.strictObject({
   groups: z.boolean(),
 });
 
-/** What the owner chooses about spending: which uses run, and a daily ceiling in tokens. */
+/** Which decisions the owner wants to ask Jev about. */
 export const decisionsSettingsPatchSchema = z.strictObject({
   uses: decisionUsesSchema.partial().optional(),
-  /** Tokens sent and received per UTC day, over every use. Null removes the ceiling. */
-  dailyTokenLimit: z.number().int().min(1000).max(1_000_000_000).nullable().optional(),
 });
 
 /** The spending of one use on one UTC day. An answer served from the cache costs nothing. */
@@ -64,7 +62,6 @@ export const decisionsStatusSchema = z.strictObject({
   configured: z.boolean(),
   updatedAt: z.iso.datetime().optional(),
   uses: decisionUsesSchema,
-  dailyTokenLimit: z.number().int().min(1).optional(),
   /** The last seven UTC days, most recent first; days and uses with nothing spent are absent. */
   usage: z.array(decisionUsageSchema),
 });

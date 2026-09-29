@@ -86,7 +86,7 @@ it('keeps durable work scoped to one profile, editable across runs, and versione
   }
 });
 
-it('spawns an isolated, idempotent task worker and enforces executor handoff', async () => {
+it('spawns isolated, idempotent task workers and allows verified direct completion', async () => {
   const services = await testServices();
   const profile = await services.profiles.createProfile({
     name: 'Coordinator',
@@ -179,9 +179,6 @@ it('spawns an isolated, idempotent task worker and enforces executor handoff', a
       data: 'AA==',
     }),
   ).rejects.toMatchObject({ statusCode: 403 });
-  await expect(
-    services.work.update(profile.id, task.id, { status: 'done', expectedVersion: 1 }, worker),
-  ).rejects.toMatchObject({ statusCode: 403 });
   const handoff = await services.work.update(
     profile.id,
     task.id,
@@ -223,6 +220,31 @@ it('spawns an isolated, idempotent task worker and enforces executor handoff', a
   );
   expect(reviewer.role).toBe('review');
   expect(await services.work.executions(profile.id, task.id)).toHaveLength(2);
+  const directTask = await services.work.create(
+    profile.id,
+    { title: 'Check documentation', description: 'Read and verify a single document.' },
+    chat.id,
+  );
+  const directRun = await services.work.spawn(
+    principal,
+    { ...input, taskId: directTask.id, brief: 'Verify the document.', name: 'Reader' },
+    'tool-call-3',
+  );
+  const directWorker = await services.runs.run(profile.id, directRun.runId);
+  await services.work.update(
+    profile.id,
+    directTask.id,
+    { status: 'in_progress', expectedVersion: 1 },
+    directWorker,
+  );
+  expect(
+    await services.work.update(
+      profile.id,
+      directTask.id,
+      { status: 'done', note: 'Document verified.', expectedVersion: 2 },
+      directWorker,
+    ),
+  ).toMatchObject({ status: 'done', version: 3 });
   await services.lifecycle.claim(reviewer.runId, profile.id, 'review-lease');
   await services.lifecycle.finish(
     profile.id,

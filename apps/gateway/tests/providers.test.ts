@@ -41,6 +41,65 @@ describe('providers', () => {
   });
 });
 
+it('routes only native API-key models through the enabled default Caveman proxy', async () => {
+  const urls: string[] = [];
+  const headers: Headers[] = [];
+  const fetcher: typeof fetch = async (input, init) => {
+    urls.push(String(input));
+    headers.push(new Headers(init?.headers));
+    return Response.json({ error: { message: 'synthetic' } }, { status: 400 });
+  };
+  const env = {
+    JIAN_CAVEMAN_ENABLED: 'true',
+    OPENAI_API_KEY: 'sk-synthetic',
+    ANTHROPIC_API_KEY: 'sk-ant-api03-synthetic',
+    ANTHROPIC_API_TOKEN: 'sk-ant-oat01-synthetic',
+  };
+  const call = async (config: Parameters<typeof resolveModel>[0]) => {
+    const model = await resolveModel(config, env, fetcher);
+    await expect(generateText({ model, prompt: 'ping', maxRetries: 0 })).rejects.toThrow();
+    return urls.pop();
+  };
+
+  expect(await call({ provider: 'openai', modelId: 'test' })).toBe(
+    'http://127.0.0.1:8788/w/jian/openai/v1/responses',
+  );
+  expect(headers.at(-1)?.get('authorization')).toBe('Bearer sk-synthetic');
+  expect(await call({ provider: 'anthropic', modelId: 'test' })).toBe(
+    'http://127.0.0.1:8788/w/jian/v1/messages',
+  );
+  expect(headers.at(-1)?.get('x-api-key')).toBe('sk-ant-api03-synthetic');
+  expect(
+    await call({
+      provider: 'anthropic',
+      modelId: 'test',
+      credential: 'subscription',
+      apiKeyEnv: 'ANTHROPIC_API_TOKEN',
+    }),
+  ).toBe('https://api.anthropic.com/v1/messages');
+  expect(
+    await call({ provider: 'openai', modelId: 'test', baseURL: 'https://custom.example/v1' }),
+  ).toBe('https://custom.example/v1/responses');
+});
+
+it('keeps direct provider calls when the Caveman proxy is disabled', async () => {
+  let url = '';
+  const model = await resolveModel(
+    { provider: 'openai', modelId: 'test' },
+    {
+      OPENAI_API_KEY: 'sk-synthetic',
+      JIAN_CAVEMAN_ENABLED: 'false',
+      JIAN_CAVEMAN_PROXY_URL: 'http://127.0.0.1:8788',
+    },
+    async (input) => {
+      url = String(input);
+      return Response.json({ error: { message: 'synthetic' } }, { status: 400 });
+    },
+  );
+  await expect(generateText({ model, prompt: 'ping', maxRetries: 0 })).rejects.toThrow();
+  expect(url).toBe('https://api.openai.com/v1/responses');
+});
+
 it('keeps a cache boundary before changing memories without breaking subscription identity', async () => {
   const bodies: Array<{ system: Array<{ text: string; cache_control?: unknown }> }> = [];
   const model = await resolveModel(

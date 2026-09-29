@@ -302,6 +302,20 @@
       "when": 1790866000000,
       "tag": "0042_task-subagents",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790870000000,
+      "tag": "0043_ponytail-mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790874000000,
+      "tag": "0044_caveman-mode",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { Decisions } from '../src/decisions/service.js';
+import { gatewaySettings } from '../src/storage/schema.js';
 import { testServices } from './helpers/services.js';
 
 const token = 'synthetic-decisions-admin-token-32-chars';
@@ -28,7 +29,7 @@ async function setup(respond: (init?: RequestInit) => Response | Promise<Respons
   );
   const app = createApp({ ...services, decisions, token, logger: false });
 
-  return { decisions, requests, reports, app };
+  return { decisions, requests, reports, app, services };
 }
 
 describe('asking Jev', () => {
@@ -157,39 +158,28 @@ describe('spending on Jev', () => {
     expect(requests).toHaveLength(1);
   });
 
-  it('stops asking for the day once the ceiling is reached, and a ceiling can be removed', async () => {
-    const { decisions, requests, reports } = await setup(answered);
-
+  it('ignores an old stored ceiling and keeps asking', async () => {
+    const { decisions, requests, services } = await setup(answered);
+    await services.store.db.insert(gatewaySettings).values({
+      key: 'decisions',
+      value: { uses: {}, dailyTokenLimit: 1 },
+    });
     await decisions.configure({ provider: 'jev', apiKey: 'jev-synthetic' });
-    await decisions.updateSettings({ dailyTokenLimit: 1000 });
 
-    for (const message of ['one', 'two', 'three', 'four']) {
-      await decisions.ask({ ...question, state: { message } }, { use: 'turn' });
+    for (const message of ['one', 'two']) {
+      expect(await decisions.ask({ ...question, state: { message } }, { use: 'turn' })).toBe(0.7);
     }
-
-    // 320 tokens each: the fourth starts at 960, under the ceiling, and ends past it.
-    expect(requests).toHaveLength(4);
-    expect(await decisions.ask({ ...question, state: { message: 'five' } }, { use: 'turn' })).toBe(
-      undefined,
-    );
-    expect(requests).toHaveLength(4);
-    expect(reports.join('\n')).toContain('daily ceiling');
-
-    const status = await decisions.updateSettings({ dailyTokenLimit: null });
-
-    expect(status.dailyTokenLimit).toBeUndefined();
-    expect(await decisions.ask({ ...question, state: { message: 'six' } }, { use: 'turn' })).toBe(
-      0.7,
-    );
+    expect(requests).toHaveLength(2);
+    expect(JSON.stringify(await decisions.status())).not.toContain('dailyTokenLimit');
   });
 
-  it('refuses a ceiling too small to be meant', async () => {
+  it('no longer accepts a ceiling in settings', async () => {
     const { app } = await setup(answered);
     const refused = await app.inject({
       method: 'PATCH',
       url: '/v1/decisions',
       headers: admin,
-      payload: { dailyTokenLimit: 5 },
+      payload: { dailyTokenLimit: 1000 },
     });
 
     expect(refused.statusCode).toBe(400);

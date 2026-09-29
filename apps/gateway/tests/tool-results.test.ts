@@ -63,3 +63,72 @@ it('reads full pages within the token limit without skipping Unicode or JSON esc
   }
   expect(JSON.parse(content)).toEqual(original);
 });
+
+it('keeps full local output in an artifact and shows both ends in Caveman mode', async () => {
+  const { run } = await fixture();
+  const stdout = `START\n${'ordinary output\n'.repeat(1200)}END`;
+  const saved: unknown[] = [];
+  const output = { exitCode: 0, stdout, stderr: '' };
+  const result = await boundToolResult(
+    output,
+    'run_command',
+    run,
+    new Set(),
+    {
+      storeArtifact: async (_run, _name, value) => {
+        saved.push(value);
+        return { artifactId: 'saved-output', bytes: Buffer.byteLength(JSON.stringify(value)) };
+      },
+    },
+    true,
+  );
+  expect(saved).toEqual([output]);
+  expect(result).toMatchObject({ truncated: true, artifactId: 'saved-output' });
+  const preview = (result as { preview: string }).preview;
+  expect(preview).toContain('START');
+  expect(preview).toContain('END');
+  expect(preview).toContain('read artifact for full output');
+  expect(tokenCounter('openai', 'test')(JSON.stringify(result))).toBeLessThanOrEqual(2560);
+});
+
+it('prioritizes shell failure details and leaves MCP errors unchanged', async () => {
+  const { run } = await fixture();
+  const failure = {
+    exitCode: 2,
+    stdout: 'ordinary output\n'.repeat(1200),
+    stderr: 'VALIDATION FAILED: missing field',
+  };
+  const options = {
+    storeArtifact: async () => ({ artifactId: 'failure-output', bytes: 30000 }),
+  };
+  const result = await boundToolResult(failure, 'run_command', run, new Set(), options, true);
+  expect((result as { preview: string }).preview).toContain('VALIDATION FAILED: missing field');
+  expect((result as { preview: string }).preview).toContain('"exitCode":2');
+
+  const mcp = { content: [{ type: 'text', text: 'Remote operation refused' }], isError: true };
+  expect(await boundToolResult(mcp, 'mcp__remote_write', run, new Set(), options, true)).toEqual(
+    mcp,
+  );
+});
+
+it('keeps file location and both ends of a long read in its preview', async () => {
+  const { run } = await fixture();
+  const output = {
+    path: '/workspace/report.txt',
+    totalLines: 1202,
+    content: `1\tFIRST\n${'middle\n'.repeat(1200)}1202\tLAST`,
+  };
+  const result = await boundToolResult(
+    output,
+    'read_file',
+    run,
+    new Set(),
+    { storeArtifact: async () => ({ artifactId: 'file-output', bytes: 10000 }) },
+    true,
+  );
+  const preview = (result as { preview: string }).preview;
+  expect(preview).toContain('/workspace/report.txt');
+  expect(preview).toContain('1202');
+  expect(preview).toContain('FIRST');
+  expect(preview).toContain('LAST');
+});

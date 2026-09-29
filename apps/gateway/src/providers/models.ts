@@ -35,9 +35,20 @@ export async function resolveModel(
     throw new Error('Provider key is not configured');
   }
 
+  // The local Caveman listener is opt-in. Do not redirect custom endpoints or subscription
+  // protocols through an API-key route whose behavior has not been verified.
+  const proxy =
+    env.JIAN_CAVEMAN_ENABLED === 'true'
+      ? (env.JIAN_CAVEMAN_PROXY_URL || 'http://127.0.0.1:8788').replace(/\/$/, '')
+      : undefined;
+
   switch (config.provider) {
     case 'openai':
-      return createOpenAI({ apiKey, baseURL: config.baseURL, fetch: fetcher })(config.modelId);
+      return createOpenAI({
+        apiKey,
+        baseURL: !config.baseURL && proxy ? `${proxy}/w/jian/openai/v1` : config.baseURL,
+        fetch: fetcher,
+      })(config.modelId);
     case 'openai-codex':
       return createCodexModel(apiKey, config.modelId, fetcher);
     case 'openrouter':
@@ -56,7 +67,7 @@ export async function resolveModel(
 
       return createAnthropic({
         ...(subscription ? { authToken: apiKey, headers: subscriptionHeaders() } : { apiKey }),
-        baseURL: config.baseURL,
+        baseURL: !subscription && !config.baseURL && proxy ? `${proxy}/w/jian/v1` : config.baseURL,
         fetch: subscription ? await subscriptionFetch(fetcher) : fetcher,
       })(config.modelId);
     }
