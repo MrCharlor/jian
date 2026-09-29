@@ -4,6 +4,20 @@ Every release of Jian, newest first.
 
 <!-- Generated from docs/releases by scripts/changelog.mjs. Edit the release note, then run `make changelog`. -->
 
+## 0.4.3 — 2026-09-29
+
+GPT-6.1 Sol and model-specific higher reasoning levels for OpenAI.
+
+### Models and reasoning
+
+* **GPT-6.1 Sol:** ChatGPT-connected accounts can select it when their Codex catalog offers it. The gateway now requests the current Codex model catalog instead of an older client-version view.
+* **Extra High and Maximum:** The model and conversation selectors offer `xhigh` and `max` only when the model's capabilities include them. For ChatGPT accounts, supported efforts come from that account's Codex catalog; API-key accounts use the public model catalog.
+* **No false Ultracode option:** The Codex catalog's `ultra` level describes automatic task delegation, which the gateway does not implement. It remains unavailable in Jian rather than appearing as a misleading reasoning-only setting.
+
+### Upgrading
+
+No migration or configuration change is required. Model availability still depends on the connected account or API key. The model list refreshes automatically; saved defaults remain unchanged.
+
 ## 0.4.2 — 2026-09-29
 
 Task workers reuse their profile's Git SSH access, and completed task workspaces are reclaimed.

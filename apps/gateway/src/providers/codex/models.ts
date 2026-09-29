@@ -9,7 +9,8 @@ import { accountHeaders } from './model.js';
  * it. Keep this at a Codex version known to list the current account models; 0.0.0 omits newer
  * models even when the same account sees them in the Codex CLI.
  */
-const CATALOG = 'https://chatgpt.com/backend-api/codex/models?client_version=0.155.0';
+const CATALOG = 'https://chatgpt.com/backend-api/codex/models?client_version=0.156.0';
+const effort = z.enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 
 const catalog = z.object({
   models: z
@@ -19,12 +20,20 @@ const catalog = z.object({
         display_name: z.string().optional().catch(undefined),
         visibility: z.string().optional().catch(undefined),
         priority: z.number().optional().catch(undefined),
+        supported_reasoning_levels: z
+          .array(z.looseObject({ effort: z.string() }))
+          .optional()
+          .catch(undefined),
       }),
     )
     .optional(),
 });
 
-export type CodexModel = { id: string; displayName?: string };
+export type CodexModel = {
+  id: string;
+  displayName?: string;
+  reasoningEfforts?: Array<z.infer<typeof effort>>;
+};
 
 export async function listCodexModels(
   accessToken: string,
@@ -56,6 +65,14 @@ export async function listCodexModels(
     .map((model) => ({
       id: model.slug,
       ...(model.display_name ? { displayName: model.display_name } : {}),
+      ...(model.supported_reasoning_levels
+        ? {
+            reasoningEfforts: model.supported_reasoning_levels.flatMap((level) => {
+              const parsed = effort.safeParse(level.effort);
+              return parsed.success ? [parsed.data] : [];
+            }),
+          }
+        : {}),
     }))
     .slice(0, 200);
 }

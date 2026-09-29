@@ -14,6 +14,19 @@ function token(account?: string) {
 
 const catalog = {
   models: [
+    {
+      slug: 'gpt-6.1-sol',
+      display_name: 'GPT-6.1-Sol',
+      priority: 0,
+      supported_reasoning_levels: [
+        { effort: 'low' },
+        { effort: 'medium' },
+        { effort: 'high' },
+        { effort: 'xhigh' },
+        { effort: 'max' },
+        { effort: 'ultra' },
+      ],
+    },
     { slug: 'gpt-6-astra', display_name: 'GPT-6-Astra', priority: 1 },
     { slug: 'gpt-6-sol', display_name: 'GPT-6-Sol', priority: 2 },
     { slug: 'gpt-6-luna', display_name: 'GPT-6-Luna', priority: 3 },
@@ -36,6 +49,11 @@ describe('the models a ChatGPT login may call', () => {
     }) as typeof globalThis.fetch);
 
     expect(models).toEqual([
+      {
+        id: 'gpt-6.1-sol',
+        displayName: 'GPT-6.1-Sol',
+        reasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+      },
       { id: 'gpt-6-astra', displayName: 'GPT-6-Astra' },
       { id: 'gpt-6-sol', displayName: 'GPT-6-Sol' },
       { id: 'gpt-6-luna', displayName: 'GPT-6-Luna' },
@@ -46,7 +64,7 @@ describe('the models a ChatGPT login may call', () => {
     ]);
 
     // Without the version the backend refuses, and without the account it answers empty.
-    expect(asked[0]?.url).toContain('client_version=0.155.0');
+    expect(asked[0]?.url).toContain('client_version=0.156.0');
     expect(asked[0]?.headers.get('chatgpt-account-id')).toBe('acct-1');
     expect(asked[0]?.headers.get('authorization')).toBe(`Bearer ${token('acct-1')}`);
   });

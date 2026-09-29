@@ -12,6 +12,8 @@ const share: Record<Exclude<ReasoningEffort, 'none'>, number> = {
   low: 0.3,
   medium: 0.5,
   high: 0.8,
+  xhigh: 0.9,
+  max: 0.95,
 };
 
 /** Anthropic rejects a thinking budget below 1024, and it must stay under `max_tokens`. */
@@ -51,7 +53,10 @@ export function takesAdaptiveThinking(modelId: string): boolean {
  * `low` is a level every provider that offers `medium` or `high` also offers.
  */
 export function lightEffort(config: ModelConfig): ModelConfig {
-  return config.reasoningEffort === 'medium' || config.reasoningEffort === 'high'
+  return config.reasoningEffort === 'medium' ||
+    config.reasoningEffort === 'high' ||
+    config.reasoningEffort === 'xhigh' ||
+    config.reasoningEffort === 'max'
     ? { ...config, reasoningEffort: 'low' }
     : config;
 }

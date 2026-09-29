@@ -317,7 +317,12 @@ export class ProviderModels {
     return listed.map((model) => ({
       id: model.id,
       ...(model.displayName ? { displayName: model.displayName.slice(0, 200) } : {}),
-      ...modelCapabilities('openai', model.id, undefined, this.catalog?.lookup('openai', model.id)),
+      ...modelCapabilities(
+        'openai',
+        model.id,
+        model.reasoningEfforts ? { reasoningEfforts: model.reasoningEfforts } : undefined,
+        this.catalog?.lookup('openai', model.id),
+      ),
     }));
   }
 

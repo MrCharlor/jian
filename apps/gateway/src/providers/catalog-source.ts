@@ -16,7 +16,7 @@ const CATALOG_URL = 'https://models.dev/api.json';
 /** Long enough that the panel never waits on it, short enough to pick up a new model same-day. */
 const TTL_MS = 4 * 60 * 60 * 1000;
 
-const effort = z.enum(['none', 'minimal', 'low', 'medium', 'high']);
+const effort = z.enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 const modality = z.enum(['text', 'image', 'audio', 'video', 'pdf']);
 
 /**

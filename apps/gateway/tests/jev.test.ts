@@ -326,6 +326,8 @@ describe('judging the turn before it starts', () => {
     const model = { provider: 'openai' as const, modelId: 'm', apiKeyEnv: 'K' };
 
     expect(lightEffort({ ...model, reasoningEffort: 'high' }).reasoningEffort).toBe('low');
+    expect(lightEffort({ ...model, reasoningEffort: 'xhigh' }).reasoningEffort).toBe('low');
+    expect(lightEffort({ ...model, reasoningEffort: 'max' }).reasoningEffort).toBe('low');
     expect(lightEffort({ ...model, reasoningEffort: 'medium' }).reasoningEffort).toBe('low');
     expect(lightEffort({ ...model, reasoningEffort: 'minimal' }).reasoningEffort).toBe('minimal');
     expect(lightEffort({ ...model, reasoningEffort: 'none' }).reasoningEffort).toBe('none');

@@ -130,7 +130,9 @@ it('takes what the public catalog knows and marks the model it does not cover', 
         name: 'Claude Sonnet 4.5',
         limit: { context: 200_000, output: 64_000 },
         modalities: { input: ['text', 'image', 'pdf'] },
-        reasoning_options: [{ type: 'effort', values: ['low', 'medium', 'high'] }],
+        reasoning_options: [
+          { type: 'effort', values: ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'] },
+        ],
       },
     }),
   );
@@ -142,6 +144,7 @@ it('takes what the public catalog knows and marks the model it does not cover', 
   // Nothing about this model is written in this repository: it comes from the catalog.
   expect(known).toMatchObject({ known: true, contextWindow: 200_000, maxOutputTokens: 64_000 });
   expect(known?.reasoningEfforts).toContain('high');
+  expect(known?.reasoningEfforts).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
   expect(unknown).toMatchObject({
     known: false,
     contextWindow: 128_000,

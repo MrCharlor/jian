@@ -9,7 +9,15 @@ import { secretSchema } from './security.js';
  * Which of these a model accepts is not in any provider's model listing, so it comes from
  * the gateway's capability table and never from the provider response.
  */
-export const reasoningEffortSchema = z.enum(['none', 'minimal', 'low', 'medium', 'high']);
+export const reasoningEffortSchema = z.enum([
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+]);
 
 /** Input modalities a model accepts. Also absent from the listings; also from the table. */
 export const modelModalitySchema = z.enum(['text', 'image', 'audio', 'video', 'pdf']);
@@ -17,7 +25,7 @@ export const modelModalitySchema = z.enum(['text', 'image', 'audio', 'video', 'p
 export const modelCapabilitiesSchema = z.strictObject({
   contextWindow: z.number().int().min(4096).max(20_000_000),
   maxOutputTokens: z.number().int().min(256).max(1_000_000),
-  reasoningEfforts: z.array(reasoningEffortSchema).max(5),
+  reasoningEfforts: z.array(reasoningEffortSchema).max(7),
   inputModalities: z.array(modelModalitySchema).min(1).max(5),
   outputModalities: z.array(modelModalitySchema).max(5).optional(),
   /**

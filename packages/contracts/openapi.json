@@ -4590,7 +4590,7 @@
                             "maximum": 1000000
                           },
                           "reasoningEfforts": {
-                            "maxItems": 5,
+                            "maxItems": 7,
                             "type": "array",
                             "items": {
                               "type": "string",
@@ -4599,7 +4599,9 @@
                                 "minimal",
                                 "low",
                                 "medium",
-                                "high"
+                                "high",
+                                "xhigh",
+                                "max"
                               ]
                             }
                           },
@@ -5176,7 +5178,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -5210,7 +5214,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -5244,7 +5250,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -5279,7 +5287,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -5325,7 +5335,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -5371,7 +5383,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -5417,7 +5431,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -5463,7 +5479,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -5509,7 +5527,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -5778,7 +5798,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -5812,7 +5834,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -5846,7 +5870,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -5881,7 +5907,9 @@
                                   "minimal",
                                   "low",
                                   "medium",
-                                  "high"
+                                  "high",
+                                  "xhigh",
+                                  "max"
                                 ]
                               }
                             },
@@ -5927,7 +5955,9 @@
                                   "minimal",
                                   "low",
                                   "medium",
-                                  "high"
+                                  "high",
+                                  "xhigh",
+                                  "max"
                                 ]
                               }
                             },
@@ -5973,7 +6003,9 @@
                                   "minimal",
                                   "low",
                                   "medium",
-                                  "high"
+                                  "high",
+                                  "xhigh",
+                                  "max"
                                 ]
                               }
                             },
@@ -6019,7 +6051,9 @@
                                   "minimal",
                                   "low",
                                   "medium",
-                                  "high"
+                                  "high",
+                                  "xhigh",
+                                  "max"
                                 ]
                               }
                             },
@@ -6065,7 +6099,9 @@
                                   "minimal",
                                   "low",
                                   "medium",
-                                  "high"
+                                  "high",
+                                  "xhigh",
+                                  "max"
                                 ]
                               }
                             },
@@ -6111,7 +6147,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -6159,7 +6197,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -6193,7 +6233,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -6227,7 +6269,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -6262,7 +6306,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -6308,7 +6354,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -6354,7 +6402,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -6400,7 +6450,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -6446,7 +6498,9 @@
                                     "minimal",
                                     "low",
                                     "medium",
-                                    "high"
+                                    "high",
+                                    "xhigh",
+                                    "max"
                                   ]
                                 }
                               },
@@ -6492,7 +6546,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -7424,7 +7480,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -7454,7 +7512,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -16589,7 +16649,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -17249,7 +17311,9 @@
                               "minimal",
                               "low",
                               "medium",
-                              "high"
+                              "high",
+                              "xhigh",
+                              "max"
                             ]
                           }
                         },
@@ -17905,7 +17969,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -18321,7 +18387,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -18990,7 +19058,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -19650,7 +19720,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -20045,7 +20117,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -21171,7 +21245,9 @@
                                   "minimal",
                                   "low",
                                   "medium",
-                                  "high"
+                                  "high",
+                                  "xhigh",
+                                  "max"
                                 ]
                               }
                             },
@@ -21851,7 +21927,9 @@
                               "minimal",
                               "low",
                               "medium",
-                              "high"
+                              "high",
+                              "xhigh",
+                              "max"
                             ]
                           }
                         },
@@ -22199,7 +22277,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -22529,7 +22609,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -22792,7 +22874,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -22887,7 +22971,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -23762,7 +23848,9 @@
                           "minimal",
                           "low",
                           "medium",
-                          "high"
+                          "high",
+                          "xhigh",
+                          "max"
                         ]
                       }
                     },
@@ -23981,7 +24069,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -24011,7 +24101,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -27448,7 +27540,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -27478,7 +27572,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -31324,7 +31420,9 @@
                               "minimal",
                               "low",
                               "medium",
-                              "high"
+                              "high",
+                              "xhigh",
+                              "max"
                             ]
                           }
                         },
@@ -31354,7 +31452,9 @@
                               "minimal",
                               "low",
                               "medium",
-                              "high"
+                              "high",
+                              "xhigh",
+                              "max"
                             ]
                           }
                         },
@@ -31983,7 +32083,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -32013,7 +32115,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -32641,7 +32745,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
@@ -32671,7 +32777,9 @@
                             "minimal",
                             "low",
                             "medium",
-                            "high"
+                            "high",
+                            "xhigh",
+                            "max"
                           ]
                         }
                       },
