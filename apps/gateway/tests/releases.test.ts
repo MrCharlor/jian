@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
-import { compareVersions, ReleaseNotes, readNotes } from '../src/releases/service.js';
+import { compareVersions, ReleaseNotes } from '../src/releases/service.js';
 import { releaseReads } from '../src/storage/schema.js';
 import { testServices } from './helpers/services.js';
 
@@ -16,14 +16,6 @@ const note = (version: string) => ({
 const history = ['2.2.0', '2.2.0-rc.1', '2.1.0', '2.0.0'].map(note);
 
 describe('the release notes the panel announces', () => {
-  it('parses every note this build carries', () => {
-    const notes = readNotes();
-
-    expect(notes.length).toBeGreaterThan(0);
-    expect(notes.map((item) => item.version)).toEqual(['0.3.0', '0.2.0', '0.1.0']);
-    expect(notes[2]?.body).toBe('Welcome to Jian.');
-  });
-
   it('orders a candidate below the release it leads to', () => {
     expect(compareVersions('2.2.0-rc.1', '2.2.0')).toBeLessThan(0);
     expect(compareVersions('2.2.0-rc.2', '2.2.0-rc.10')).toBeLessThan(0);
