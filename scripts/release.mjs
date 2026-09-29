@@ -24,6 +24,7 @@ if (!existsSync(join(root, `docs/releases/${version}.md`))) {
 }
 
 execFileSync('node', [join(root, 'scripts/release-notes.mjs'), version], { stdio: 'ignore' });
+execFileSync('node', [join(root, 'scripts/changelog.mjs'), '--check'], { stdio: 'inherit' });
 
 if (git('branch', '--show-current') !== 'main') {
   stop('Release from main.');

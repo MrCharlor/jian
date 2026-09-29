@@ -15,7 +15,7 @@
     "typecheck": "pnpm --filter @jian/contracts build && pnpm --filter @jian/sdk build && pnpm -r --if-present run typecheck",
     "test": "pnpm --filter @jian/contracts build && pnpm --filter @jian/gateway test && pnpm --filter @jian/gateway-ui test",
     "test:integration": "pnpm --filter @jian/contracts build && pnpm --filter @jian/gateway test:integration",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm contracts:check",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm contracts:check && pnpm changelog:check",
     "setup": "node scripts/setup.mjs",
     "lint": "biome check . --error-on-warnings",
     "lint:fix": "biome check --write . --error-on-warnings",
@@ -23,7 +23,8 @@
     "lint:staged": "lint-staged",
     "prepare": "node .husky/install.mjs",
     "contracts:generate": "pnpm --filter @jian/contracts build && node packages/sdk/scripts/generate.mjs",
-    "contracts:check": "pnpm --filter @jian/contracts build && node packages/sdk/scripts/generate.mjs --check"
+    "contracts:check": "pnpm --filter @jian/contracts build && node packages/sdk/scripts/generate.mjs --check",
+    "changelog:check": "node scripts/changelog.mjs --check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

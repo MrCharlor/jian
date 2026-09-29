@@ -14,7 +14,7 @@ COMPOSE_DEV := docker compose -f compose.dev.yaml
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install setup up down logs ps dev db-up db-stop db-reset \
+.PHONY: help install setup up down logs ps dev db-up db-stop db-reset changelog \
         check test test-integration lint format build image image-push \
         release storybook storybook-smoke
 
@@ -106,9 +106,12 @@ image-push: ## Push the locally built image; the multi-architecture index comes 
 
 ##@ Release
 
-# Releasing is a note and a tag; .github/workflows/image.yml builds both architectures and
-# publishes the GitHub release with the note in it. The script refuses to tag a version with
-# no note, a dirty tree, a main that is not on origin, or a tag that already exists.
-release: ## Cut a release: write docs/releases/<v>.md, then `make release VERSION=1.2.3`
+changelog: ## Regenerate CHANGELOG.md from docs/releases
+	node scripts/changelog.mjs
+
+# Releasing needs a note and its generated changelog; .github/workflows/image.yml builds both
+# architectures and publishes the GitHub release with the note in it. The script refuses to
+# tag a dirty tree, a main that is not on origin, or a tag that already exists.
+release: ## Cut a release: write the note, run `make changelog`, then `make release VERSION=1.2.3`
 	@test "$(origin VERSION)" = "command line" || { echo "usage: make release VERSION=1.2.3"; exit 1; }
 	node scripts/release.mjs $(VERSION)
