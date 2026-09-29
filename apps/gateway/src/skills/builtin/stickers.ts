@@ -59,5 +59,5 @@ tags miss what it is, \`tag_sticker\` replaces them. Short, lowercase, the words
 search for next time.
 
 The collection is what people sent in approved chats: you cannot fetch new stickers from
-anywhere else, and the owner removes the ones you should not use under **Stickers**.`,
+anywhere else. Sticker analysis is controlled under **Model defaults**.`,
 };

@@ -73,7 +73,7 @@ export function SessionModel({
           void save({ providerId: choice.slice(0, split), modelId: choice.slice(split + 1) });
         }}
         options={[
-          { value: '', label: 'Profile default', detail: fallbackName },
+          { value: '', label: 'Agent default', detail: fallbackName },
           ...choices,
           ...(current && !choices.some((choice) => choice.value === current)
             ? [{ value: current, label: model?.modelId ?? current, detail: 'No longer offered' }]

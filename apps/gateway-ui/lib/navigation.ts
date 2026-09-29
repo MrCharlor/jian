@@ -7,60 +7,44 @@ import {
   type LucideIcon,
   MessageSquare,
   Plug,
-  Settings2,
   Smartphone,
   Sparkles,
-  Sticker,
 } from 'lucide-react';
 
 export type NavigationItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  group: 'gateway' | 'workspace' | 'capabilities';
-  /** The route every page of the section starts with, when it differs from where the link goes. */
-  prefix?: string;
+  group: 'global' | 'agent';
 };
 
 /**
  * The sections of the panel, in the order the sidebar shows them. A section is a route. The
- * gateway group comes first and holds what belongs to the whole installation, whichever agent
- * is open; everything after it is the open agent's own.
+ * Global holds what belongs to the installation; Agent holds the open agent's own sections.
  */
 export const navigation: NavigationItem[] = [
-  { href: '/providers', label: 'Providers', icon: Plug, group: 'gateway' },
-  {
-    href: '/settings/appearance',
-    prefix: '/settings',
-    label: 'Settings',
-    icon: Settings2,
-    group: 'gateway',
-  },
-  { href: '/', label: 'Overview', icon: LayoutDashboard, group: 'workspace' },
-  { href: '/identity', label: 'Identity', icon: Fingerprint, group: 'workspace' },
-  { href: '/sessions', label: 'Sessions', icon: MessageSquare, group: 'workspace' },
-  { href: '/models', label: 'Model defaults', icon: Cpu, group: 'workspace' },
-  { href: '/channels', label: 'Channels', icon: Smartphone, group: 'workspace' },
-  { href: '/schedules', label: 'Schedules', icon: AlarmClock, group: 'workspace' },
-  { href: '/memories', label: 'Memories', icon: BookOpen, group: 'capabilities' },
-  { href: '/skills', label: 'Skills', icon: Sparkles, group: 'capabilities' },
-  { href: '/stickers', label: 'Stickers', icon: Sticker, group: 'capabilities' },
-  { href: '/mcp', label: 'MCP servers', icon: Plug, group: 'capabilities' },
+  { href: '/providers', label: 'Providers', icon: Plug, group: 'global' },
+  { href: '/', label: 'Overview', icon: LayoutDashboard, group: 'agent' },
+  { href: '/identity', label: 'Identity', icon: Fingerprint, group: 'agent' },
+  { href: '/sessions', label: 'Chats', icon: MessageSquare, group: 'agent' },
+  { href: '/models', label: 'Model defaults', icon: Cpu, group: 'agent' },
+  { href: '/channels', label: 'Channels', icon: Smartphone, group: 'agent' },
+  { href: '/schedules', label: 'Schedules', icon: AlarmClock, group: 'agent' },
+  { href: '/memories', label: 'Memories', icon: BookOpen, group: 'agent' },
+  { href: '/skills', label: 'Skills', icon: Sparkles, group: 'agent' },
+  { href: '/mcp', label: 'MCP servers', icon: Plug, group: 'agent' },
 ];
 
 export const groupLabels = {
-  gateway: 'Gateway',
-  workspace: 'Workspace',
-  capabilities: 'Capabilities',
+  global: 'Global',
+  agent: 'Agent',
 } as const;
 
 /** The deepest section whose route prefixes the current one, so a child route stays marked. */
 export function currentSection(pathname: string): NavigationItem | undefined {
   const path = pathname.replace(/\/$/, '') || '/';
 
-  const root = (item: NavigationItem) => item.prefix ?? item.href;
-
   return [...navigation]
-    .sort((a, b) => root(b).length - root(a).length)
-    .find((item) => path === root(item) || path.startsWith(`${root(item)}/`));
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((item) => path === item.href || path.startsWith(`${item.href}/`));
 }

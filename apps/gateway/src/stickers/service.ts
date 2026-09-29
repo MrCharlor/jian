@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
   type InlineMedia,
-  type Profile,
+  type ModelDefaultsRecord,
   type Run,
   type Sticker,
   stickerSchema,
@@ -65,21 +65,23 @@ const orders: Record<Exclude<StickerOrder, 'relevance'>, SQL[]> = {
  * The agent's own sticker collection, gathered from the chats it is in. WhatsApp does not give a
  * paired account's saved stickers to anything outside the app, so the collection is what people
  * sent: each image kept once, described and tagged once by the image-analysis model, counted
- * each time someone sends it again, and found by what it shows. The owner sees it under
- * Stickers and removes what the agent should not use.
+ * each time someone sends it again, and found by what it shows. The collection is internal;
+ * the owner controls whether it runs under Model defaults.
  */
 export class Stickers {
   constructor(
     private readonly store: Store,
     private readonly media: StickerMedia,
-    private readonly profiles: { profile(id: string): Promise<Profile> },
+    private readonly defaults: {
+      modelDefaults(profileId: string): Promise<Pick<ModelDefaultsRecord, 'sticker'>>;
+    },
   ) {}
 
   /** Keeps a received sticker, or counts it again; a new one is catalogued in the background. */
   async keep(profileId: string, input: InlineMedia): Promise<void> {
     if (input.mimeType !== 'image/webp') return;
     // Switched off, a sticker costs nothing: not kept, not described.
-    if (!(await this.profiles.profile(profileId)).useStickers) return;
+    if ((await this.defaults.modelDefaults(profileId)).sticker === 'disabled') return;
 
     const hash = createHash('sha256').update(input.data).digest('hex');
     const [kept] = await this.store.db
@@ -215,6 +217,17 @@ export class Stickers {
     return toSticker(row);
   }
 
+  /** Same as forgetting one: keep fingerprints so removed stickers are not imported again. */
+  async forgetAll(profileId: string): Promise<{ removed: number }> {
+    const rows = await this.store.db
+      .update(stickers)
+      .set({ declined: true, data: '', description: null, tags: [] })
+      .where(and(eq(stickers.profileId, profileId), eq(stickers.declined, false)))
+      .returning({ id: stickers.id });
+
+    return { removed: rows.length };
+  }
+
   /**
    * Stickers by what they are. A tag is an exact match and narrows; the words of a query are
    * matched against the tags and the description, a tag counting twice. Without a query the
@@ -274,8 +287,6 @@ export class Stickers {
   }
 
   tools(run: Run): ToolSet {
-    if (!run.profile.useStickers) return {};
-
     return {
       find_stickers: tool({
         description:

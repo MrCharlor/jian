@@ -302,7 +302,16 @@ describe('the skills every profile carries', () => {
       expect(names(equipped)).toContain(skill);
     }
 
-    expect(names(plain)).toEqual(expect.arrayContaining(['about-jian', 'schedules', 'media']));
+    expect(names(plain)).toEqual(
+      expect.arrayContaining([
+        'about-jian',
+        'jian-configuration',
+        'activity',
+        'schedules',
+        'media',
+        'stickers',
+      ]),
+    );
   });
 
   it('starts a new profile without the opt-in skills, and turns one on when asked', async () => {
@@ -328,7 +337,6 @@ describe('the skills every profile carries', () => {
       allowSelfManagement: true,
       allowShell: true,
       allowWebSearch: true,
-      useStickers: true,
       reachableByAgents: true,
       mcpServers: [
         {
@@ -345,6 +353,28 @@ describe('the skills every profile carries', () => {
     })) {
       expect(() => skillSchema.parse(skill), skill.name).not.toThrow();
     }
+  });
+
+  it('keeps product identity separate from operational guidance', () => {
+    const skills = builtinSkills({
+      allowSelfManagement: false,
+      allowShell: false,
+      allowWebSearch: false,
+      reachableByAgents: false,
+      mcpServers: [],
+    });
+    const about = skills.find((skill) => skill.name === 'about-jian');
+    const activity = skills.find((skill) => skill.name === 'activity');
+    const configuration = skills.find((skill) => skill.name === 'jian-configuration');
+
+    expect(about?.instructions).toContain('created by Lucas Larangeira');
+    expect(about?.instructions).not.toMatch(
+      /read_activity_stats|ask_jev|load_tools|JIAN_TIME_ZONE/,
+    );
+    expect(activity?.instructions).toContain('read_activity_stats');
+    expect(activity?.instructions).toContain('read_usage_runs');
+    expect(activity?.instructions).toContain('not money spent');
+    expect(configuration?.instructions).toContain('JIAN_TIME_ZONE');
   });
 
   it('offers them without the profile storing one, and keeps self-management out of reach', async () => {

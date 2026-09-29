@@ -1,10 +1,12 @@
 import type { Profile, Skill } from '@jian/contracts';
 import { aboutJian } from './about-jian.js';
+import { activity } from './activity.js';
 import { channelReplies } from './channel-replies.js';
 import { codingWork } from './coding-work.js';
 import { conversations } from './conversations.js';
 import { handlingErrors } from './handling-errors.js';
 import { jevJudgment } from './jev-judgment.js';
+import { jianConfiguration } from './jian-configuration.js';
 import { longRunningWork } from './long-running-work.js';
 import { machineTools } from './machine-tools.js';
 import { managingContext } from './managing-context.js';
@@ -28,6 +30,8 @@ import { workingWithAgents } from './working-with-agents.js';
  */
 const ALWAYS: readonly Skill[] = [
   aboutJian,
+  jianConfiguration,
+  activity,
   ownerAndContacts,
   channelReplies,
   memoryKeeping,
@@ -64,12 +68,7 @@ export const builtinSkillNames: ReadonlySet<string> = new Set(
 export function builtinSkills(
   profile: Pick<
     Profile,
-    | 'allowSelfManagement'
-    | 'allowShell'
-    | 'allowWebSearch'
-    | 'mcpServers'
-    | 'useStickers'
-    | 'reachableByAgents'
+    'allowSelfManagement' | 'allowShell' | 'allowWebSearch' | 'mcpServers' | 'reachableByAgents'
   >,
 ): readonly Skill[] {
   return [
@@ -79,7 +78,7 @@ export function builtinSkills(
     ...(profile.allowShell ? SHELL : []),
     ...(profile.allowWebSearch ? WEB : []),
     ...(profile.mcpServers.length ? MCP : []),
-    ...(profile.useStickers ? STICKERS : []),
+    ...STICKERS,
   ];
 }
 

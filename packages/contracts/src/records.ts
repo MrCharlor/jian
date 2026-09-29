@@ -186,9 +186,24 @@ export const statsQuerySchema = z.strictObject({
   days: z.coerce.number().int().min(1).max(3660).default(30),
 });
 
+const subscriptionWindowSchema = z.strictObject({
+  usedPercent: z.number().finite().nonnegative(),
+  resetsAt: timestamp.nullable(),
+});
+
+export const subscriptionUsageSchema = z.strictObject({
+  provider: z.enum(['codex', 'claude']),
+  status: z.enum(['available', 'unavailable']),
+  fiveHour: subscriptionWindowSchema.nullable(),
+  weekly: subscriptionWindowSchema.nullable(),
+});
+
+export type SubscriptionUsage = z.infer<typeof subscriptionUsageSchema>;
+
 /** What a profile has done: since it was created, and over the period asked for. */
 export const profileStatsSchema = z.strictObject({
   since: timestamp,
+  subscriptions: z.array(subscriptionUsageSchema),
   totals: z.strictObject({
     turns: z.number().int().nonnegative(),
     // Time its turns took, start to finish, added up.

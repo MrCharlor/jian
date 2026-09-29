@@ -18,6 +18,7 @@ services:
       JIAN_ACTIVE_KEY_ID: ${JIAN_ACTIVE_KEY_ID:?Run make setup first}
       JIAN_MASTER_KEYS: ${JIAN_MASTER_KEYS:?Run make setup first}
       JIAN_ROLE: ${JIAN_ROLE:-all}
+      JIAN_TIME_ZONE: ${JIAN_TIME_ZONE:-}
       JIAN_ALLOW_PRIVATE_ORIGINS: ${JIAN_ALLOW_PRIVATE_ORIGINS:-}
       # Bound inside the container; JIAN_BIND_ADDRESS decides who reaches it.
       HOST: 0.0.0.0

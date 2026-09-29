@@ -57,7 +57,7 @@ export const profiles = pgTable('profiles', {
   allowShell: boolean('allow_shell').notNull().default(false),
   allowWebSearch: boolean('allow_web_search').notNull().default(false),
   learnFromWork: boolean('learn_from_work').notNull().default(true),
-  useStickers: boolean('use_stickers').notNull().default(true),
+  useStickers: boolean('use_stickers').notNull().default(false),
   reachableByAgents: boolean('reachable_by_agents').notNull().default(true),
   version: integer('version').notNull(),
   createdAt,
@@ -487,7 +487,7 @@ export const secrets = pgTable(
 
 /**
  * How far the owner has read the release notes: the version they were last shown. One row, since
- * an installation has one owner; `scope` is its key so the table never grows a second.
+ * an installation has one owner; `scope` separates release eras without deleting the old read mark.
  */
 export const releaseReads = pgTable('release_reads', {
   scope: text('scope').primaryKey(),

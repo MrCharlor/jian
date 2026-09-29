@@ -11,12 +11,14 @@ import {
   type Run,
   supportsModelRole,
 } from '@jian/contracts';
+import { eq } from 'drizzle-orm';
 import { type Clock, nowIso } from '../core/clock.js';
 import { GatewayError } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import type { ProfileReader } from '../profiles/port.js';
 import { GATEWAY_SCOPE, type GatewayVault } from '../security/gateway-vault.js';
 import type { Queryable, Store } from '../storage/database.js';
+import { profiles } from '../storage/schema.js';
 import { modelCapabilities } from './capabilities.js';
 import { environmentProvider, GROQ_BASE_URL, providerKinds } from './catalog.js';
 import type { ModelCatalog } from './catalog-source.js';
@@ -164,18 +166,23 @@ export class Providers {
   }
 
   async modelDefaults(profileId: string) {
-    await this.profiles.profile(profileId);
+    const profile = await this.profiles.profile(profileId);
 
-    // Assembled from one row per role, so a role that has no row — because it was never set, or
-    // because it did not exist when the others were — reads back as empty instead of missing.
-    return readModelDefaults(this.store.db, profileId, nowIso(this.clock));
+    // Assembled from one row per role; missing optional roles start disabled, while an old
+    // saved null stays Automatic.
+    const defaults = await readModelDefaults(this.store.db, profileId, nowIso(this.clock));
+
+    // A legacy owner may have switched stickers off before this role existed.
+    return profile.useStickers ? defaults : { ...defaults, sticker: 'disabled' as const };
   }
 
   async setModelDefaults(profileId: string, input: unknown) {
     const data = modelDefaultsInputSchema.parse(input);
     // Older clients may still send transcription. Both names now address one audio selection.
-    data.audio ??= data.transcription;
-    data.transcription = data.audio;
+    if (data.transcription && (data.audio === null || !Object.hasOwn(input as object, 'audio'))) {
+      data.audio = data.transcription;
+    }
+    data.transcription = data.audio === 'disabled' ? null : data.audio;
     const available = await this.providers();
 
     return this.store.transaction(profileId, async (tx) => {
@@ -183,7 +190,7 @@ export class Providers {
 
       // Validate endpoint compatibility before persisting a model selection.
       for (const [role, selection] of Object.entries(data)) {
-        if (selection) {
+        if (selection && selection !== 'disabled') {
           const chosen = await this.selectedModel(selection, tx);
           const provider = available.find((item) => item.id === selection.providerId);
           if (
@@ -204,6 +211,12 @@ export class Providers {
       const updatedAt = nowIso(this.clock);
 
       await writeModelDefaults(tx, profileId, data, new Date(updatedAt));
+      // Keep the old switch in sync for older gateway versions and existing profiles that
+      // turned stickers off before Model defaults owned the choice.
+      await tx
+        .update(profiles)
+        .set({ useStickers: data.sticker !== 'disabled' })
+        .where(eq(profiles.id, profileId));
       await recordEvent(tx, this.clock, profileId, 'model-defaults.updated', data);
 
       return modelDefaultsRecordSchema.parse({ ...data, id: profileId, profileId, updatedAt });

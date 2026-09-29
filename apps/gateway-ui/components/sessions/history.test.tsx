@@ -1,11 +1,38 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import type { Run } from '../../lib/api';
+import type { GatewayApi, Run } from '../../lib/api';
 import { History } from './history';
 
 // No stream here: the history falls back to reading again on its own.
 vi.mock('../../lib/workspace', () => ({ useWorkspace: () => ({ subscribe: () => () => {} }) }));
+
+it('centers the standard orb while a conversation is loading', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  let settle!: (messages: Awaited<ReturnType<GatewayApi['messages']>>) => void;
+  const api = {
+    messages: () =>
+      new Promise<Awaited<ReturnType<GatewayApi['messages']>>>((resolve) => {
+        settle = resolve;
+      }),
+    activities: async () => [],
+  };
+  const element = document.createElement('div');
+  document.body.append(element);
+  const root = createRoot(element);
+
+  try {
+    await act(async () =>
+      root.render(<History api={api} profileId="profile" sessionId="session" />),
+    );
+    expect(element.querySelector('.message-history.loading .history-loading .orb')).not.toBeNull();
+    expect(element.textContent).not.toContain('Loading the history');
+    await act(async () => settle([]));
+  } finally {
+    await act(async () => root.unmount());
+    element.remove();
+  }
+});
 
 it('shows a new run failure when the open session was previously completed', async () => {
   vi.useFakeTimers();

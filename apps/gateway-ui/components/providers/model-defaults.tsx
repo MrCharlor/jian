@@ -1,6 +1,5 @@
 'use client';
 
-import { SlidersHorizontal } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
@@ -12,13 +11,20 @@ import type {
 import { useAutosave } from '../../lib/autosave';
 import { useWorkspace } from '../../lib/workspace';
 import type { SectionProps } from '../props';
-import { Button, Empty, Modal, SectionHeading } from '../ui';
-import { modelLabel, type Role, roles, usableProviders } from './catalog';
-import { describeRole, RoleFields, type RoleValue } from './role-fields';
+import { SectionHeading } from '../ui';
+import { type Role, roles, usableProviders } from './catalog';
+import { RoleFields, type RoleValue } from './role-fields';
 
-const empty: RoleValue = { providerId: '', modelId: '', reasoningEffort: '', manual: false };
+const empty: RoleValue = {
+  providerId: '',
+  modelId: '',
+  reasoningEffort: '',
+  manual: false,
+  disabled: false,
+};
 
-function initial(data: ProfileData, selection: ModelSelection | null): RoleValue {
+function initial(data: ProfileData, selection: ModelSelection | 'disabled' | null): RoleValue {
+  if (selection === 'disabled') return { ...empty, disabled: true };
   if (!selection) return empty;
 
   const listed = (data.providerModels[selection.providerId]?.models ?? []).some(
@@ -30,10 +36,12 @@ function initial(data: ProfileData, selection: ModelSelection | null): RoleValue
     modelId: selection.modelId,
     reasoningEffort: selection.reasoningEffort ?? '',
     manual: !listed,
+    disabled: false,
   };
 }
 
-function toSelection(value: RoleValue): ModelSelection | null {
+function toSelection(value: RoleValue): ModelSelection | 'disabled' | null {
+  if (value.disabled) return 'disabled';
   if (!value.providerId || !value.modelId.trim()) return null;
 
   return {
@@ -77,34 +85,22 @@ export function ModelDefaults({ profile, data, api, busy }: SectionProps) {
   });
 
   const change = (role: Role, patch: Partial<RoleValue>, delay = 0) => {
-    const next = { ...latest.current, [role]: { ...latest.current[role], ...patch } };
+    const updated = { ...latest.current[role], ...patch };
+    const next = {
+      ...latest.current,
+      [role]: updated,
+      ...(role === 'conversation' ? { channel: updated } : {}),
+    };
 
     latest.current = next;
     setValues(next);
     schedule(delay);
   };
-  const [open, setOpen] = useState<Role>();
-  const editing = roles.find((role) => role.key === open);
-
-  if (!configured.length) {
-    return (
-      <>
-        <SectionHeading
-          title="Model defaults"
-          description="One model per activity. Any of them may stay empty."
-        />
-        <Empty title="Configure a provider first">
-          Models show up here once a connection is ready.
-        </Empty>
-      </>
-    );
-  }
-
   return (
     <>
       <SectionHeading
         title="Model defaults"
-        description="Choose the model and the reasoning effort for each activity."
+        description="Choose a model, use an automatic fallback, or disable optional activities."
       />
       <form
         method="post"
@@ -115,58 +111,36 @@ export function ModelDefaults({ profile, data, api, busy }: SectionProps) {
         }}
       >
         <div className="model-grid">
-          {roles.map((role) => {
-            const value = values[role.key];
-            const { provider, selected, allowed } = describeRole(role, value, data, configured);
-            const effort = allowed.find((item) => item.value === value.reasoningEffort);
-
-            return (
-              <article className="model-card" key={role.key}>
-                <h2>{role.label}</h2>
-                <p className="model-card-hint">{role.hint}</p>
-                <div className="model-card-choice">
-                  {provider && value.modelId ? (
-                    <>
-                      <strong>{selected ? modelLabel(selected, role.tools) : value.modelId}</strong>
-                      <small>
-                        {provider.name}
-                        {effort ? ` · ${effort.label}` : ''}
-                      </small>
-                    </>
-                  ) : (
-                    <>
-                      <strong>Automatic</strong>
-                      <small>The fallback described above</small>
-                    </>
-                  )}
-                </div>
-                <Button variant="secondary" disabled={busy} onClick={() => setOpen(role.key)}>
-                  <SlidersHorizontal size={16} />
-                  Configure
-                </Button>
-              </article>
-            );
-          })}
+          {roles
+            .filter((role) => role.key !== 'channel')
+            .map((role) => {
+              const value = values[role.key];
+              return (
+                <article className="model-card" key={role.key}>
+                  <h2>{role.label}</h2>
+                  <p className="model-card-hint">{role.hint}</p>
+                  {role.key === 'conversation' &&
+                    JSON.stringify(toSelection(values.channel)) !==
+                      JSON.stringify(toSelection(values.conversation)) && (
+                      <p className="note" role="status">
+                        A separate channel default is saved. It remains in use until you change this
+                        model; then both defaults will match.
+                      </p>
+                    )}
+                  <RoleFields
+                    role={role}
+                    value={value}
+                    data={data}
+                    configured={configured}
+                    hasOpenAIKey={hasOpenAIKey}
+                    busy={busy}
+                    change={change}
+                  />
+                </article>
+              );
+            })}
         </div>
       </form>
-      {editing && (
-        <Modal
-          title={editing.label}
-          description={editing.hint}
-          close={() => setOpen(undefined)}
-          footer={<Button onClick={() => setOpen(undefined)}>Done</Button>}
-        >
-          <RoleFields
-            role={editing}
-            value={values[editing.key]}
-            data={data}
-            configured={configured}
-            hasOpenAIKey={hasOpenAIKey}
-            busy={busy}
-            change={change}
-          />
-        </Modal>
-      )}
     </>
   );
 }

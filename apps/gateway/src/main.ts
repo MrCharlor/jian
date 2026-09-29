@@ -1,3 +1,4 @@
+import { timeZoneSchema } from '@jian/contracts';
 import { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 import { McpLogins } from './agent/mcp-login.js';
@@ -35,6 +36,7 @@ const config = z
     HOST: z.string().default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4310),
     JIAN_ROLE: z.enum(['all', 'api', 'worker']).default('all'),
+    JIAN_TIME_ZONE: z.union([timeZoneSchema, z.literal('')]).optional(),
     // Where a browser reaches this gateway. An MCP authorization server redirects the owner
     // back to it, so it has to be the public address rather than the listening one.
     JIAN_PUBLIC_URL: z.url().optional(),
@@ -85,11 +87,19 @@ const vault = new Vault(store, box);
 const gatewayVault = new GatewayVault(store, box);
 // The store rides along: several consumers read records no single area owns.
 const services = {
-  ...buildServices({ store, vault, gatewayVault, catalog, fetcher: outbound.fetch }),
+  ...buildServices({
+    store,
+    vault,
+    gatewayVault,
+    catalog,
+    fetcher: outbound.fetch,
+    ...(config.data.JIAN_TIME_ZONE ? { timeZone: config.data.JIAN_TIME_ZONE } : {}),
+  }),
   store,
 };
 const codexLogin = new CodexLogin(services, gatewayVault);
 services.media.useCodexLogin(codexLogin);
+services.subscriptionUsage.useCodexLogin(codexLogin);
 
 const providerModels = new ProviderModels(
   { providers: services.providers, vault: gatewayVault },

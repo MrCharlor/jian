@@ -18,9 +18,7 @@ export function SignIn({ connected }: { connected: () => void }) {
       <section className="login-story">
         <a className="brand" href="/ui/">
           <Mark />
-          <span>
-            jian<span className="brand-label">比翼の鳥</span>
-          </span>
+          <span>Jian</span>
         </a>
         <div className="login-copy">
           <div className="login-emblem" aria-hidden="true">

@@ -10,6 +10,7 @@ import { TestStore } from './database.js';
 export async function testServices(
   clock?: () => number,
   catalog?: ModelCatalog,
+  timeZone?: string,
 ): Promise<Services & { store: TestStore }> {
   const store = await TestStore.create();
   const box = new SecretBox({ activeKeyId: 'test', keys: { test: randomBytes(32) } });
@@ -21,6 +22,7 @@ export async function testServices(
       gatewayVault: new GatewayVault(store, box, clock),
       clock,
       catalog,
+      ...(timeZone ? { timeZone } : {}),
     }),
     store,
   };

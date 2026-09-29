@@ -22,7 +22,6 @@ export type ChannelType = Channel['type'];
 export type Contact = JsonResponse<'listContacts', 200>[number];
 export type Group = JsonResponse<'listGroups', 200>[number];
 export type Memory = JsonResponse<'listMemories', 200>[number];
-export type Sticker = JsonResponse<'listStickers', 200>[number];
 export type ProfileStats = JsonResponse<'getProfileStats', 200>;
 export type BuiltinSkill = JsonResponse<'listBuiltinSkills', 200>[number];
 export type McpStatus = JsonResponse<'checkMcpServer', 200>;

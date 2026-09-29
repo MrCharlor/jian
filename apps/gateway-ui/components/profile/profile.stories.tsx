@@ -7,7 +7,7 @@ import { Avatar } from './avatar-field';
 import { NewProfileDialog, ProfileEditor } from './editor';
 
 const meta = {
-  title: 'Sections/Profile',
+  title: 'Sections/Agent',
   // The editor reads the workspace for deleting a profile, as it does inside the panel.
   decorators: [withWorkspace],
   parameters: { layout: 'padded' },
@@ -32,7 +32,7 @@ export const ResetConfirm: Story = {
     return <ProfileEditor profile={profile} api={api} busy={busy} />;
   },
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button', { name: /Reset profile/ }));
+    await userEvent.click(within(canvasElement).getByRole('button', { name: /Reset agent/ }));
     await expect(await within(document.body).findByText('Reset Zero Two?')).toBeInTheDocument();
 
     const dialog = within(document.body);
@@ -55,7 +55,7 @@ export const DeleteConfirm: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    await userEvent.click(canvas.getByRole('button', { name: /Delete profile/ }));
+    await userEvent.click(canvas.getByRole('button', { name: /Delete agent/ }));
     await expect(await within(document.body).findByText('Delete Zero Two?')).toBeInTheDocument();
 
     const dialog = within(document.body);
@@ -80,7 +80,7 @@ export const EditorBlank: Story = {
   },
 };
 
-export const NewProfile: Story = {
+export const NewAgent: Story = {
   parameters: { layout: 'fullscreen' },
   render: () => <NewProfileDialog api={sectionProps().api} done={fn()} close={fn()} />,
 };

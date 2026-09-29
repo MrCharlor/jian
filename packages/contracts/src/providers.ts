@@ -108,21 +108,32 @@ export const modelRoleSchema = z.enum([
 ]);
 
 export const executedModelRoles = modelRoleSchema.options;
+export const optionalModelRoles: ReadonlySet<ModelRole> = new Set([
+  'image',
+  'vision',
+  'audio',
+  'speech',
+  'sticker',
+]);
 
-// Absent stays absent: a PUT that omits a role clears it, and records written before a role
-// existed read back as empty instead of failing.
+// Required agent roles clear to Automatic when omitted. Optional activities default off.
 const roleSelection = modelSelectionSchema.nullable().default(null);
+// Disabled is distinct from Automatic (null): an old saved null keeps its fallback behavior.
+const optionalRoleSelection = z
+  .union([modelSelectionSchema, z.literal('disabled')])
+  .nullable()
+  .default('disabled');
 
 export const modelDefaultsInputSchema = z.strictObject({
   conversation: roleSelection,
   channel: roleSelection,
   compaction: roleSelection,
-  image: roleSelection,
-  vision: roleSelection,
-  audio: roleSelection,
-  speech: roleSelection,
+  image: optionalRoleSelection,
+  vision: optionalRoleSelection,
+  audio: optionalRoleSelection,
+  speech: optionalRoleSelection,
   // Describes and tags the stickers the agent keeps. Unset, it is the image-analysis model.
-  sticker: roleSelection,
+  sticker: optionalRoleSelection,
   transcription: roleSelection.describe(
     'Deprecated compatibility alias for audio. Incoming audio uses audio when both have a model selected.',
   ),

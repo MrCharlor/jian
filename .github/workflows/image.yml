@@ -11,8 +11,7 @@ env:
   IMAGE: ghcr.io/lucasaarch/jian-gateway
 permissions: {}
 jobs:
-  # Before anything is built: a tag without its note, or with a CHANGELOG that says something
-  # else, stops here rather than publishing an image nobody can read the notes of.
+  # Before anything is built, a tag without a valid note stops here.
   notes:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
@@ -23,10 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: The changelog matches the notes
-        run: node scripts/changelog.mjs --check
       - name: Read the note of this version
-        run: node scripts/changelog.mjs --notes "${GITHUB_REF_NAME#v}" > notes.md
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > notes.md
       - uses: actions/upload-artifact@v4
         with:
           name: notes
@@ -160,5 +157,6 @@ jobs:
         run: |
           flags=()
           if [[ "$TAG" == *-* ]]; then flags+=(--prerelease --latest=false); fi
+          if [[ "$TAG" != *-* ]]; then flags+=(--latest); fi
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
             --title "Jian ${TAG#v}" --notes-file notes.md "${flags[@]}"

@@ -28,7 +28,12 @@ export function Sidebar({
   const pending = data?.contacts.filter((contact) => contact.status === 'pending').length ?? 0;
 
   return (
-    <aside id="main-navigation" className={`sidebar ${open ? 'open' : ''}`}>
+    <aside
+      id="main-navigation"
+      className={`sidebar ${open ? 'open' : ''}`}
+      role={open ? 'dialog' : undefined}
+      aria-label={open ? 'Navigation' : undefined}
+    >
       <button
         type="button"
         className="icon-button mobile-menu absolute right-3 top-3"
@@ -39,13 +44,11 @@ export function Sidebar({
       </button>
       <Link className="brand" href="/" onClick={onNavigate}>
         <Mark className={loading ? 'connecting' : data ? 'connected' : ''} />
-        <span>
-          jian<span className="brand-label">比翼の鳥</span>
-        </span>
+        <span>Jian</span>
       </Link>
       <ProfileSwitcher onCreate={onCreateProfile} />
       <nav className="sidebar-nav" aria-label="Main navigation">
-        {(['gateway', 'workspace', 'capabilities'] as const).map((group) => (
+        {(['global', 'agent'] as const).map((group) => (
           <div className="nav-group" key={group}>
             <span className="nav-label">{groupLabels[group]}</span>
             {navigation

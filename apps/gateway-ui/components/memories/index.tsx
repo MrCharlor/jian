@@ -39,7 +39,7 @@ export function Memories({ profile, data, api, mutate, busy }: SectionProps) {
     <>
       <SectionHeading
         title="Memories"
-        description="What the agent kept across this profile’s conversations. Linked memories are recalled together."
+        description="What the agent kept across its conversations. Linked memories are recalled together."
       />
       <div className="memory-toolbar">
         <div className="search-field">

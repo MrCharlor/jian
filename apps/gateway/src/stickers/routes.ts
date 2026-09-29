@@ -9,6 +9,10 @@ export function registerStickerRoutes(app: FastifyInstance, deps: { stickers: St
     deps.stickers.list(request.params.profileId),
   );
 
+  app.delete<{ Params: ProfileParams }>('/v1/profiles/:profileId/stickers', async (request) =>
+    deps.stickers.forgetAll(request.params.profileId),
+  );
+
   app.get<{ Params: StickerParams }>(
     '/v1/profiles/:profileId/stickers/:stickerId',
     async (request) => deps.stickers.image(request.params.profileId, request.params.stickerId),

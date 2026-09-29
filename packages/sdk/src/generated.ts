@@ -1102,7 +1102,8 @@ export interface paths {
         get: operations["listStickers"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Required permission: admin. */
+        delete: operations["forgetAllStickers"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3471,46 +3472,46 @@ export interface operations {
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
                         } | null;
-                        /** @default null */
-                        image: {
+                        /** @default disabled */
+                        image: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        vision: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        vision: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        audio: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        audio: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        speech: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        speech: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        sticker: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        sticker: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
+                        } | "disabled") | null;
                         /**
                          * @description Deprecated compatibility alias for audio. Incoming audio uses audio when both have a model selected.
                          * @default null
@@ -3668,46 +3669,46 @@ export interface operations {
                         /** @enum {string} */
                         reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
                     } | null;
-                    /** @default null */
-                    image?: {
+                    /** @default disabled */
+                    image?: ({
                         /** Format: uuid */
                         providerId: string;
                         modelId: string;
                         /** @enum {string} */
                         reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                    } | null;
-                    /** @default null */
-                    vision?: {
+                    } | "disabled") | null;
+                    /** @default disabled */
+                    vision?: ({
                         /** Format: uuid */
                         providerId: string;
                         modelId: string;
                         /** @enum {string} */
                         reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                    } | null;
-                    /** @default null */
-                    audio?: {
+                    } | "disabled") | null;
+                    /** @default disabled */
+                    audio?: ({
                         /** Format: uuid */
                         providerId: string;
                         modelId: string;
                         /** @enum {string} */
                         reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                    } | null;
-                    /** @default null */
-                    speech?: {
+                    } | "disabled") | null;
+                    /** @default disabled */
+                    speech?: ({
                         /** Format: uuid */
                         providerId: string;
                         modelId: string;
                         /** @enum {string} */
                         reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                    } | null;
-                    /** @default null */
-                    sticker?: {
+                    } | "disabled") | null;
+                    /** @default disabled */
+                    sticker?: ({
                         /** Format: uuid */
                         providerId: string;
                         modelId: string;
                         /** @enum {string} */
                         reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                    } | null;
+                    } | "disabled") | null;
                     /**
                      * @description Deprecated compatibility alias for audio. Incoming audio uses audio when both have a model selected.
                      * @default null
@@ -3754,46 +3755,46 @@ export interface operations {
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
                         } | null;
-                        /** @default null */
-                        image: {
+                        /** @default disabled */
+                        image: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        vision: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        vision: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        audio: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        audio: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        speech: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        speech: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
-                        /** @default null */
-                        sticker: {
+                        } | "disabled") | null;
+                        /** @default disabled */
+                        sticker: ({
                             /** Format: uuid */
                             providerId: string;
                             modelId: string;
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
-                        } | null;
+                        } | "disabled") | null;
                         /**
                          * @description Deprecated compatibility alias for audio. Incoming audio uses audio when both have a model selected.
                          * @default null
@@ -8803,7 +8804,7 @@ export interface operations {
                         allowWebSearch: boolean;
                         /** @default true */
                         learnFromWork: boolean;
-                        /** @default true */
+                        /** @default false */
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
@@ -9069,7 +9070,7 @@ export interface operations {
                         allowWebSearch: boolean;
                         /** @default true */
                         learnFromWork: boolean;
-                        /** @default true */
+                        /** @default false */
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
@@ -9329,7 +9330,7 @@ export interface operations {
                     allowWebSearch?: boolean;
                     /** @default true */
                     learnFromWork?: boolean;
-                    /** @default true */
+                    /** @default false */
                     useStickers?: boolean;
                     /** @default true */
                     reachableByAgents?: boolean;
@@ -9479,7 +9480,7 @@ export interface operations {
                         allowWebSearch: boolean;
                         /** @default true */
                         learnFromWork: boolean;
-                        /** @default true */
+                        /** @default false */
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
@@ -9747,7 +9748,7 @@ export interface operations {
                         allowWebSearch: boolean;
                         /** @default true */
                         learnFromWork: boolean;
-                        /** @default true */
+                        /** @default false */
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
@@ -10244,7 +10245,7 @@ export interface operations {
                         allowWebSearch: boolean;
                         /** @default true */
                         learnFromWork: boolean;
-                        /** @default true */
+                        /** @default false */
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
@@ -10642,7 +10643,7 @@ export interface operations {
                             allowWebSearch: boolean;
                             /** @default true */
                             learnFromWork: boolean;
-                            /** @default true */
+                            /** @default false */
                             useStickers: boolean;
                             /** @default true */
                             reachableByAgents: boolean;
@@ -14209,6 +14210,22 @@ export interface operations {
                     "application/json": {
                         /** Format: date-time */
                         since: string;
+                        subscriptions: {
+                            /** @enum {string} */
+                            provider: "codex" | "claude";
+                            /** @enum {string} */
+                            status: "available" | "unavailable";
+                            fiveHour: {
+                                usedPercent: number;
+                                /** Format: date-time */
+                                resetsAt: string | null;
+                            } | null;
+                            weekly: {
+                                usedPercent: number;
+                                /** Format: date-time */
+                                resetsAt: string | null;
+                            } | null;
+                        }[];
                         totals: {
                             turns: number;
                             workedMs: number;
@@ -14393,6 +14410,129 @@ export interface operations {
                         /** Format: date-time */
                         lastUsedAt?: string;
                     }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    forgetAllStickers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        removed: number;
+                    };
                 };
             };
             /** @description Error */

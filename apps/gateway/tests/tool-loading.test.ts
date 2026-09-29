@@ -49,7 +49,11 @@ describe('tool loading', () => {
     const tools = profileTools(services, run);
     const { gated } = deferTools(tools, new Set());
 
-    for (const name of [...TOOL_GROUPS.shell.tools, ...TOOL_GROUPS.files.tools]) {
+    for (const name of [
+      ...TOOL_GROUPS.shell.tools,
+      ...TOOL_GROUPS.files.tools,
+      ...TOOL_GROUPS.activity.tools,
+    ]) {
       expect(gated.has(name)).toBe(true);
     }
   });

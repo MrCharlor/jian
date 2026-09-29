@@ -36,6 +36,8 @@ process.env.JIAN_WORKSPACES = root;
 function buildHelper(): string {
   const binary = join(root, 'jian-sandbox');
 
+  if (process.platform !== 'linux') return join(root, 'no-linux-sandbox');
+
   try {
     execFileSync('cc', [
       '-O2',

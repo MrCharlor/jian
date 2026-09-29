@@ -1,3 +1,4 @@
+import { optionalModelRoles } from '@jian/contracts';
 import type { ProfileData, ProviderModel, ReasoningEffort } from '../../lib/api';
 
 /** The vendors the panel offers, each with what it is and the host variable it falls back to. */
@@ -68,8 +69,8 @@ export const anthropicCredentials = [
 export const roles = [
   {
     key: 'conversation',
-    label: 'Conversations',
-    hint: 'Used by the API when a request names no model.',
+    label: 'Conversations & channels',
+    hint: 'Used by chats, the API, WhatsApp, Telegram and webhooks unless a chat selects its own model.',
     runtime: true,
     tools: true,
   },
@@ -125,6 +126,7 @@ export const roles = [
 ] as const;
 
 export type Role = (typeof roles)[number]['key'];
+export const optionalRoles = optionalModelRoles;
 
 export const efforts: Array<{ value: ReasoningEffort; label: string }> = [
   { value: 'none', label: 'No reasoning' },

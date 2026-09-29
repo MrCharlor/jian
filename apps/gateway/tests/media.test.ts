@@ -255,6 +255,7 @@ it('delivers image pixels to the conversation model after a cold catalog start',
     }),
   );
   const f = await mediaFixture(catalog);
+  await f.services.providers.setModelDefaults(f.profile.id, { vision: null });
   await f.incoming('What color?', 'native', [{ mimeType: 'image/png', data: png }]);
   const [contact] = await f.channels.contacts(f.profile.id);
   if (!contact) throw new Error('Missing contact');
@@ -272,6 +273,7 @@ it('delivers image pixels to the conversation model after a cold catalog start',
 
 it('transcribes an incoming voice note once and reuses the transcript on later steps', async () => {
   const f = await mediaFixture();
+  await f.services.providers.setModelDefaults(f.profile.id, { audio: null });
   await f.services.providers.createProvider({
     name: 'Gemini',
     kind: 'google',
@@ -468,6 +470,11 @@ it('preserves a legacy transcription selection as the incoming audio default', a
   await f.services.providers.setModelDefaults(f.profile.id, { transcription: selection });
   const defaults = await f.services.providers.modelDefaults(f.profile.id);
   expect(defaults.audio).toEqual(selection);
+  await f.services.providers.setModelDefaults(f.profile.id, {
+    audio: null,
+    transcription: selection,
+  });
+  expect((await f.services.providers.modelDefaults(f.profile.id)).audio).toEqual(selection);
   await f.services.providers.setModelDefaults(f.profile.id, { audio: null });
   expect((await f.services.providers.modelDefaults(f.profile.id)).audio).toBeNull();
 });

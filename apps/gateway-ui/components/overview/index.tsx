@@ -11,7 +11,7 @@ import { CountUp, SectionHeading } from '../ui';
 import { Select } from '../ui/select';
 import { duration } from './format';
 import { ActivityHeatmap } from './heatmap';
-import { ChannelCards, ModelCards, periods, Tile, ToolBars, UsageSummary } from './usage';
+import { ChannelCards, periods, Tile, UsageSummary } from './usage';
 
 /**
  * The stats of the open profile, read again when a turn moves: a run's usage is written at the
@@ -53,7 +53,6 @@ function useStats(api: GatewayApi, profileId: string, days: number) {
 
 export function Overview({
   profile,
-  data,
   api,
 }: {
   profile: Profile;
@@ -62,54 +61,47 @@ export function Overview({
 }) {
   const [days, setDays] = useState(30);
   const stats = useStats(api, profile.id, days);
-  const active = data.activities.filter((run) => ['running', 'queued'].includes(run.status)).length;
 
   return (
     <>
-      <SectionHeading
-        title="Overview"
-        action={
-          <span className="overview-live">
-            <span className="live-dot" />
-            {active ? `${active} running` : 'Nothing running'}
-          </span>
-        }
-      />
-      <section className="overview-profile" aria-label="Profile in use">
+      <SectionHeading title="Overview" />
+      <section className="overview-profile" aria-label="Agent in use">
         <div className="flex min-w-0 items-center gap-5">
           <Avatar name={profile.name} avatar={profile.avatar} className="profile-avatar" />
           <h2>{profile.name}</h2>
         </div>
         <Link href="/identity" className="button quiet">
           <Settings2 size={16} />
-          Edit profile
+          Edit agent
         </Link>
       </section>
 
       {stats && (
         <>
-          <div className="stat-tiles">
-            <Tile icon={<MessageSquareText size={18} />} label="Turns answered">
-              <CountUp value={stats.totals.turns} />
-            </Tile>
-            <Tile icon={<Clock size={18} />} label="Time worked">
-              <CountUp value={stats.totals.workedMs} format={duration} />
-            </Tile>
-            <Tile icon={<MessagesSquare size={18} />} label="Conversations">
-              <CountUp value={stats.totals.conversations} />
-            </Tile>
-            <Tile icon={<GraduationCap size={18} />} label="Skills and memories kept">
-              <CountUp value={stats.totals.skillsWritten + stats.totals.memories} />
-            </Tile>
+          <div className="lifetime-stats">
+            <div className="stat-tiles">
+              <Tile icon={<MessageSquareText size={18} />} label="Turns answered">
+                <CountUp value={stats.totals.turns} />
+              </Tile>
+              <Tile icon={<Clock size={18} />} label="Time worked">
+                <CountUp value={stats.totals.workedMs} format={duration} />
+              </Tile>
+              <Tile icon={<MessagesSquare size={18} />} label="Conversations">
+                <CountUp value={stats.totals.conversations} />
+              </Tile>
+              <Tile icon={<GraduationCap size={18} />} label="Skills and memories kept">
+                <CountUp value={stats.totals.skillsWritten + stats.totals.memories} />
+              </Tile>
+            </div>
+            <p className="stat-since">
+              Since{' '}
+              {new Date(stats.since).toLocaleDateString(LOCALE, {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </p>
           </div>
-          <p className="stat-since">
-            Since{' '}
-            {new Date(stats.since).toLocaleDateString(LOCALE, {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </p>
 
           <section className="stat-section" aria-labelledby="usage-heading">
             <header>
@@ -125,34 +117,12 @@ export function Overview({
             <UsageSummary stats={stats} />
           </section>
 
-          {stats.models.length > 0 && (
-            <section className="stat-section" aria-labelledby="models-heading">
-              <header>
-                <h2 id="models-heading">Models</h2>
-                <span className="stat-chip">
-                  {stats.period.turns.toLocaleString(LOCALE)}{' '}
-                  {stats.period.turns === 1 ? 'turn' : 'turns'}
-                </span>
-              </header>
-              <ModelCards stats={stats} />
-            </section>
-          )}
-
           {stats.channels.length > 0 && (
             <section className="stat-section" aria-labelledby="channels-heading">
               <header>
                 <h2 id="channels-heading">Channels</h2>
               </header>
               <ChannelCards stats={stats} />
-            </section>
-          )}
-
-          {stats.tools.length > 0 && (
-            <section className="stat-section" aria-labelledby="tools-heading">
-              <header>
-                <h2 id="tools-heading">Tools used most</h2>
-              </header>
-              <ToolBars stats={stats} />
             </section>
           )}
         </>

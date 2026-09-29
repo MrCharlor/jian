@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { compareVersions, ReleaseNotes, readNotes } from '../src/releases/service.js';
+import { releaseReads } from '../src/storage/schema.js';
 import { testServices } from './helpers/services.js';
 
 const token = 'synthetic-release-admin-token-32-chars';
@@ -19,7 +20,8 @@ describe('the release notes the panel announces', () => {
     const notes = readNotes();
 
     expect(notes.length).toBeGreaterThan(0);
-    expect(notes.map((item) => item.version)).toContain('2.1.0');
+    expect(notes.map((item) => item.version)).toEqual(['0.1.0']);
+    expect(notes[0]?.body).toBe('Welcome to Jian.');
   });
 
   it('orders a candidate below the release it leads to', () => {
@@ -57,6 +59,26 @@ describe('the release notes the panel announces', () => {
       unseen: [],
     });
     expect((await new ReleaseNotes(store, '0.0.0-dev', history).releases()).unseen).toEqual([]);
+  });
+
+  it('announces the relaunch even after an earlier release was marked read', async () => {
+    const { store } = await testServices();
+    const welcome = note('0.1.0');
+
+    await store.db.insert(releaseReads).values({ scope: 'owner', version: '2.5.0' });
+    const relaunched = new ReleaseNotes(store, '0.1.0', [welcome]);
+
+    expect((await relaunched.releases()).unseen).toEqual([welcome]);
+    await relaunched.markSeen();
+    expect((await relaunched.releases()).unseen).toEqual([]);
+    expect(
+      (await store.db.select().from(releaseReads)).map((row) => [row.scope, row.version]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['owner', '2.5.0'],
+        ['owner-relaunch', '0.1.0'],
+      ]),
+    );
   });
 
   it('is read and marked only by the owner', async () => {

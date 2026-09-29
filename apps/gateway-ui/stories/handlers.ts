@@ -11,7 +11,7 @@ const ok = <T>(value: T) => HttpResponse.json(value as never);
 const byProfile = <T extends { profileId: string }>(items: T[], profileId: string) =>
   items.filter((item) => item.profileId === profileId);
 
-let settings = { timeZone: 'America/Sao_Paulo', timeZoneSource: 'setting' };
+const settings = { timeZone: 'America/Sao_Paulo', timeZoneSource: 'setting' };
 
 const decisions = (configured: boolean) => ({
   provider: 'jev',
@@ -344,14 +344,6 @@ export const handlers = [
     );
   }),
   http.get('*/v1/settings', () => ok(settings)),
-  http.put('*/v1/settings', async ({ request }) => {
-    const body = (await request.json()) as { timeZone: string | null };
-
-    settings = body.timeZone
-      ? { timeZone: body.timeZone, timeZoneSource: 'setting' }
-      : { timeZone: 'America/Sao_Paulo', timeZoneSource: 'host' };
-    return ok(settings);
-  }),
   http.post('*/v1/profiles/:profileId/schedules/:id/run', () =>
     HttpResponse.json(data.runs[0] as never, { status: 202 }),
   ),
@@ -368,29 +360,6 @@ export const handlers = [
   http.get('*/v1/profiles/:profileId/stats', ({ request }) =>
     ok(data.statsFor(Number(new URL(request.url).searchParams.get('days') ?? 30))),
   ),
-  http.get('*/v1/profiles/:profileId/stickers', ({ params }) =>
-    ok(
-      byProfile(data.stickers, String(params.profileId)).map(
-        ({ data: _data, ...sticker }) => sticker,
-      ),
-    ),
-  ),
-  http.get('*/v1/profiles/:profileId/stickers/:stickerId', ({ params }) => {
-    const sticker = data.stickers.find((item) => item.id === params.stickerId);
-
-    return sticker
-      ? ok({ ...sticker, mimeType: 'image/webp' })
-      : HttpResponse.json({}, { status: 404 });
-  }),
-  http.delete('*/v1/profiles/:profileId/stickers/:stickerId', ({ params }) => {
-    const found = data.stickers.find((item) => item.id === params.stickerId);
-
-    if (!found) return HttpResponse.json({}, { status: 404 });
-
-    const { data: _data, ...sticker } = found;
-
-    return ok(sticker);
-  }),
   http.get('*/v1/profiles/:profileId/memories', ({ params }) =>
     ok(byProfile(data.memories, String(params.profileId))),
   ),

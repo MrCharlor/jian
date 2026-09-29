@@ -70,6 +70,13 @@ function policyFor(path: string, cache: Map<string, { stamp: string; policy: str
 }
 
 export function registerGatewayUi(app: FastifyInstance, root = embeddedRoot) {
+  app.get('/robots.txt', { config: { publicUiAsset: true } }, async (_request, reply) =>
+    reply
+      .type('text/plain; charset=utf-8')
+      .header('Cache-Control', 'no-cache')
+      .send('User-agent: *\nDisallow: /\n'),
+  );
+
   // Tests and API-only source runs can omit the export. A production build always embeds it.
   if (!existsSync(join(root, 'index.html'))) {
     return;
@@ -96,6 +103,9 @@ export function registerGatewayUi(app: FastifyInstance, root = embeddedRoot) {
       dotfiles: 'deny',
       index: ['index.html'],
       setHeaders(reply, path) {
+        if (path.endsWith('sw.js') || path.endsWith('manifest.webmanifest')) {
+          reply.header('Cache-Control', 'no-cache');
+        }
         if (!path.endsWith('.html')) {
           return;
         }

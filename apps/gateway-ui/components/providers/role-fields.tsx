@@ -2,9 +2,10 @@
 
 import { supportsModelRole, supportsProviderRole } from '@jian/contracts';
 import type { ProfileData, Provider } from '../../lib/api';
-import { Badge, Button, Field } from '../ui';
+import { TYPING_DELAY_MS } from '../../lib/autosave';
+import { Button, Field } from '../ui';
 import { Select, type SelectOption } from '../ui/select';
-import { efforts, modelLabel, type Role, type roles } from './catalog';
+import { efforts, modelLabel, optionalRoles, type Role, type roles } from './catalog';
 
 export type RoleValue = {
   providerId: string;
@@ -12,6 +13,7 @@ export type RoleValue = {
   reasoningEffort: string;
   /** The id was typed instead of picked, so the panel knows nothing about its capabilities. */
   manual: boolean;
+  disabled: boolean;
 };
 
 /** A provider id is a UUID, so the first colon is always where the model id begins. */
@@ -85,20 +87,12 @@ export function RoleFields({
   /** A delay in ms before saving; a menu choice saves at once, a typed id after a pause. */
   change: (role: Role, patch: Partial<RoleValue>, delay?: number) => void;
 }) {
-  const { eligible, provider, list, selected, allowed } = describeRole(
-    role,
-    value,
-    data,
-    configured,
-  );
+  const { eligible, provider, list, allowed } = describeRole(role, value, data, configured);
   const choices = modelChoices(role.key, data, configured);
-  const current = choiceOf(value.providerId, value.modelId);
+  const current = value.disabled ? 'disabled' : choiceOf(value.providerId, value.modelId);
 
   return (
     <>
-      {selected && !selected.known && role.tools && (
-        <Badge tone="warn">Capabilities unknown: conservative limits</Badge>
-      )}
       {list?.stale && (
         <p className="note" role="status">
           The list is stale: the provider did not answer the last read.
@@ -120,19 +114,30 @@ export function RoleFields({
               disabled={busy}
               maxLength={160}
               placeholder="Model id"
-              onChange={(event) => change(role.key, { modelId: event.target.value }, undefined)}
+              onChange={(event) =>
+                change(role.key, { modelId: event.target.value }, TYPING_DELAY_MS)
+              }
             />
           ) : (
             <Select
               value={current}
               disabled={busy}
               onValueChange={(choice) => {
-                if (!choice) {
+                if (choice === 'disabled') {
                   change(role.key, {
                     providerId: '',
                     modelId: '',
                     reasoningEffort: '',
                     manual: false,
+                    disabled: true,
+                  });
+                } else if (!choice) {
+                  change(role.key, {
+                    providerId: '',
+                    modelId: '',
+                    reasoningEffort: '',
+                    manual: false,
+                    disabled: false,
                   });
                 } else if (choice.startsWith(MANUAL)) {
                   change(role.key, {
@@ -140,6 +145,7 @@ export function RoleFields({
                     modelId: '',
                     reasoningEffort: '',
                     manual: true,
+                    disabled: false,
                   });
                 } else {
                   const split = choice.indexOf(':');
@@ -149,10 +155,12 @@ export function RoleFields({
                     modelId: choice.slice(split + 1),
                     reasoningEffort: '',
                     manual: false,
+                    disabled: false,
                   });
                 }
               }}
               options={[
+                ...(optionalRoles.has(role.key) ? [{ value: 'disabled', label: 'Disabled' }] : []),
                 { value: '', label: 'Automatic' },
                 ...choices,
                 ...(current && !choices.some((choice) => choice.value === current)
@@ -184,17 +192,14 @@ export function RoleFields({
             Choose from the list
           </Button>
         )}
-        {role.key === 'image' && !hasOpenAIKey && (
+        {role.key === 'image' && !value.disabled && !hasOpenAIKey && (
           <p className="note">
             <a href="/ui/providers/">Configure an OpenAI API key in Providers.</a> ChatGPT login
             does not authorize image generation.
           </p>
         )}
-        {role.tools && (
-          <Field
-            label="Effort"
-            hint={allowed.length ? undefined : 'No reasoning levels are catalogued for this model.'}
-          >
+        {role.tools && !value.disabled && (
+          <Field label="Effort">
             <Select
               value={value.reasoningEffort}
               disabled={busy || !allowed.length}

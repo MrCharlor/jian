@@ -123,6 +123,7 @@ An agent with the shell switch on works in its workspace under `/home/node/works
 | `HOST` | no | `0.0.0.0` in the image | The listening address inside the container. |
 | `PORT` | no | `4310` | The listening port; the health check follows it. |
 | `JIAN_ROLE` | no | `all` | `all`, `api` or `worker`. |
+| `JIAN_TIME_ZONE` | no | saved legacy value, then host zone | IANA zone for the agent's current time and new schedules, for example `America/Sao_Paulo`. Set the same value on API and worker replicas; it overrides but does not delete an older saved value. |
 | `JIAN_ALLOW_PRIVATE_ORIGINS` | no | empty | Exact private origins allowed for outbound calls, for example `http://127.0.0.1:11434`. |
 | `JIAN_PUBLIC_URL` | no | — | Where the outside world reaches this gateway, over HTTPS. Telegram's webhook is registered there, rather than at whatever address the panel was opened on, and an MCP server that signs in with OAuth redirects the owner back to it; without it, that sign-in is unavailable. |
 | `JIAN_WORKSPACES` | no | `$HOME/workspaces` | Where each profile's workspace is created, one directory per profile. |
@@ -185,10 +186,10 @@ The `Image` workflow builds on two native runners, `ubuntu-24.04` and `ubuntu-24
 
 A release is a note and a tag, both by hand:
 
-1. Write `docs/releases/1.2.3.md`: a front matter with `date: YYYY-MM-DD` and a one-sentence `summary:`, then what the release changes, for the person who runs it. It becomes the `CHANGELOG.md` entry, the GitHub release and the dialog the panel opens once after the update. The version is chosen by whoever writes the note, not computed from commits.
-2. Run `make release VERSION=1.2.3`. The first time it regenerates `CHANGELOG.md` from the note and asks for both to be committed and pushed. The version lives only in the tag; `package.json` stays `0.1.0`. Run it again and it tags `v1.2.3` and pushes the tag.
-3. The tag runs the `Image` workflow: it checks the note and the changelog agree, builds both architectures, and publishes the GitHub release with the note.
+1. Write `docs/releases/1.2.3.md`: a front matter with `date: YYYY-MM-DD`, an optional `summary:`, and the note. It becomes the GitHub release and the dialog the panel opens once after the update. The version is chosen by whoever writes the note, not computed from commits.
+2. Commit the note and push `main`, then run `make release VERSION=1.2.3`. The version lives only in the tag; `package.json` stays `0.1.0`.
+3. The tag runs the `Image` workflow: it checks the note, builds both architectures, and publishes the GitHub release with the note.
 
-`make release` refuses a version with no note, a working tree with changes, a `main` that is not on `origin`, and a tag that already exists; a published version is never moved. A candidate such as `1.2.3-rc.1` publishes its own image tag and a pre-release, and leaves `latest` alone. `make check` fails when `CHANGELOG.md` is not what the notes say, so the generated file cannot drift from its source.
+`make release` refuses a version with no note, a working tree with changes, a `main` that is not on `origin`, and a tag that already exists; a published version is never moved. A candidate such as `1.2.3-rc.1` publishes its own image tag and a pre-release, and leaves `latest` alone.
 
 The notes are copied into the image, and the image carries its version in `JIAN_VERSION`. After an update the panel shows the notes of every version newer than the one the owner last read, once; closing the dialog records the version in the database, so another browser does not show it again. A first visit shows only the running release. A build with no version, such as `make dev`, announces nothing.

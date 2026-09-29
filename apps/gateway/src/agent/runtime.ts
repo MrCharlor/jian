@@ -48,14 +48,14 @@ const STALLED_AFTER_MS = 5 * 60_000;
  * follows a bearer or an `api_key=`: an error can quote a credential this run never held.
  */
 const CREDENTIAL_SHAPES =
-  /\b(sk-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{30,}|gsk_[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,})\b|\bBearer\s+\S+|\b(api[_-]?key|token|secret|password)(["']?\s*[:=]\s*["']?)[^\s"',;&]+/gi;
+  /\b(sk-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{30,}|gsk_[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,})\b|\bBearer\s+\S+|\b(?:cookie|set-cookie|headers)\s*[:=][^\r\n]+|\b(api[_-]?key|token|secret|password|authorization)(["']?\s*[:=]\s*["']?)[^\s"',;&]+/gi;
 
 export type { RuntimeOptions } from './types.js';
 
 /** The run services the runtime drives, plus what it hands to the tool set it builds. */
 export type RuntimeServices = ToolServices & {
   contexts: ContextSource;
-  providers?: Pick<Providers, 'selectedModel'>;
+  providers?: Pick<Providers, 'selectedModel'> & Partial<Pick<Providers, 'modelDefaults'>>;
   media?: Pick<Media, 'prepare' | 'tools'>;
   web?: Pick<WebSearch, 'tools'>;
   learning?: Pick<Learning, 'consider'>;
@@ -198,6 +198,7 @@ export class AgentRuntime {
     pulse.unref();
 
     try {
+      const defaults = await this.services.providers?.modelDefaults?.(profileId);
       const policy = run.contextPolicy ?? run.profile.contextPolicy;
       const config = run.model ?? run.profile.model;
       let providerKey: string | undefined;
@@ -269,6 +270,11 @@ export class AgentRuntime {
           },
         }),
       };
+      if (defaults?.image === 'disabled') delete tools.generate_image;
+      if (defaults?.speech === 'disabled') {
+        delete tools.generate_speech;
+        delete tools.list_speech_voices;
+      }
       if (learning) {
         for (const name of Object.keys(tools)) if (!LEARNING_TOOLS.has(name)) delete tools[name];
       }
@@ -894,6 +900,54 @@ function reason(error: unknown, secrets: Set<string>): string {
 }
 
 function toolFailure(error: unknown, secrets: Set<string>): string {
+  const fields = new Set([
+    'message',
+    'name',
+    'error',
+    'origin',
+    'code',
+    'format',
+    'path',
+    'issues',
+    'details',
+    'errors',
+    'expected',
+    'received',
+    'minimum',
+    'maximum',
+    'validation',
+  ]);
+  const sanitize = (value: unknown, depth = 0): unknown => {
+    if (typeof value === 'string') return reason(value, secrets).slice(0, 200);
+    if (typeof value === 'number' || typeof value === 'boolean') return value;
+    if (depth >= 4) return undefined;
+    if (Array.isArray(value)) return value.slice(0, 6).map((item) => sanitize(item, depth + 1));
+    if (!value || typeof value !== 'object') return undefined;
+
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => fields.has(key))
+        .slice(0, 12)
+        .map(([key, item]) => [key, sanitize(item, depth + 1)])
+        .filter(([, item]) => item !== undefined),
+    );
+  };
+  const source = error instanceof Error ? { ...error, message: error.message } : error;
+  const structured = sanitize(source);
+
+  if (structured && typeof structured === 'object' && Object.keys(structured).length) {
+    const encoded = JSON.stringify(structured);
+    if (encoded.length <= 4_000) return encoded;
+
+    const { message, origin, code, format, path, issues } = structured as Record<string, unknown>;
+    const summary = { message, origin, code, format, path };
+    const concise = JSON.stringify({
+      ...summary,
+      issues: Array.isArray(issues) ? issues.slice(0, 1) : undefined,
+    });
+    return concise.length <= 4_000 ? concise : JSON.stringify(summary);
+  }
+
   return reason(error, secrets) || 'no reason given. Inspect saved steps before retrying.';
 }
 

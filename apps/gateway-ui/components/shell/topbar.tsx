@@ -1,5 +1,6 @@
 'use client';
 import { Menu } from 'lucide-react';
+import { Mark } from '../ui';
 export function Topbar({
   onOpenNavigation,
   navigationOpen,
@@ -9,6 +10,9 @@ export function Topbar({
 }) {
   return (
     <header className="topbar">
+      <span className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
+        <Mark small /> Jian
+      </span>
       <button
         type="button"
         className="icon-button"
@@ -19,7 +23,6 @@ export function Topbar({
       >
         <Menu size={20} />
       </button>
-      <span className="font-display text-2xl">jian</span>
     </header>
   );
 }

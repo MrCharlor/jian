@@ -1,68 +1,22 @@
-/*
- * One palette, two modes. Every colour is written once as light-dark(light, dark) and the
- * browser picks by the root's color-scheme, which data-mode sets: light, dark, or the system's
- * own choice when nothing was picked. The five accents keep their identity in both modes; in
- * the dark one each is lifted until it reads on the dark canvas, and text on an accent fill
- * turns dark to match.
- *
- * Every accent and every state colour meets AA for normal text on the canvas, the surface and
- * its own soft tint, in both modes. Check a new value before adding it.
- */
 :root {
-  color-scheme: light dark;
-}
-:root[data-mode="light"] {
-  color-scheme: light;
-}
-:root[data-mode="dark"] {
   color-scheme: dark;
-}
-
-:root,
-[data-theme="strelizia"] {
-  --accent: light-dark(#b51e49, #ff6b8e);
-  --accent-hover: light-dark(#93133a, #ff8ca7);
-  --accent-soft: light-dark(#fff1f4, #2c1219);
-}
-[data-theme="delphinium"] {
-  --accent: light-dark(#245bb5, #6ea8ff);
-  --accent-hover: light-dark(#19458f, #92bdff);
-  --accent-soft: light-dark(#eff5ff, #122036);
-}
-[data-theme="argentea"] {
-  --accent: light-dark(#a92a72, #f36bba);
-  --accent-hover: light-dark(#86205a, #f78ecb);
-  --accent-soft: light-dark(#fff0f8, #2c1224);
-}
-[data-theme="genista"] {
-  --accent: light-dark(#14714f, #4cc38a);
-  --accent-hover: light-dark(#0e563b, #72d3a4);
-  --accent-soft: light-dark(#edf8f2, #10261c);
-}
-[data-theme="chlorophytum"] {
-  --accent: light-dark(#7146b2, #b48cff);
-  --accent-hover: light-dark(#59358f, #c9abff);
-  --accent-soft: light-dark(#f6f0ff, #201735);
-}
-
-:root {
-  --canvas: light-dark(#ffffff, #111418);
-  --ink: light-dark(#20252d, #e6e9ed);
-  --muted: light-dark(#59616d, #9ba4af);
-  --line: light-dark(#dce0e5, #2a3038);
-  --control: light-dark(#858d99, #6f7884);
-  --surface: light-dark(#f6f7f9, #181c22);
-  --good: light-dark(#176346, #56c996);
-  --good-soft: light-dark(#edf7f1, #10261c);
-  --warn: light-dark(#81500b, #e3a948);
-  --warn-soft: light-dark(#fff7e7, #2a2012);
-  --bad: light-dark(#a42137, #f4708a);
-  --bad-soft: light-dark(#fff0f2, #2c1419);
-  /* What sits on a filled accent or danger colour: white on the deep light-mode fills, near
-     black on the bright dark-mode ones. */
-  --on-accent: light-dark(#ffffff, #12070b);
-  /* Shadows and the dialog backdrop darken in both modes; on a dark canvas they need more. */
-  --shade: light-dark(#20252d, #000000);
+  --canvas: #050505;
+  --ink: #f5f5f3;
+  --muted: #a6a6a3;
+  --line: #292929;
+  --control: #555552;
+  --surface: #101010;
+  --accent: #f5f5f3;
+  --accent-hover: #dededb;
+  --accent-soft: #202020;
+  --on-accent: #050505;
+  --good: #84d6ae;
+  --good-soft: #10251b;
+  --warn: #efc479;
+  --warn-soft: #2b2111;
+  --bad: #fb8791;
+  --bad-soft: #2b161a;
+  --shade: #000000;
 }
 
 @theme inline {
@@ -79,10 +33,10 @@
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
   --color-on-accent: var(--on-accent);
-  --font-sans: "IBM Plex Sans Variable", sans-serif;
-  --font-display: "Barlow Condensed", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
+  --font-sans: "IBM Plex Sans Variable", sans-serif;
+  --font-display: "IBM Plex Sans Variable", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
 }

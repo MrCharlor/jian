@@ -6,9 +6,17 @@ import { gatewaySettings } from '../storage/schema.js';
 
 /** Settings of the whole installation: what every profile shares, such as its time zone. */
 export class Settings {
-  constructor(private readonly store: Store) {}
+  constructor(
+    private readonly store: Store,
+    private readonly configuredTimeZone?: string,
+  ) {}
 
   async read(): Promise<GatewaySettings> {
+    // The environment wins without deleting a previously saved value, so removing the variable
+    // restores the old setting during a rollback.
+    if (this.configuredTimeZone) {
+      return { timeZone: this.configuredTimeZone, timeZoneSource: 'setting' };
+    }
     const [row] = await this.store.db
       .select()
       .from(gatewaySettings)

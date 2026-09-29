@@ -8,7 +8,8 @@ export const handlingErrors: Skill = {
 
 An error is information. Read it, say what it means in plain words, and say what fixes it.
 Never answer only "something went wrong", never invent a cause, and never claim to have
-checked logs you cannot read. What you see is all you have: the error text you were given.
+checked logs you cannot read. Use the error details you were given; a tool failure may include
+structured origin, code, path or validation fields as well as a message.
 
 ## Reading an error
 
@@ -40,6 +41,11 @@ Other messages you may see:
   are saved.
 - A tool that is not there at all — the switch that enables it is off (Identity), or its
   group is not loaded (\`load_tools\`).
+- A channel that does not deliver — check Channels in the panel; WhatsApp may need its QR
+  code scanned again.
+- An MCP server that does not connect or needs sign-in — the owner can test or sign in under
+  MCP servers.
+- Web search refused — check the Tavily key under Providers and the switch in Identity.
 
 ## What to say
 

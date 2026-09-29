@@ -29,7 +29,7 @@ export function NewProfileDialog({
 
   return (
     <Modal
-      title="A new profile"
+      title="New agent"
       description="One identity for every conversation."
       close={close}
       footer={
@@ -39,7 +39,7 @@ export function NewProfileDialog({
           </Button>
           <Button type="submit" form="new-profile-form" busy={busy}>
             <Plus size={16} />
-            Create profile
+            Create agent
           </Button>
         </>
       }
@@ -64,7 +64,7 @@ export function NewProfileDialog({
               }),
             );
           } catch (error) {
-            setError(error instanceof Error ? error.message : 'The profile could not be created.');
+            setError(error instanceof Error ? error.message : 'The agent could not be created.');
           } finally {
             setBusy(false);
           }
@@ -124,7 +124,7 @@ export function ProfileEditor({
       setResetting(false);
       await refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The profile could not be reset.');
+      toast.error(error instanceof Error ? error.message : 'The agent could not be reset.');
     } finally {
       setWorking(false);
     }
@@ -219,10 +219,10 @@ export function ProfileEditor({
       version.current = updated.version;
       ours.current.add(updated.version);
       saved.current = snapshot;
-      toast.success('Profile saved.', { id: 'profile-autosave' });
+      toast.success('Agent saved.', { id: 'profile-autosave' });
       void refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The profile could not be saved.', {
+      toast.error(error instanceof Error ? error.message : 'The agent could not be saved.', {
         id: 'profile-autosave',
       });
     }
@@ -239,7 +239,7 @@ export function ProfileEditor({
     <>
       <SectionHeading
         title="Identity"
-        description="Instructions shared by every session of this profile."
+        description="Instructions shared by every session of this agent."
       />
       <form
         ref={form}
@@ -279,7 +279,7 @@ export function ProfileEditor({
             </Field>
             <Field
               label="Summary for the team"
-              hint="One line on what this agent does. It is all the other profiles ever see of it."
+              hint="One line on what this agent does. It is all the other agents ever see of it."
             >
               <input
                 name="summary"
@@ -288,7 +288,7 @@ export function ProfileEditor({
                 placeholder="e.g. Looks after deliveries and knows where each one stands."
               />
             </Field>
-            <Field label="Boundaries" hint="Rules this profile must respect, one per line.">
+            <Field label="Boundaries" hint="Rules this agent must respect, one per line.">
               <textarea
                 name="boundaries"
                 defaultValue={profile.identity.boundaries.join('\n')}
@@ -300,7 +300,7 @@ export function ProfileEditor({
               <span>
                 <strong>Talk with other agents</strong>
                 <small>
-                  Other profiles can find this one and ask it things, and it can ask them. Off, it
+                  Other agents can find this one and ask it things, and it can ask them. Off, it
                   leaves their list and loses contact with all of them.
                 </small>
               </span>
@@ -347,7 +347,7 @@ export function ProfileEditor({
                 <small>
                   After a long turn, an error it recovered from, or every fifteen turns, the agent
                   looks back and keeps what helps as a skill or a memory. What it kept, and why, is
-                  under Sessions › Learning.
+                  under Chats › Learning.
                 </small>
               </span>
             </label>
@@ -357,7 +357,7 @@ export function ProfileEditor({
 
       <section className="danger-zone reset" aria-labelledby="reset-zone">
         <div className="grow">
-          <h2 id="reset-zone">Reset this profile</h2>
+          <h2 id="reset-zone">Reset this agent</h2>
           <p>
             It forgets every conversation, memory and past activity. Its instructions, skills, MCP
             servers, model defaults, channels and contacts stay.
@@ -365,12 +365,12 @@ export function ProfileEditor({
         </div>
         <Button variant="secondary" disabled={busy || working} onClick={() => setResetting(true)}>
           <RotateCcw size={16} />
-          Reset profile
+          Reset agent
         </Button>
       </section>
       <section className="danger-zone" aria-labelledby="danger-zone">
         <div className="grow">
-          <h2 id="danger-zone">Delete this profile</h2>
+          <h2 id="danger-zone">Delete this agent</h2>
           <p>
             Every session, memory, message, channel, contact and run it has held goes with it. There
             is no undo.
@@ -378,14 +378,14 @@ export function ProfileEditor({
         </div>
         <Button variant="danger" disabled={busy} onClick={() => setDeleting(true)}>
           <Trash2 size={16} />
-          Delete profile
+          Delete agent
         </Button>
       </section>
 
       {resetting && (
         <Confirm
           title={`Reset ${profile.name}?`}
-          description="Every conversation, memory and past activity of this profile is erased. Its configuration, channels and contacts are kept. This cannot be undone."
+          description="Every conversation, memory and past activity of this agent is erased. Its configuration, channels and contacts are kept. This cannot be undone."
           busy={working}
           phrase={profile.name}
           close={() => setResetting(false)}
@@ -395,7 +395,7 @@ export function ProfileEditor({
       {deleting && (
         <Confirm
           title={`Delete ${profile.name}?`}
-          description="Every memory, chat history, message, channel connection, contact and run tied to this profile is deleted along with it. This cannot be undone."
+          description="Every memory, chat history, message, channel connection, contact and run tied to this agent is deleted along with it. This cannot be undone."
           busy={busy}
           phrase={profile.name}
           close={() => setDeleting(false)}

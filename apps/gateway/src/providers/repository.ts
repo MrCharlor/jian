@@ -4,6 +4,7 @@ import {
   type ModelSelection,
   modelDefaultsRecordSchema,
   modelRoleSchema,
+  optionalModelRoles,
   type ProviderRecord,
   providerRecordSchema,
 } from '@jian/contracts';
@@ -12,9 +13,11 @@ import type { Queryable } from '../storage/database.js';
 import { modelDefaults, providers } from '../storage/schema.js';
 
 type Row = typeof providers.$inferSelect;
+// An older gateway reads this as a selected but unavailable provider, failing closed on rollback.
+const DISABLED_PROVIDER_ID = '00000000-0000-0000-0000-000000000000';
 
-/** One selection per role. A role the profile never set is null, never missing. */
-export type RoleSelections = Record<ModelRole, ModelSelection | null>;
+/** One selection per role; optional roles without a row start disabled. */
+export type RoleSelections = Record<ModelRole, ModelSelection | 'disabled' | null>;
 
 /**
  * Columns come back as dates and as nulls, while the contract speaks ISO strings and leaves an
@@ -121,23 +124,31 @@ export async function readModelDefaults(
   const rows = await db.select().from(modelDefaults).where(eq(modelDefaults.profileId, profileId));
 
   const byRole = new Map(rows.map((row) => [row.role, row]));
-  const selections: Record<string, ModelSelection | null> = {};
+  const selections: Record<string, ModelSelection | 'disabled' | null> = {};
 
   for (const role of modelRoleSchema.options) {
     const row = byRole.get(role);
 
     selections[role] =
-      row?.providerId && row.modelId
-        ? {
-            providerId: row.providerId,
-            modelId: row.modelId,
-            ...(row.reasoningEffort ? { reasoningEffort: row.reasoningEffort } : {}),
-          }
-        : null;
+      !row && optionalModelRoles.has(role)
+        ? 'disabled'
+        : (row?.modelId === 'disabled' || row?.modelId === 'disabled_legacy_default') &&
+            (!row.providerId || row.providerId === DISABLED_PROVIDER_ID)
+          ? 'disabled'
+          : row?.providerId && row.modelId
+            ? {
+                providerId: row.providerId,
+                modelId: row.modelId,
+                ...(row.reasoningEffort ? { reasoningEffort: row.reasoningEffort } : {}),
+              }
+            : null;
   }
 
-  selections.audio = selections.audio ?? selections.transcription ?? null;
-  selections.transcription = selections.audio ?? null;
+  selections.audio = !byRole.has('audio')
+    ? (selections.transcription ?? 'disabled')
+    : (selections.audio ?? selections.transcription ?? null);
+  selections.transcription =
+    selections.audio && selections.audio !== 'disabled' ? selections.audio : null;
 
   // The record carries one timestamp for what is now several rows: the newest write stands for
   // the set, so a client that polls it still sees a change to any single role.
@@ -169,9 +180,11 @@ export async function writeModelDefaults(
     return {
       profileId,
       role,
-      providerId: selection?.providerId ?? null,
-      modelId: selection?.modelId ?? null,
-      reasoningEffort: selection?.reasoningEffort ?? null,
+      providerId:
+        selection === 'disabled' ? DISABLED_PROVIDER_ID : selection ? selection.providerId : null,
+      modelId: selection === 'disabled' ? 'disabled' : (selection?.modelId ?? null),
+      reasoningEffort:
+        selection && selection !== 'disabled' ? (selection.reasoningEffort ?? null) : null,
       updatedAt: at,
     };
   });

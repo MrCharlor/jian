@@ -10,7 +10,7 @@ export function ProfileSwitcher({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="profile-selector">
       <Select
-        aria-label="Active profile"
+        aria-label="Active agent"
         className="profile-trigger"
         value={selected}
         onValueChange={select}
@@ -25,8 +25,8 @@ export function ProfileSwitcher({ onCreate }: { onCreate: () => void }) {
           <>
             <Avatar name={profile?.name} avatar={profile?.avatar} className="mini-avatar" />
             <span className="profile-trigger-copy">
-              <small>Active profile</small>
-              <strong>{profile?.name ?? 'Select a profile'}</strong>
+              <small>Active agent</small>
+              <strong>{profile?.name ?? 'Select an agent'}</strong>
             </span>
           </>
         )}
@@ -39,7 +39,7 @@ export function ProfileSwitcher({ onCreate }: { onCreate: () => void }) {
             }}
           >
             <Plus size={16} />
-            Create a profile
+            New agent
           </button>
         )}
       />

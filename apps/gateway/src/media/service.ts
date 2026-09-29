@@ -414,7 +414,10 @@ export class Media {
   ): Promise<{ config: ModelConfig; key: string }> {
     const defaults = await this.providers.modelDefaults(profileId);
     // Sticker analysis is image analysis unless the owner chose a cheaper model for it.
-    let selected = defaults[role] ?? (role === 'sticker' ? defaults.vision : undefined);
+    let selected =
+      defaults[role] ??
+      (role === 'sticker' && defaults.vision !== 'disabled' ? defaults.vision : undefined);
+    if (selected === 'disabled') throw new Error(`${role} is disabled under Model defaults`);
     if (!selected) {
       const available = (await this.providers.providers()).filter(
         (provider) => !provider.revokedAt,

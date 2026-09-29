@@ -1,5 +1,5 @@
-// Cuts a release: `make release VERSION=1.2.3`. The note comes first — it is the changelog
-// entry and the GitHub release — and the tag comes last; the Image workflow does the rest.
+// Cuts a release: `make release VERSION=1.2.3`. The note comes first, then the tag;
+// the Image workflow publishes the image and GitHub release.
 // Everything that can be wrong is checked before anything is written or pushed.
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -20,10 +20,10 @@ if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
 }
 
 if (!existsSync(join(root, `docs/releases/${version}.md`))) {
-  stop(
-    `Write docs/releases/${version}.md first: it is the CHANGELOG entry and the GitHub release.`,
-  );
+  stop(`Write docs/releases/${version}.md first: it is the GitHub release note.`);
 }
+
+execFileSync('node', [join(root, 'scripts/release-notes.mjs'), version], { stdio: 'ignore' });
 
 if (git('branch', '--show-current') !== 'main') {
   stop('Release from main.');
@@ -44,13 +44,6 @@ if (git('tag', '--list', `v${version}`)) {
 }
 
 // The image takes its version from the tag; package.json stays 0.1.0, since nothing reads it.
-// The changelog is written from the notes, and a change to it is committed by a person.
-execFileSync('node', [join(root, 'scripts/changelog.mjs')], { stdio: 'inherit' });
-
-if (git('status', '--porcelain')) {
-  stop(`CHANGELOG.md now includes ${version}. Commit it with its note, push, then run this again.`);
-}
-
 git('tag', '-a', `v${version}`, '-m', `Jian ${version}`);
 git('push', 'origin', `v${version}`);
 

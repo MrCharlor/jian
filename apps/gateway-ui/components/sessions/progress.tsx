@@ -57,7 +57,7 @@ export const toolLabels: Record<string, string> = {
   delete_skill: 'removing a skill',
   update_identity: 'adjusting its own identity',
   read_identity: 'rereading its own identity',
-  create_profile: 'creating a profile',
+  create_profile: 'creating an agent',
 };
 
 /** The orb's animation for each tool: looking things up, working with its hands, or asking. */

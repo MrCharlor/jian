@@ -6,16 +6,17 @@ import {
   statsQuerySchema,
   type Usage,
 } from '@jian/contracts';
-import { and, count, eq, gte, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, sql } from 'drizzle-orm';
 import type { ProviderKind } from '../providers/catalog.js';
 import type { CatalogEntry } from '../providers/catalog-source.js';
+import type { SubscriptionUsageReader } from '../providers/subscription-usage.js';
 import type { Store } from '../storage/database.js';
 import { checkpoints, memories, runs, sessions } from '../storage/schema.js';
 
 type Mix = { input: number; cached: number; output: number };
 type Price = NonNullable<CatalogEntry['price']>;
 
-/** How many tools the overview names; the rest are few calls each. */
+/** How many tools the overview names; an agent can request the full breakdown. */
 const TOP_TOOLS = 8;
 
 const empty = (): Mix => ({ input: 0, cached: 0, output: 0 });
@@ -84,9 +85,65 @@ export class Stats {
       lookup(kind: ProviderKind, modelId: string): CatalogEntry | undefined;
     },
     private readonly clock: () => number = Date.now,
+    private readonly subscriptionUsage?: Pick<SubscriptionUsageReader, 'read'>,
   ) {}
 
-  async stats(profileId: string, query: unknown): Promise<ProfileStats> {
+  async usageRuns(profileId: string, days: number, limit: number, offset: number) {
+    await this.profiles.profile(profileId);
+    await this.prices.prime();
+
+    const rows = await this.store.db
+      .select({
+        id: runs.id,
+        sessionId: runs.sessionId,
+        status: runs.status,
+        createdAt: runs.createdAt,
+        updatedAt: runs.updatedAt,
+        model: runs.model,
+        usage: runs.usage,
+        channel: sessions.channel,
+      })
+      .from(runs)
+      .innerJoin(sessions, eq(sessions.id, runs.sessionId))
+      .where(
+        and(
+          eq(runs.profileId, profileId),
+          gte(runs.createdAt, new Date(this.clock() - days * 24 * 60 * 60 * 1000)),
+        ),
+      )
+      .orderBy(desc(runs.createdAt), desc(runs.id))
+      .limit(limit)
+      .offset(offset);
+
+    return rows.map((row) => {
+      const mix = mixOf(row.usage);
+      const kind = row.model && catalogKind(row.model);
+      const price =
+        row.model && !subscribed(row.model) && kind
+          ? this.prices.lookup(kind, row.model.modelId)?.price
+          : undefined;
+
+      return {
+        id: row.id,
+        sessionId: row.sessionId,
+        channel: row.channel,
+        status: row.status,
+        createdAt: row.createdAt.toISOString(),
+        durationMs: Math.max(0, row.updatedAt.getTime() - row.createdAt.getTime()),
+        model: row.model
+          ? {
+              provider: row.model.provider,
+              modelId: row.model.modelId,
+              billing: subscribed(row.model) ? 'subscription' : price ? 'metered' : 'unknown',
+            }
+          : null,
+        tokens: mix,
+        estimatedCostUsd: price ? priced(mix, price) : null,
+      };
+    });
+  }
+
+  async stats(profileId: string, query: unknown, allTools = false): Promise<ProfileStats> {
     const { days } = statsQuerySchema.parse(query ?? {});
     const profile = await this.profiles.profile(profileId);
     const zone = await this.settings.timeZone();
@@ -212,7 +269,7 @@ export class Stats {
       models.set(key, model);
     }
 
-    const tools = await db
+    const toolQuery = db
       .select({
         name: sql<string>`${checkpoints.data}->>'toolName'`,
         calls: sql<number>`count(*) filter (where ${checkpoints.data}->>'phase' = 'tool-started')`,
@@ -227,11 +284,12 @@ export class Stats {
         ),
       )
       .groupBy(sql`${checkpoints.data}->>'toolName'`)
-      .orderBy(sql`2 desc`)
-      .limit(TOP_TOOLS);
+      .orderBy(sql`2 desc`);
+    const tools = await (allTools ? toolQuery : toolQuery.limit(TOP_TOOLS));
 
     return profileStatsSchema.parse({
       since: profile.createdAt,
+      subscriptions: this.subscriptionUsage ? await this.subscriptionUsage.read() : [],
       totals: {
         turns: lifetime?.turns ?? 0,
         workedMs: Math.round(Number(lifetime?.worked ?? 0)),

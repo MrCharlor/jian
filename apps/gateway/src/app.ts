@@ -85,6 +85,14 @@ export function createApp(
   });
   void app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
 
+  app.addHook('onSend', async (_request, reply, payload) => {
+    reply.header(
+      'X-Robots-Tag',
+      'noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate',
+    );
+    return payload;
+  });
+
   // Installed before any registrar runs, so every route below gets the contract's schema.
   app.addHook('onRoute', (route) => {
     const operation = operations.find(

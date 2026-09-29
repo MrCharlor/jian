@@ -10,7 +10,7 @@ import { History } from './history';
 import { RunProgress } from './progress';
 
 const meta = {
-  title: 'Sections/Sessions',
+  title: 'Sections/Chats',
   // The list names another agent by its profile, which the workspace holds.
   decorators: [withWorkspace],
   parameters: { layout: 'padded' },

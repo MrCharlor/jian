@@ -156,8 +156,8 @@ export function WebSearchRow({ api, mutate, busy }: RowProps) {
       mutate={mutate}
       busy={busy}
     >
-      Lets the profiles with web search switched on search the internet and read pages. The free
-      plan covers 1,000 searches a month.
+      Lets agents with web search switched on search the internet and read pages. The free plan
+      covers 1,000 searches a month.
     </ServiceKeyRow>
   );
 }
@@ -183,7 +183,7 @@ export function DecisionsRow({ api, mutate, busy }: RowProps) {
       mutate={mutate}
       busy={busy}
     >
-      Quick second opinions for every profile: holds back actions that destroy, cannot be undone or
+      Quick second opinions for every agent: holds back actions that destroy, cannot be undone or
       expose private data beyond what was asked, marks outside content that tries to steer an agent,
       picks the memories and skill that fit each turn, thinks less on plainly light ones, and tells
       whether a group message is speaking to an agent. Each check sends the message, action or short

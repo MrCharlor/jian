@@ -36,7 +36,10 @@ const scheduleFields = {
   /** A single time; exclusive with `cron`. */
   at: z.iso.datetime({ offset: true }).optional(),
   /** A repeating time; exclusive with `at`. */
-  cron: cronSchema.optional(),
+  cron: z.preprocess(
+    (value) => (typeof value === 'string' && !value.trim() ? undefined : value),
+    cronSchema.optional(),
+  ),
   timeZone: timeZoneSchema,
   enabled: z.boolean().default(true),
 };

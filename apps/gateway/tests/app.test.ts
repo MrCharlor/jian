@@ -30,6 +30,17 @@ afterEach(async () => {
 });
 
 describe('HTTP services', () => {
+  it('blocks crawlers on the public host and marks API responses as non-indexable', async () => {
+    const { app } = await setup();
+    const robots = await app.inject({ url: '/robots.txt' });
+    const api = await app.inject({ url: '/v1/providers', headers });
+
+    expect(robots.statusCode).toBe(200);
+    expect(robots.body).toBe('User-agent: *\nDisallow: /\n');
+    expect(robots.headers['x-robots-tag']).toContain('noindex');
+    expect(api.headers['x-robots-tag']).toContain('noindex');
+  });
+
   it('serves the built-in skills of a profile with their instructions', async () => {
     const { app, services } = await setup();
     const profile = await services.profiles.createProfile(input);

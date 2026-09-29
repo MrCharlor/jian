@@ -16,7 +16,7 @@ COMPOSE_DEV := docker compose -f compose.dev.yaml
 
 .PHONY: help install setup up down logs ps dev db-up db-stop db-reset \
         check test test-integration lint format build image image-push \
-        changelog release storybook storybook-smoke
+        release storybook storybook-smoke
 
 ##@ General
 
@@ -105,9 +105,6 @@ image-push: ## Push the locally built image; the multi-architecture index comes 
 	docker push $(IMAGE):$(VERSION)
 
 ##@ Release
-
-changelog: ## Write CHANGELOG.md from the notes in docs/releases
-	node scripts/changelog.mjs
 
 # Releasing is a note and a tag; .github/workflows/image.yml builds both architectures and
 # publishes the GitHub release with the note in it. The script refuses to tag a version with

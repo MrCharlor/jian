@@ -5,9 +5,9 @@ import { type OrbSize, type OrbState, ThinkingOrb } from 'thinking-orbs';
 import { useAppearance } from '../../lib/appearance';
 
 /**
- * The thinking orb, drawn in the theme's accent. The library only inks in grey, so it draws in
+ * The thinking orb, drawn in the panel's accent. The library only inks in grey, so it draws in
  * light ink and a filter keeps each dot's brightness as its opacity and fills it with the
- * accent: the depth of the animation survives, and the colour follows the theme and the mode.
+ * accent: the depth of the animation survives in the monochrome palette.
  */
 export function Orb({ state = 'composing', size = 20 }: { state?: OrbState; size?: OrbSize }) {
   const { still } = useAppearance();

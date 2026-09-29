@@ -798,6 +798,13 @@ export const operations: Operation[] = [
     response: z.array(stickerSchema),
   },
   {
+    method: 'DELETE',
+    path: `${profile}/stickers`,
+    operationId: 'forgetAllStickers',
+    access: 'admin',
+    response: z.strictObject({ removed: z.number().int().nonnegative() }),
+  },
+  {
     method: 'GET',
     path: `${profile}/stickers/:stickerId`,
     operationId: 'getSticker',

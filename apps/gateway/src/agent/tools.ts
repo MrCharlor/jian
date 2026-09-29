@@ -22,6 +22,7 @@ import type { Schedules } from '../schedules/service.js';
 import type { SessionNamer, SessionReader, SessionSummarizer } from '../sessions/port.js';
 import { findSkill } from '../skills/builtin/index.js';
 import { skillTools } from '../skills/tools.js';
+import type { Stats } from '../stats/service.js';
 import type { Store } from '../storage/database.js';
 import { artifacts, checkpoints } from '../storage/schema.js';
 import { artifactPage } from './results.js';
@@ -74,6 +75,7 @@ export type ToolServices = {
   decisions?: Pick<Decisions, 'ask' | 'judge'>;
   schedules?: Pick<Schedules, 'list' | 'create' | 'update' | 'remove'>;
   settings?: { timeZone(): Promise<string> };
+  stats?: Pick<Stats, 'stats' | 'usageRuns'>;
 };
 
 export function profileTools(services: ToolServices, run: Run): ToolSet {
@@ -93,6 +95,28 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
           updatedAt: r.updatedAt,
         })),
     }),
+
+    ...(services.stats
+      ? {
+          read_activity_stats: tool({
+            description:
+              'Read your own complete activity and token usage for a period: totals, estimated cost, models, channels and tools. Includes the shared Codex/Claude subscription windows when available; unavailable is not zero remaining. Subscription tokens are not money spent.',
+            inputSchema: z.object({ days: z.number().int().min(1).max(3660).default(30) }),
+            execute: async ({ days }) => services.stats?.stats(run.profileId, { days }, true),
+          }),
+          read_usage_runs: tool({
+            description:
+              'Page through your own individual runs, with model, channel, duration, fresh/cached/output tokens and estimated metered cost in USD. No message text or secrets are returned.',
+            inputSchema: z.object({
+              days: z.number().int().min(1).max(3660).default(30),
+              limit: z.number().int().min(1).max(50).default(25),
+              offset: z.number().int().min(0).default(0),
+            }),
+            execute: async ({ days, limit, offset }) =>
+              services.stats?.usageRuns(run.profileId, days, limit, offset),
+          }),
+        }
+      : {}),
 
     read_memories: tool({
       description:
@@ -479,6 +503,11 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
  * profiles still costs one call rather than two.
  */
 export const TOOL_GROUPS = {
+  activity: {
+    summary:
+      'read your own full activity, tokens and estimated cost by day, model, channel, tool and individual run',
+    tools: ['read_activity_stats', 'read_usage_runs'],
+  },
   schedules: {
     summary:
       'do something later or on a repetition — reminders, daily summaries, recurring checks — and list, change, pause (switch off without deleting), resume or delete them',

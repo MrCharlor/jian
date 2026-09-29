@@ -50,7 +50,6 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
 function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const settings = pathname.startsWith('/settings');
   // The one screen that is an app of its own: it takes the whole area and scrolls inside.
   const fill = pathname.startsWith('/sessions');
   const { profiles, profile, data, loading, refresh, adopt } = useWorkspace();
@@ -63,6 +62,8 @@ function Shell({ children }: { children: ReactNode }) {
     }
 
     const previous = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const sidebar = document.getElementById('main-navigation');
     const focusable = () =>
       Array.from(
@@ -102,6 +103,7 @@ function Shell({ children }: { children: ReactNode }) {
       cancelAnimationFrame(frame);
       window.removeEventListener('keydown', close);
       desktop.removeEventListener('change', resize);
+      document.body.style.overflow = previousOverflow;
       if (previous instanceof HTMLElement) previous.focus();
     };
   }, [mobile]);
@@ -112,14 +114,6 @@ function Shell({ children }: { children: ReactNode }) {
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
-        {mobile && (
-          <button
-            className="sidebar-backdrop"
-            type="button"
-            aria-label="Close navigation"
-            onClick={() => setMobile(false)}
-          />
-        )}
         <Sidebar
           open={mobile}
           onNavigate={() => setMobile(false)}
@@ -132,15 +126,13 @@ function Shell({ children }: { children: ReactNode }) {
           <Topbar navigationOpen={mobile} onOpenNavigation={() => setMobile(true)} />
           <main id="main-content" tabIndex={-1} className={`main-content ${fill ? 'fill' : ''}`}>
             <NoticeBar />
-            {settings ? (
-              children
-            ) : !profiles.length ? (
+            {!profiles.length ? (
               <Empty
                 title="Bring your first agent to life"
                 action={
                   <Button onClick={() => setCreating(true)}>
                     <Plus size={16} />
-                    Create a profile
+                    Create an agent
                   </Button>
                 }
               >

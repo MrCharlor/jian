@@ -107,7 +107,7 @@ export function Capabilities({
         <section className="row-group" aria-labelledby="skills-installed">
           <h2 id="skills-installed">Installed</h2>
           <p>
-            Written here, imported, or written by the agent itself. Each profile keeps its own copy.
+            Written here, imported, or written by the agent itself. Each agent keeps its own copy.
           </p>
           <SkillImport profile={profile} api={api} mutate={mutate} busy={busy} />
           {profile.skills.length ? (
@@ -246,7 +246,7 @@ export function Capabilities({
           <McpForm
             server={mcp}
             busy={busy}
-            error={failed ? 'Could not save. Check the fields, or refresh the profile.' : ''}
+            error={failed ? 'Could not save. Check the fields, or refresh the agent.' : ''}
             onSave={(next) => void save(next)}
             onClose={() => setEditing(undefined)}
           />

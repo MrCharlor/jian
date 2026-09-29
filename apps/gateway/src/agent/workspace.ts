@@ -28,7 +28,19 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 const PROFILE_ID = /^[0-9a-f-]{36}$/;
 
 /** The system a profile may read: its programs, libraries and configuration. */
-const SYSTEM = ['/usr', '/bin', '/sbin', '/lib', '/lib32', '/lib64', '/libx32', '/etc', '/opt'];
+const SYSTEM = [
+  '/usr',
+  '/bin',
+  '/sbin',
+  '/lib',
+  '/lib32',
+  '/lib64',
+  '/libx32',
+  '/etc',
+  '/opt',
+  // macOS resolves /etc through /private; the file tools check the resolved path.
+  ...(process.platform === 'darwin' ? ['/private/etc'] : []),
+];
 
 /**
  * A command also reads /proc and /sys, which runtimes ask for their CPU count and their own

@@ -16,5 +16,8 @@ apps/gateway-ui/storybook-static/
 *storybook.log
 **/*.tsbuildinfo
 
+# Local design explorations are not part of the shipped gateway.
+.superdesign/
+
 # Cópias de trabalho criadas por agentes; existem só enquanto a tarefa roda.
 .claude/worktrees/

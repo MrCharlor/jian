@@ -380,7 +380,7 @@ export function WorkspaceProvider({
         await api.deleteProfile(profileId);
       } catch (error) {
         setNotice({
-          text: error instanceof Error ? error.message : 'The profile could not be deleted.',
+          text: error instanceof Error ? error.message : 'The agent could not be deleted.',
           error: true,
         });
         setBusy(false);
@@ -394,7 +394,7 @@ export function WorkspaceProvider({
       setProfiles(remaining);
       setSelected(next);
       setHeld((current) => (current?.profileId === profileId ? undefined : current));
-      setNotice({ text: 'Profile deleted.', error: false });
+      setNotice({ text: 'Agent deleted.', error: false });
       setBusy(false);
 
       // Refreshes against the new selection, not the one that no longer exists.

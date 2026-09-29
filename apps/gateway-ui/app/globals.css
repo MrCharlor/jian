@@ -77,7 +77,7 @@
   }
   :focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 0;
+    outline-offset: 3px;
   }
   ::selection {
     @apply bg-accent text-on-accent;
@@ -85,8 +85,7 @@
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
   select {
-    @apply w-full border border-control bg-surface/40 px-3.5 py-3 text-sm text-ink transition-colors;
-    border-radius: 3px 10px 3px 3px;
+    @apply w-full rounded-sm border border-control bg-surface px-3.5 py-3 text-sm text-ink transition-colors;
   }
   input::placeholder,
   textarea::placeholder {
@@ -98,9 +97,7 @@
   select:focus {
     @apply border-accent bg-canvas;
     outline: none;
-    box-shadow:
-      inset 3px 0 0 var(--accent),
-      0 0 0 1px var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
   }
   textarea {
     @apply min-h-20 resize-y leading-relaxed;
@@ -127,15 +124,13 @@
     @apply text-xs;
   }
   .button {
-    @apply relative inline-flex min-h-11 shrink-0 items-center justify-center gap-2.5 border border-transparent px-4 py-2.5 text-xs font-medium transition-all;
-    border-radius: 3px 12px 3px 3px;
+    @apply relative inline-flex min-h-11 shrink-0 items-center justify-center gap-2.5 rounded-sm border border-transparent px-4 py-2.5 text-xs font-medium transition-all;
   }
   .button:active:not(:disabled) {
     transform: translateY(1px);
   }
   .button.primary {
     @apply border-accent bg-accent text-on-accent hover:border-accent-hover hover:bg-accent-hover;
-    box-shadow: inset 0 -2px 0 #0000001a;
   }
   .button.secondary {
     @apply border-line bg-surface text-ink hover:border-accent hover:bg-accent-soft;
@@ -171,7 +166,7 @@
   .badge.bad {
     @apply bg-bad-soft text-bad;
   }
-  /* Something waiting on the owner: in the theme's own colour, not an alarm. */
+  /* Something waiting on the owner, without introducing a second identity accent. */
   .badge.accent {
     @apply bg-accent-soft text-accent;
   }
@@ -200,6 +195,6 @@
     @apply grid min-h-dvh place-items-center text-accent;
   }
   .skip-link {
-    @apply fixed -top-24 left-4 z-50 bg-accent px-5 py-3 text-white focus:top-4;
+    @apply fixed -top-24 left-4 z-50 bg-accent px-5 py-3 text-on-accent focus:top-4;
   }
 }

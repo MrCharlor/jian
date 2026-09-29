@@ -245,8 +245,8 @@ export const profileSchema = z.strictObject({
    * learned as a skill or a memory, in its Learning conversation.
    */
   learnFromWork: z.boolean().default(true),
-  /** Keeping the stickers people send, describing them, and sending them back. */
-  useStickers: z.boolean().default(true),
+  /** Deprecated compatibility field. Sticker analysis in model defaults controls this now. */
+  useStickers: z.boolean().default(false),
   /**
    * Whether this profile takes part in conversations between agents. Off, the others no longer
    * see it or reach it, and it loses them too: the wall runs both ways.

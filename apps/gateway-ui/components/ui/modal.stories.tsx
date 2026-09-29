@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 export const Dialog: Story = {
   render: () => (
     <Modal
-      title="New profile"
+      title="New agent"
       description="A name now; everything else can wait."
       close={fn()}
       footer={

@@ -169,6 +169,38 @@ async function fixture(contextPolicy?: Record<string, number>, subscription = fa
   return { services, profile, session, run };
 }
 
+it('hides disabled generation tools but keeps saved stickers available to the agent', async () => {
+  const { services, profile, run } = await fixture();
+  let step = 0;
+  const model = mockModel({
+    doGenerate: async (options) => {
+      if (step++ === 0)
+        return {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'load',
+              toolName: 'load_tools',
+              input: JSON.stringify({ groups: ['media'] }),
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+          usage,
+          warnings: [],
+        };
+      const names = options.tools?.map((tool) => tool.name) ?? [];
+      expect(names).not.toContain('generate_image');
+      expect(names).not.toContain('generate_speech');
+      expect(names).not.toContain('list_speech_voices');
+      expect(names).toContain('find_stickers');
+      expect(names).toContain('send_sticker');
+      return answer('Done.');
+    },
+  });
+  await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+  expect((await services.runs.run(profile.id, run.id)).status).toBe('completed');
+});
+
 describe('agent runtime', () => {
   it('holds one prompt for the whole turn so the provider can read it back', async () => {
     const { services, profile, session, run } = await fixture();
@@ -753,6 +785,74 @@ it('does not mark a local validation failure as an uncertain external effect', a
   await new AgentRuntime(services, () => model).execute(profile.id, run.id);
   expect((await services.runs.run(profile.id, run.id)).status).toBe('completed');
   expect(calls).toBe(2);
+});
+
+it('preserves bounded, sanitized local tool error details', async () => {
+  const { services, profile, run } = await fixture();
+  const failure = Object.assign(
+    new Error('Invalid schedule: Cookie: synthetic-cookie; other=second-cookie'),
+    {
+      origin: 'validation',
+      code: 'invalid_format',
+      format: 'cron',
+      path: ['cron'],
+      issues: [{ path: ['cron'], message: 'Five fields required', code: 'invalid_format' }],
+      headers: { authorization: 'Bearer synthetic-header' },
+      stack: 'synthetic-stack',
+    },
+  );
+  services.memories.remember = async () => {
+    throw failure;
+  };
+  let prompt = '';
+  let calls = 0;
+  const model = mockModel({
+    doGenerate: async (options) => {
+      if (calls++ === 0) {
+        return {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'bad-schedule',
+              toolName: 'remember',
+              input: JSON.stringify({
+                key: 'test',
+                content: 'Check.',
+                expectedVersion: 0,
+              }),
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+          usage,
+          warnings: [],
+        };
+      }
+      prompt = JSON.stringify(options.prompt);
+      return answer('The schedule was invalid.');
+    },
+  });
+
+  await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+
+  const checkpoints = await services.lifecycle.checkpoints(profile.id, run.id);
+  const durable = JSON.stringify(checkpoints);
+  const failed = checkpoints
+    .map((checkpoint) => checkpoint.data as { phase?: string; reason?: string })
+    .find((data) => data.phase === 'tool-failed');
+  const detail = JSON.parse(String(failed?.reason));
+  expect(prompt).toContain('invalid_format');
+  expect(prompt).toContain('Five fields required');
+  expect(detail).toMatchObject({
+    origin: 'validation',
+    code: 'invalid_format',
+    format: 'cron',
+    path: ['cron'],
+    issues: [{ path: ['cron'], message: 'Five fields required' }],
+  });
+  expect(`${prompt}${durable}`).not.toMatch(
+    /synthetic-cookie|second-cookie|synthetic-header|synthetic-stack|authorization|headers/,
+  );
+  expect((await services.runs.run(profile.id, run.id)).status).toBe('completed');
 });
 
 it('stores a large tool output and sends only a bounded reference to the model', async () => {

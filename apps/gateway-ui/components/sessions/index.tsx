@@ -5,7 +5,15 @@ import {
   GATEWAY_SESSION_CHANNEL,
   LEARNING_SESSION_CHANNEL,
 } from '@jian/contracts';
-import { ArrowLeft, Bot, CheckCheck, GraduationCap, Search, Terminal } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bot,
+  CheckCheck,
+  GraduationCap,
+  Search,
+  SlidersHorizontal,
+  Terminal,
+} from 'lucide-react';
 import { type ComponentType, useState } from 'react';
 import type { Contact, Profile, Run, Session } from '../../lib/api';
 import { date, LOCALE } from '../../lib/format';
@@ -243,7 +251,7 @@ export function Sessions({
     <div className="messenger" data-reading={reading}>
       <aside className="conversation-list" aria-label="Conversations">
         <header>
-          <h1>Sessions</h1>
+          <h1>Chats</h1>
           <div className="search-field">
             <Search size={16} />
             <input
@@ -302,15 +310,34 @@ export function Sessions({
               </small>
             </div>
             {kindOf(active) !== 'learning' && (
-              <SessionModel
-                key={`model-${active.id}`}
-                api={api}
-                profileId={profile.id}
-                session={active}
-                data={data}
-                channel={kindOf(active) === 'whatsapp' || kindOf(active) === 'telegram'}
-                saved={() => void refresh()}
-              />
+              <>
+                <div className="session-model-desktop">
+                  <SessionModel
+                    key={`model-desktop-${active.id}`}
+                    api={api}
+                    profileId={profile.id}
+                    session={active}
+                    data={data}
+                    channel={kindOf(active) === 'whatsapp' || kindOf(active) === 'telegram'}
+                    saved={() => void refresh()}
+                  />
+                </div>
+                <details key={`model-mobile-${active.id}`} className="session-model-mobile">
+                  <summary className="icon-button" aria-label="Chat model settings">
+                    <SlidersHorizontal size={18} />
+                  </summary>
+                  <div className="session-model-mobile-panel">
+                    <SessionModel
+                      api={api}
+                      profileId={profile.id}
+                      session={active}
+                      data={data}
+                      channel={kindOf(active) === 'whatsapp' || kindOf(active) === 'telegram'}
+                      saved={() => void refresh()}
+                    />
+                  </div>
+                </details>
+              </>
             )}
           </header>
           <History

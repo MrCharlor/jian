@@ -41,6 +41,12 @@ start a database for you. Lint, typecheck, build and unit tests need no Docker a
 `JIAN_ROLE=all` runs the API and the worker in one process. `api` and `worker` split them,
 and both halves must share the database and the keyring.
 
+Set `JIAN_TIME_ZONE` to an IANA zone such as `America/Sao_Paulo` for the time agents read and
+the default zone of new schedules. Restart the gateway after changing it. An explicit
+`JIAN_TIME_ZONE` takes precedence over a time zone saved by an older panel; leaving it unset
+preserves that saved value, then falls back to the host zone. Existing schedules retain their
+own zones.
+
 ## The web panel
 
 `pnpm build` compiles the panel with Next.js `output: 'export'` and copies it into

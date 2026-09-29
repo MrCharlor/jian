@@ -9,6 +9,7 @@ import { Peers } from './peers/service.js';
 import { Profiles } from './profiles/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
 import { Providers } from './providers/service.js';
+import { SubscriptionUsageReader } from './providers/subscription-usage.js';
 import { RepositoryStars } from './releases/repository.js';
 import { ReleaseNotes } from './releases/service.js';
 import { RunLifecycle } from './runs/lifecycle.js';
@@ -39,6 +40,7 @@ export type Services = {
   learning: Learning;
   stickers: Stickers;
   stats: Stats;
+  subscriptionUsage: SubscriptionUsageReader;
   schedules: Schedules;
   settings: Settings;
   lifecycle: RunLifecycle;
@@ -56,6 +58,7 @@ export function buildServices({
   clock = Date.now,
   catalog,
   fetcher,
+  timeZone,
 }: {
   store: Store;
   vault: Vault;
@@ -63,13 +66,14 @@ export function buildServices({
   clock?: Clock;
   catalog?: ModelCatalog;
   fetcher?: typeof fetch;
+  timeZone?: string;
 }): Services {
   const profiles = new Profiles(store, vault, clock);
   const providers = new Providers(store, profiles, gatewayVault, clock, catalog);
   const sessions = new Sessions(store, profiles, clock);
   const memories = new Memories(store, profiles, sessions, clock);
   const runs = new Runs(store, profiles, sessions, providers, clock);
-  const settings = new Settings(store);
+  const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
     gatewayVault,
@@ -78,6 +82,12 @@ export function buildServices({
     clock,
   );
   const media = new Media(store, providers, gatewayVault, fetcher ?? createSafeFetch().fetch);
+  const subscriptionUsage = new SubscriptionUsageReader(
+    providers,
+    gatewayVault,
+    fetcher ?? createSafeFetch().fetch,
+    clock,
+  );
 
   return {
     profiles,
@@ -93,7 +103,7 @@ export function buildServices({
     runs,
     peers: new Peers({ profiles, sessions, runs, store }, clock),
     learning: new Learning({ store, profiles, sessions, runs, judge: decisions.judge }, clock),
-    stickers: new Stickers(store, media, profiles),
+    stickers: new Stickers(store, media, providers),
     // Without a catalog nothing has a list price, and every model counts as unknown.
     stats: new Stats(
       store,
@@ -101,7 +111,9 @@ export function buildServices({
       settings,
       catalog ?? { prime: async () => {}, lookup: () => undefined },
       clock,
+      subscriptionUsage,
     ),
+    subscriptionUsage,
     schedules: new Schedules(store, profiles, sessions, runs, clock),
     settings,
     lifecycle: new RunLifecycle(store, runs, clock),

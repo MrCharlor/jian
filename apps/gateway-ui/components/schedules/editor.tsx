@@ -63,7 +63,7 @@ export function ScheduleEditor({
   const [weekday, setWeekday] = useState(read?.weekday ?? 1);
   const [day, setDay] = useState(read?.day ?? 1);
   const [custom, setCustom] = useState(schedule?.cron ?? '0 8 * * *');
-  // A schedule keeps the zone it was written in; a new one takes the gateway's, from Settings.
+  // A schedule keeps the zone it was written in; a new one takes the gateway's configured zone.
   const zoneChoice = timeZone;
   const cron = repeat === 'custom' ? custom : cronFor(repeat, time, weekday, day);
 

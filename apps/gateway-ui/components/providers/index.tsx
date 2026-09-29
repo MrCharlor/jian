@@ -243,7 +243,7 @@ export function Providers({ data, api, mutate, busy }: SectionProps) {
     <>
       <SectionHeading
         title="Providers"
-        description="Connect once, use from every profile. Each profile picks its own model under Model defaults."
+        description="Connect once, use from every agent. Each agent picks its own model under Model defaults."
       />
       <section className="row-group" aria-labelledby="provider-models">
         <h2 id="provider-models">Models</h2>

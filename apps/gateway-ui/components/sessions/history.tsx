@@ -1,10 +1,9 @@
 'use client';
 
-import { LoaderCircle } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GatewayApi, Person, Run, ToolStep } from '../../lib/api';
 import { useWorkspace } from '../../lib/workspace';
-import { Badge, Button, Empty } from '../ui';
+import { Badge, Button, Empty, Orb } from '../ui';
 import { MessageMedia } from './media';
 import { authored, ChatMessage } from './message';
 import { RunProgress } from './progress';
@@ -201,7 +200,7 @@ export function History({
     <div className="session-history">
       <section
         ref={scroller}
-        className="message-history"
+        className={`message-history ${loading ? 'loading' : ''}`}
         aria-label="Session history"
         aria-busy={loading}
         onScroll={(event) => {
@@ -212,9 +211,8 @@ export function History({
       >
         <div className="message-list">
           {loading ? (
-            <div className="history-loading" role="status">
-              <LoaderCircle size={20} className="spin" />
-              Loading the history…
+            <div className="history-loading" role="status" aria-label="Loading conversation">
+              <Orb size={64} />
             </div>
           ) : messages.length ? (
             messages.map((message, index) => {
@@ -260,7 +258,7 @@ export function History({
           ) : (
             !error && <Empty title="No messages in this session">{empty}</Empty>
           )}
-          {pendingCall && callRun && running(callRun) && (
+          {!loading && pendingCall && callRun && running(callRun) && (
             <RunProgress
               run={callRun}
               toolShown={Boolean(
@@ -270,7 +268,7 @@ export function History({
               <ToolTimeline steps={callTools.get(callRun.id) ?? []} live />
             </RunProgress>
           )}
-          {run && isRunning && (
+          {!loading && run && isRunning && (
             <RunProgress
               run={run}
               toolShown={Boolean(tools.get(run.id)?.some((step) => step.status === 'running'))}

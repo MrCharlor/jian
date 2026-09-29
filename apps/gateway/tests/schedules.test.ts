@@ -1,3 +1,4 @@
+import { scheduleInputSchema, schedulePatchSchema } from '@jian/contracts';
 import { describe, expect, it } from 'vitest';
 import { ApiChannel } from '../src/channels/api.js';
 import { ChannelRegistry } from '../src/channels/registry.js';
@@ -7,6 +8,26 @@ import { TelegramChannel } from '../src/channels/telegram.js';
 import { testServices } from './helpers/services.js';
 
 const zone = 'America/Sao_Paulo';
+
+it('treats blank cron as absent before validating the timing choice', () => {
+  const base = {
+    name: 'Reminder',
+    instruction: 'Check the deployment.',
+    sessionId: '00000000-0000-4000-8000-000000000001',
+    timeZone: zone,
+  };
+  const at = '2026-10-01T08:00:00Z';
+
+  for (const cron of ['', '   ']) {
+    expect(scheduleInputSchema.parse({ ...base, at, cron }).cron).toBeUndefined();
+    expect(schedulePatchSchema.parse({ at, cron }).cron).toBeUndefined();
+    expect(scheduleInputSchema.safeParse({ ...base, cron }).success).toBe(false);
+  }
+
+  expect(scheduleInputSchema.safeParse({ ...base, at, cron: '0 8 * * *' }).success).toBe(false);
+  expect(scheduleInputSchema.safeParse({ ...base, cron: 'invalid' }).success).toBe(false);
+  expect(scheduleInputSchema.parse({ ...base, cron: ' 0 8 * * * ' }).cron).toBe('0 8 * * *');
+});
 
 /** A clock the test moves by hand, starting at 07:00 in São Paulo on 2026-09-24. */
 async function setup() {

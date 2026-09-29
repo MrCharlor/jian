@@ -2,10 +2,6 @@ import { LOCALE } from './format';
 /** The browser's zone, for a profile that has not named its own. */
 export const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
-/** Every zone the browser knows, for choosing one. */
-export const timeZones = (): string[] =>
-  typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : ['UTC'];
-
 /** How far `zone` is from UTC at that instant, in minutes: -180 for São Paulo. */
 function offsetMinutes(zone: string, at: number) {
   const name =

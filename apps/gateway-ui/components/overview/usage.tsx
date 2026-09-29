@@ -11,10 +11,9 @@ import {
   Sparkles,
   Terminal,
 } from 'lucide-react';
-import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { ProfileStats } from '../../lib/api';
 import { LOCALE } from '../../lib/format';
-import { toolLabels } from '../sessions/progress';
 import { CountUp, ProviderLogo, TelegramLogo, WhatsAppLogo } from '../ui';
 import { compact, money, percent } from './format';
 
@@ -43,118 +42,10 @@ export function Tile({
         {icon}
       </span>
       <span className="stat-copy">
-        <strong>{children}</strong>
         <small>{label}</small>
+        <strong>{children}</strong>
       </span>
     </div>
-  );
-}
-
-/** Half the tooltip's width: how close to an edge it may sit before it would be cut off. */
-const TIP_REACH = 84;
-
-const longDay: Intl.DateTimeFormatOptions = {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-};
-
-const tokenCount = (tokens: number) =>
-  tokens ? `${tokens.toLocaleString('en')} tokens` : 'No tokens';
-
-const dayLabel = (day: string, options: Intl.DateTimeFormatOptions) =>
-  new Date(`${day}T12:00:00`).toLocaleDateString(LOCALE, options);
-
-/**
- * Every day of the period as a square, darker as more tokens were used, so a quiet week and a
- * busy one read at a glance. Levels are cut from this period's own busiest day.
- */
-function Intensity({ stats }: { stats: ProfileStats }) {
-  const { period } = stats;
-  const card = useRef<HTMLElement>(null);
-  const [hover, setHover] = useState<{ day: string; tokens: number; x: number; y: number }>();
-  const days = Math.min(period.days, 90);
-  const used = new Map(period.daily.map((item) => [item.day, item.tokens]));
-  const busiest = Math.max(1, ...period.daily.map((item) => item.tokens));
-  const best = period.daily.reduce<(typeof period.daily)[number] | undefined>(
-    (top, item) => (!top || item.tokens > top.tokens ? item : top),
-    undefined,
-  );
-  const today = new Date();
-  const cells = Array.from({ length: days }, (_, index) => {
-    const date = new Date(today);
-
-    date.setDate(today.getDate() - (days - 1 - index));
-
-    const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const tokens = used.get(day) ?? 0;
-
-    return {
-      day,
-      tokens,
-      level: tokens ? Math.min(4, 1 + Math.floor(((tokens - 1) / busiest) * 4)) : 0,
-    };
-  });
-
-  return (
-    <section className="stat-card intensity-card" ref={card}>
-      <header>
-        <div>
-          <h3>Daily intensity</h3>
-          <p>Tokens used each day{period.days > 90 ? ', over the last 90 days' : ''}.</p>
-        </div>
-        {best && (
-          <span className="stat-chip">
-            Best: {dayLabel(best.day, { day: 'numeric', month: 'short' })}
-          </span>
-        )}
-      </header>
-      <div className="intensity" data-days={days}>
-        {cells.map((cell) => (
-          <span
-            key={cell.day}
-            className={`heatmap-day level-${cell.level}`}
-            role="img"
-            aria-label={`${dayLabel(cell.day, longDay)}: ${tokenCount(cell.tokens)}`}
-            onMouseLeave={() => setHover(undefined)}
-            onMouseEnter={(event: MouseEvent<HTMLSpanElement>) => {
-              const box = card.current?.getBoundingClientRect();
-              const square = event.currentTarget.getBoundingClientRect();
-
-              if (!box) return;
-
-              setHover({
-                day: cell.day,
-                tokens: cell.tokens,
-                x: Math.min(
-                  Math.max(square.left - box.left + square.width / 2, TIP_REACH),
-                  box.width - TIP_REACH,
-                ),
-                y: square.top - box.top,
-              });
-            }}
-          />
-        ))}
-      </div>
-      {hover && (
-        <div className="heatmap-tip" role="tooltip" style={{ left: hover.x, top: hover.y }}>
-          <strong>{dayLabel(hover.day, longDay)}</strong>
-          <span>{tokenCount(hover.tokens)}</span>
-        </div>
-      )}
-      <footer>
-        <span>{cells[0] && dayLabel(cells[0].day, { day: 'numeric', month: 'short' })}</span>
-        <span className="intensity-legend" aria-hidden="true">
-          Less
-          {[0, 1, 2, 3, 4].map((level) => (
-            <span key={level} className={`heatmap-day level-${level}`} />
-          ))}
-          More
-        </span>
-        <span>Today</span>
-      </footer>
-    </section>
   );
 }
 
@@ -203,7 +94,61 @@ function Mix({ stats }: { stats: ProfileStats }) {
   );
 }
 
-/** The headline numbers of the period, its two charts, and what the cost leaves out. */
+function SubscriptionLimits({ subscriptions }: { subscriptions: ProfileStats['subscriptions'] }) {
+  const available = subscriptions.filter(
+    (subscription) =>
+      subscription.status === 'available' && (subscription.fiveHour || subscription.weekly),
+  );
+  if (available.length === 0) return null;
+
+  return (
+    <section className="stat-subscriptions" aria-labelledby="subscription-heading">
+      <h3 id="subscription-heading">Subscription limits</h3>
+      <div className="stat-grid">
+        {available.map((subscription) => (
+          <article className="stat-row-card" key={subscription.provider}>
+            <header>
+              <span className="stat-icon" aria-hidden="true">
+                <ProviderLogo
+                  kind={subscription.provider === 'codex' ? 'openai' : 'anthropic'}
+                  size={18}
+                />
+              </span>
+              <strong>{subscription.provider === 'codex' ? 'Codex' : 'Claude'}</strong>
+            </header>
+            <dl className="subscription-windows">
+              {(
+                [
+                  ['5-hour window', subscription.fiveHour],
+                  ['Weekly window', subscription.weekly],
+                ] as const
+              ).map(([label, window]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  {window ? (
+                    <dd className="subscription-meter">
+                      <strong>{window.usedPercent.toFixed(0)}% used</strong>
+                      <span className="share-bar" aria-hidden="true">
+                        <span style={{ width: `${Math.min(100, window.usedPercent)}%` }} />
+                      </span>
+                    </dd>
+                  ) : (
+                    <dd>Unavailable</dd>
+                  )}
+                  {window?.resetsAt && (
+                    <small>Resets {new Date(window.resetsAt).toLocaleString(LOCALE)}</small>
+                  )}
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** The headline numbers of the period, token mix, and what the cost leaves out. */
 export function UsageSummary({ stats }: { stats: ProfileStats }) {
   const { period } = stats;
   const all = tokensOf(period.tokens);
@@ -226,9 +171,20 @@ export function UsageSummary({ stats }: { stats: ProfileStats }) {
         </Tile>
       </div>
       <div className="stat-cards">
-        <Intensity stats={stats} />
         <Mix stats={stats} />
+        {stats.models.length > 0 && (
+          <section className="stat-models" aria-labelledby="models-heading">
+            <header>
+              <h3 id="models-heading">Models</h3>
+              <span className="stat-chip">
+                {period.turns} {period.turns === 1 ? 'turn' : 'turns'}
+              </span>
+            </header>
+            <ModelCards stats={stats} />
+          </section>
+        )}
       </div>
+      <SubscriptionLimits subscriptions={stats.subscriptions} />
       <p className="stat-note">
         Cost is estimated from list prices in the models.dev catalog, not from a provider's bill.
         {period.unpricedTokens > 0 &&
@@ -250,61 +206,79 @@ const billingLabels = {
 /** One card per model used in the period, with the share of the period's tokens it took. */
 export function ModelCards({ stats }: { stats: ProfileStats }) {
   const all = tokensOf(stats.period.tokens);
+  const [expanded, setExpanded] = useState(false);
+  const models = expanded ? stats.models : stats.models.slice(0, 4);
 
   return (
-    <div className="stat-grid">
-      {stats.models.map((model) => {
-        const tokens = tokensOf(model.tokens);
-        const logo = providerLogo(model.provider);
+    <>
+      <section
+        className={`stat-grid${expanded ? ' expanded' : ''}`}
+        aria-label="Model usage"
+        tabIndex={expanded ? 0 : undefined}
+      >
+        {models.map((model) => {
+          const tokens = tokensOf(model.tokens);
+          const logo = providerLogo(model.provider);
 
-        return (
-          <article
-            className="stat-row-card"
-            key={`${model.provider}:${model.modelId}:${model.billing}`}
-          >
-            <header>
-              <span className="stat-icon" aria-hidden="true">
-                {logo ? <ProviderLogo kind={logo} size={18} /> : <Server size={18} />}
-              </span>
-              <strong>{model.modelId}</strong>
-              <span className={`stat-chip ${model.billing}`}>{billingLabels[model.billing]}</span>
-            </header>
-            <dl>
-              <div>
-                <dt>Tokens</dt>
-                <dd>
-                  <CountUp value={tokens} format={compact} />
-                </dd>
+          return (
+            <article
+              className="stat-row-card"
+              key={`${model.provider}:${model.modelId}:${model.billing}`}
+            >
+              <header>
+                <span className="stat-icon" aria-hidden="true">
+                  {logo ? <ProviderLogo kind={logo} size={18} /> : <Server size={18} />}
+                </span>
+                <strong>{model.modelId}</strong>
+                <span className={`stat-chip ${model.billing}`}>{billingLabels[model.billing]}</span>
+              </header>
+              <dl>
+                <div>
+                  <dt>Tokens</dt>
+                  <dd>
+                    <CountUp value={tokens} format={compact} />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Turns</dt>
+                  <dd>
+                    <CountUp value={model.turns} />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Cost</dt>
+                  <dd>
+                    {model.cost !== null ? (
+                      <CountUp value={model.cost} format={money} />
+                    ) : model.billing === 'subscription' ? (
+                      'Included'
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
+                </div>
+              </dl>
+              <div className="share-row">
+                <div className="share-bar" aria-hidden="true">
+                  <span style={{ width: `${all ? (tokens / all) * 100 : 0}%` }} />
+                </div>
+                <small className="share-note">{percent(tokens, all)} of tokens</small>
               </div>
-              <div>
-                <dt>Turns</dt>
-                <dd>
-                  <CountUp value={model.turns} />
-                </dd>
-              </div>
-              <div>
-                <dt>Cost</dt>
-                <dd>
-                  {model.cost !== null ? (
-                    <CountUp value={model.cost} format={money} />
-                  ) : model.billing === 'subscription' ? (
-                    'Included'
-                  ) : (
-                    '—'
-                  )}
-                </dd>
-              </div>
-            </dl>
-            <div className="share-row">
-              <div className="share-bar" aria-hidden="true">
-                <span style={{ width: `${all ? (tokens / all) * 100 : 0}%` }} />
-              </div>
-              <small className="share-note">{percent(tokens, all)} of tokens</small>
-            </div>
-          </article>
-        );
-      })}
-    </div>
+            </article>
+          );
+        })}
+      </section>
+      {stats.models.length > 4 && (
+        <button
+          type="button"
+          className="text-button stat-models-toggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? 'Show fewer models' : `Show all ${stats.models.length} models`}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -344,36 +318,5 @@ export function ChannelCards({ stats }: { stats: ProfileStats }) {
         );
       })}
     </div>
-  );
-}
-
-const toolName = (name: string) => {
-  const label = toolLabels[name];
-
-  return label ? `${label[0]?.toUpperCase()}${label.slice(1)}` : name.replaceAll('_', ' ');
-};
-
-/** The tools the agent reached for most, as bars against the busiest one. */
-export function ToolBars({ stats }: { stats: ProfileStats }) {
-  const most = Math.max(1, ...stats.tools.map((tool) => tool.calls));
-
-  return (
-    <ol className="tool-bars">
-      {stats.tools.map((tool) => (
-        <li key={tool.name}>
-          <span className="tool-bar-name">
-            {toolName(tool.name)}
-            <code>{tool.name}</code>
-          </span>
-          <span className="tool-bar-track" aria-hidden="true">
-            <span style={{ width: `${(tool.calls / most) * 100}%` }} />
-          </span>
-          <span className="tool-bar-count">
-            <CountUp value={tool.calls} />
-            {tool.failed > 0 && <em className="tool-bar-failed">{tool.failed} failed</em>}
-          </span>
-        </li>
-      ))}
-    </ol>
   );
 }

@@ -1,4 +1,4 @@
-![Jian — it only flies joined to another.](apps/gateway-ui/public/brand/readme-banner.png)
+![Jian — self-hosted agent gateway.](apps/gateway-ui/public/brand/readme-banner.png)
 
 # Jian
 
@@ -10,9 +10,8 @@ the web panel without repeating anything.
 It runs on your own server. Provider keys stay in an encrypted vault on your machine, not
 in a vendor's account.
 
-The name is the jian, the one-winged bird of the 比翼の鳥, which cannot fly by itself and
-takes off only once it is joined to another. That is the thesis: things that only work
-connected.
+Jian takes its name from the one-winged bird. Its new mark makes that wing a single,
+forward-moving shape: an agent with its own identity, connected to the person who owns it.
 
 ## What it does
 

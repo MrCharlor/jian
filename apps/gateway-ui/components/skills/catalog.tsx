@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, Check, Download, LoaderCircle, Search } from 'lucide-react';
+import { Check, Download, ExternalLink, LoaderCircle, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { GatewayApi } from '../../lib/api';
 import type { SectionProps } from '../props';
@@ -74,9 +74,7 @@ export function SkillCatalog({
   return (
     <section className="row-group" aria-labelledby="skills-browse">
       <h2 id="skills-browse">Browse</h2>
-      <p>
-        Official catalogs, ready to add to this profile. {profile.skills.length} of 20 installed.
-      </p>
+      <p>Official catalogs, ready to add to this agent. {profile.skills.length} of 20 installed.</p>
       <div className="catalog-toolbar">
         <fieldset className="catalog-sources">
           <legend className="sr-only">Where the skills come from</legend>
@@ -132,14 +130,6 @@ export function SkillCatalog({
               <article className="skill-catalog-card" key={entry.url}>
                 <div className="skill-catalog-title">
                   <h3>{entry.name}</h3>
-                  <a
-                    href={entry.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`See where ${entry.name} comes from`}
-                  >
-                    <ArrowUpRight size={16} />
-                  </a>
                 </div>
                 {entry.description !== 'Skill in this repository' && <p>{entry.description}</p>}
                 <footer>
@@ -147,14 +137,20 @@ export function SkillCatalog({
                     <ProviderLogo kind={source.logo} size={14} />
                     {source.publisher}
                   </span>
-                  <Button
-                    variant="quiet"
-                    disabled={busy || installed || (!existing && profile.skills.length >= 20)}
-                    onClick={() => (existing ? setReplacing(entry) : void importEntry(entry))}
-                  >
-                    {installed ? <Check size={14} /> : <Download size={14} />}
-                    {installed ? 'Installed' : existing ? 'Replace' : 'Add'}
-                  </Button>
+                  <span className="catalog-actions">
+                    <a className="button quiet" href={entry.url} target="_blank" rel="noreferrer">
+                      <ExternalLink size={14} />
+                      View
+                    </a>
+                    <Button
+                      variant="quiet"
+                      disabled={busy || installed || (!existing && profile.skills.length >= 20)}
+                      onClick={() => (existing ? setReplacing(entry) : void importEntry(entry))}
+                    >
+                      {installed ? <Check size={14} /> : <Download size={14} />}
+                      {installed ? 'Installed' : existing ? 'Replace' : 'Add'}
+                    </Button>
+                  </span>
                 </footer>
               </article>
             );
@@ -166,7 +162,7 @@ export function SkillCatalog({
       {replacing && (
         <Confirm
           title={`Replace ${replacing.name}?`}
-          description="This profile already has a skill with that name. Its instructions will be replaced by the catalog's."
+          description="This agent already has a skill with that name. Its instructions will be replaced by the catalog's."
           busy={busy}
           close={() => setReplacing(undefined)}
           confirm={() => void importEntry(replacing)}

@@ -15,7 +15,7 @@ export const Heading: Story = {
   render: () => (
     <SectionHeading
       title="Providers"
-      description="Connect once, use from every profile. Each profile picks its own model under Model defaults."
+      description="Connect once, use from every agent. Each agent picks its own model under Model defaults."
       action={
         <Button>
           <Plus size={16} /> Add

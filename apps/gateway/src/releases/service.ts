@@ -5,8 +5,8 @@ import { eq, sql } from 'drizzle-orm';
 import type { Store } from '../storage/database.js';
 import { releaseReads } from '../storage/schema.js';
 
-/** The one reader of an installation. */
-const OWNER = 'owner';
+/** A new reading history for the 0.1.0 relaunch; the previous one stays available on rollback. */
+const OWNER = 'owner-relaunch';
 
 const VERSION = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 

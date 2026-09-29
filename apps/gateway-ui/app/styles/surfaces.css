@@ -8,9 +8,9 @@
     @apply min-h-dvh;
   }
   /* The brand and the profile on top and the footer below stay put; only the sections scroll
-     between them, so Settings and Sign out are always in reach. */
+     between them, so Sign out stays in reach. */
   .sidebar {
-    @apply fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-hidden border-r border-line bg-canvas px-5 pb-5 pt-8;
+    @apply fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-hidden border-r border-line bg-[#090909] pt-6;
   }
   .sidebar > .brand,
   .sidebar > .profile-selector,
@@ -19,16 +19,13 @@
   }
   /* Scrolls edge to edge, so the focus ring of a link is never clipped by it. */
   .sidebar-nav {
-    @apply -mx-5 min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-6;
+    @apply min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-6;
   }
   .brand {
-    @apply flex w-fit items-center gap-3 text-accent;
+    @apply flex items-center gap-3 text-accent;
   }
   .brand > span:last-child {
-    @apply font-display text-5xl font-semibold leading-none tracking-tight text-ink;
-  }
-  .brand-label {
-    @apply mt-1 block font-sans text-[10px] font-normal tracking-[0.3em] text-muted;
+    @apply font-display text-3xl font-semibold leading-none tracking-tight text-ink;
   }
   .brand-mark {
     @apply block h-12 w-12 shrink-0 text-accent;
@@ -37,11 +34,13 @@
     @apply h-9 w-9;
   }
   .sidebar .brand {
-    @apply mb-9 ml-2;
+    @apply mb-0 min-h-20 px-5 pb-5;
   }
-  /* Closes the sidebar's header with a rule edge to edge, as the footer opens with one. */
+  .brand > .brand-mark {
+    transform: translateY(-5px);
+  }
   .profile-selector {
-    @apply -mx-5 border-b border-line px-5 pb-5;
+    @apply border-b border-line px-4 py-4;
   }
   .mini-avatar {
     @apply grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-sm bg-accent-soft text-xs font-semibold text-accent;
@@ -56,21 +55,20 @@
     @apply relative my-0.5 flex items-center gap-3 rounded-sm px-3 py-2.5 text-[13px] text-muted transition-colors hover:bg-surface hover:text-ink;
   }
   .nav-group a.active {
-    @apply bg-accent-soft font-medium text-accent;
+    @apply bg-accent-soft font-medium text-ink;
   }
   .nav-count {
     @apply ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-on-accent;
   }
   .nav-group a.active::before {
-    @apply absolute inset-y-3 -left-5 w-0.5 bg-accent;
+    @apply absolute inset-y-0 left-0 w-0.5 bg-accent;
     content: "";
   }
   .nav-group a small {
     @apply ml-auto font-mono text-[10px];
   }
-  /* The rule runs edge to edge, past the sidebar's own padding, so the footer reads apart. */
   .sidebar-footer {
-    @apply -mx-5 border-t border-line px-5 pt-5 text-xs text-muted;
+    @apply border-t border-line bg-surface px-5 py-4 text-xs text-muted;
   }
   .sidebar-footer > div {
     @apply flex items-center gap-2;
@@ -98,19 +96,10 @@
     @apply hidden;
   }
   .main-content {
-    @apply mx-auto max-w-[1120px] px-10 pb-12 pt-12;
+    @apply mx-auto max-w-[1200px] px-10 pb-16 pt-10;
   }
   .icon-button.mobile-menu {
     @apply hidden;
-  }
-  .settings-section {
-    @apply grid grid-cols-[200px_minmax(0,1fr)] gap-8 border-t border-line py-7;
-  }
-  .settings-caption p {
-    @apply mb-4 mt-2 text-sm;
-  }
-  .settings-caption .badge {
-    @apply items-center whitespace-normal;
   }
   .settings-fields {
     @apply max-w-3xl;
@@ -159,7 +148,7 @@
     @apply grid grid-cols-2 gap-5;
   }
   .memory-card {
-    @apply relative rounded-sm border border-line border-t-accent p-6;
+    @apply relative rounded-sm border border-line bg-surface p-6;
   }
   .memory-card header {
     @apply mb-4 flex items-center justify-between gap-3;
@@ -226,7 +215,7 @@
     @apply mt-1 max-w-prose text-sm text-ink;
   }
   .modal {
-    @apply m-auto w-[min(600px,calc(100vw-32px))] max-h-[calc(100dvh-48px)] overflow-hidden rounded-xl border border-line bg-canvas p-0 text-ink shadow-2xl;
+    @apply m-auto w-[min(600px,calc(100vw-32px))] max-h-[calc(100dvh-48px)] overflow-hidden rounded-sm border border-line bg-canvas p-0 text-ink;
   }
   .modal[open] {
     @apply flex flex-col;
@@ -333,7 +322,7 @@
     @apply my-4 text-xs leading-relaxed;
   }
   .empty {
-    @apply rounded-sm bg-surface/60 px-6 py-14 text-center;
+    @apply rounded-sm border border-line bg-surface px-6 py-14 text-center;
   }
   .empty-orbit {
     @apply mx-auto mb-5 grid h-16 w-16 place-items-center bg-accent-soft;
@@ -363,7 +352,7 @@
     @apply min-h-0 flex-1 overscroll-contain overflow-auto p-1;
   }
 
-  /* Sessions: the whole area beside the app's sidebar, like a messaging app. */
+  /* Chats: the whole area beside the app's sidebar, like a messaging app. */
   .main-content.fill {
     @apply h-dvh max-w-none overflow-hidden p-0;
   }
@@ -442,7 +431,7 @@
   .orb svg {
     @apply absolute;
   }
-  /* The filter reads the accent through CSS, so it follows the theme and the mode live. */
+  /* The filter reads the shared accent through CSS. */
   .orb-accent {
     flood-color: var(--accent);
   }
@@ -466,6 +455,15 @@
   }
   .session-model {
     @apply grid shrink-0 grid-cols-[minmax(0,14rem)_minmax(0,10rem)] gap-2;
+  }
+  .session-model-mobile {
+    @apply hidden;
+  }
+  .session-model-mobile > summary {
+    @apply cursor-pointer list-none;
+  }
+  .session-model-mobile > summary::-webkit-details-marker {
+    display: none;
   }
   /* In the pane the history runs edge to edge; only the messages keep the inner margin. */
   .conversation-pane .session-history {
@@ -608,7 +606,7 @@
   .mosaic-more {
     @apply absolute inset-0 grid place-items-center bg-black/55 text-3xl font-semibold text-white;
   }
-  /* The viewer takes the whole screen, dark in either mode, as photos are looked at. */
+  /* The viewer takes the whole screen so photos have a quiet backdrop. */
   .viewer {
     @apply m-0 h-dvh max-h-none w-screen max-w-none bg-transparent p-0 text-white;
   }
@@ -699,7 +697,7 @@
   .viewer-document {
     @apply h-full w-full max-w-4xl overflow-auto rounded-lg bg-surface px-10 py-8 text-ink;
   }
-  /* Code reads on a dark page in every theme, as it does in an editor; the colours are the
+  /* Code reads on a dark page, as it does in an editor; the colours are the
      GitHub dark palette, keyed to the classes highlight.js gives each token. */
   .viewer-code {
     @apply h-full w-full max-w-5xl overflow-auto whitespace-pre-wrap break-words rounded-lg p-6 font-mono text-sm leading-6;
@@ -908,7 +906,7 @@
   .markdown tr:last-child td {
     @apply border-b-0;
   }
-  /* Mixed from the ink so the pill stays a step off the page in both modes. */
+  /* Mixed from the ink so the pill stays a step off the page. */
   .chat-line.mine .chat-text {
     @apply max-w-[80%] rounded-2xl px-4 py-2.5;
     background: color-mix(in srgb, var(--ink) 7%, transparent);
@@ -1074,31 +1072,39 @@
 }
 
 @media (max-width: 1100px) {
-  .settings-section {
-    @apply grid-cols-1 gap-3;
-  }
   .memory-grid {
     @apply grid-cols-1;
   }
 }
 @media (max-width: 760px) {
   .sidebar {
-    @apply invisible w-64 -translate-x-full;
+    @apply invisible inset-0 w-full border-0 opacity-0;
+    transform: scale(1.06);
+    transform-origin: center;
+    pointer-events: none;
     transition:
-      transform 160ms,
-      visibility 160ms;
+      transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 300ms ease,
+      visibility 300ms;
   }
   .sidebar.open {
-    @apply visible translate-x-0;
-  }
-  .sidebar-backdrop {
-    @apply fixed inset-0 z-20 bg-ink/40;
+    @apply visible opacity-100;
+    transform: scale(1);
+    pointer-events: auto;
   }
   .workspace {
     @apply ml-0;
+    transform-origin: center top;
+    transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .app-shell:has(.sidebar.open) .workspace {
+    transform: scale(0.94);
   }
   .topbar {
     @apply flex min-h-14 items-center justify-between gap-2 border-b border-line px-4;
+  }
+  .topbar .brand-mark {
+    transform: translateY(-5px);
   }
   .icon-button.mobile-menu {
     @apply inline-flex;
@@ -1126,6 +1132,7 @@
   }
   /* A phone shows the list or the conversation, never both. */
   .main-content.fill {
+    @apply max-w-none p-0;
     height: calc(100dvh - 3.5rem);
   }
   .messenger {
@@ -1139,9 +1146,25 @@
     @apply inline-flex;
   }
   .conversation-pane > header {
-    @apply flex-wrap px-3;
+    @apply px-3;
   }
-  .session-model {
-    @apply w-full grid-cols-2;
+  .session-model-desktop {
+    @apply hidden;
+  }
+  .session-model-mobile {
+    @apply relative block;
+  }
+  .session-model-mobile .session-model {
+    @apply grid-cols-2;
+  }
+  .session-model-mobile-panel {
+    @apply absolute right-0 top-full z-10 w-[min(22rem,calc(100vw-1.5rem))] border border-line bg-surface p-3 shadow-xl;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .workspace {
+    transition: none;
   }
 }

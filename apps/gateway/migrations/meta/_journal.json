@@ -281,6 +281,13 @@
       "when": 1790854000000,
       "tag": "0039_decision-usage",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790858000000,
+      "tag": "0040_stickers-default-off",
+      "breakpoints": true
     }
   ]
 }

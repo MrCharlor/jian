@@ -29,10 +29,24 @@ async function serve(script: string) {
   await app.ready();
   apps.push(app);
 
-  return { app, file };
+  return { app, file, root };
 }
 
 describe('the policy the panel is served with', () => {
+  it('serves the PWA files without sticky browser caching', async () => {
+    const { app, root } = await serve('window.__jian = 1');
+    writeFileSync(join(root, 'sw.js'), 'self.addEventListener("fetch", () => {});');
+    writeFileSync(join(root, 'manifest.webmanifest'), '{"name":"Jian"}');
+
+    const worker = await app.inject({ url: '/ui/sw.js' });
+    const manifest = await app.inject({ url: '/ui/manifest.webmanifest' });
+
+    expect(worker.statusCode).toBe(200);
+    expect(manifest.statusCode).toBe(200);
+    expect(worker.headers['cache-control']).toBe('no-cache');
+    expect(manifest.headers['cache-control']).toBe('no-cache');
+  });
+
   it('names the hash of the inline script in the page it is attached to', async () => {
     const { app } = await serve('window.__jian = 1');
 
