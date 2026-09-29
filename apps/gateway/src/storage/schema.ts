@@ -325,6 +325,7 @@ export const workItems = pgTable(
     title: text('title').notNull(),
     description: text('description').notNull(),
     mediaIds: jsonb('media_ids').$type<string[]>().notNull().default([]),
+    repositories: jsonb('repositories').$type<string[]>().notNull().default([]),
     status: text('status')
       .$type<'todo' | 'in_progress' | 'review' | 'blocked' | 'done'>()
       .notNull()

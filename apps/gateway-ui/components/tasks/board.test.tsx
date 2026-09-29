@@ -17,6 +17,7 @@ it('shows agent work and its read-only activity', async () => {
     title: 'Review release',
     description: 'Check the build before publishing.',
     mediaIds: ['55555555-5555-4555-8555-555555555555'],
+    repositories: [],
     status: 'review',
     note: 'Build passed.',
     version: 1,

@@ -89,7 +89,11 @@ function clip(text: string, limit: number): string {
     : text;
 }
 
-export function shellTools(profileId: string): ToolSet {
+export function shellTools(
+  profileId: string,
+  workerId?: string,
+  gitAccess: { readOnly: string[]; writable: string[] } = { readOnly: [], writable: [] },
+): ToolSet {
   return {
     run_command: tool({
       description:
@@ -100,9 +104,9 @@ export function shellTools(profileId: string): ToolSet {
         timeoutMs: z.number().int().min(1000).max(TIMEOUT_MS).default(30_000),
       }),
       execute: async ({ command, cwd, timeoutMs }) => {
-        const home = await workspaceOf(profileId);
-        const directory = cwd ? await confine(profileId, cwd, 'read') : home;
-        const shell = await confined(home, '/bin/sh', ['-c', command]);
+        const home = await workspaceOf(profileId, workerId);
+        const directory = cwd ? await confine(profileId, cwd, 'read', workerId) : home;
+        const shell = await confined(home, '/bin/sh', ['-c', command], gitAccess);
 
         return new Promise((resolvePromise) => {
           execFile(
@@ -130,6 +134,6 @@ export function shellTools(profileId: string): ToolSet {
       },
     }),
 
-    ...fileTools(profileId),
+    ...fileTools(profileId, workerId),
   };
 }

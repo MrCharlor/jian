@@ -323,6 +323,13 @@
       "when": 1790878000000,
       "tag": "0045_session-summary-cursor",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790882000000,
+      "tag": "0046_task-repositories",
+      "breakpoints": true
     }
   ]
 }

@@ -25,6 +25,7 @@ export const Dashboard: Story = {
         title: title ?? '',
         description: description ?? '',
         mediaIds: [],
+        repositories: [],
         status: status as WorkItem['status'],
         note: '',
         version: 1,

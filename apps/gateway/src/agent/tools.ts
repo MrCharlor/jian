@@ -113,7 +113,11 @@ export function restrictTaskWorkerTools(tools: ToolSet): void {
   for (const name of Object.keys(tools)) if (!TASK_WORKER_TOOLS.has(name)) delete tools[name];
 }
 
-export function profileTools(services: ToolServices, run: Run): ToolSet {
+export function profileTools(
+  services: ToolServices,
+  run: Run,
+  gitAccess: { readOnly: string[]; writable: string[] } = { readOnly: [], writable: [] },
+): ToolSet {
   const coordination = new Coordination(services);
   const rechecked = new Set<string>();
 
@@ -144,7 +148,7 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
           }),
           create_task: tool({
             description:
-              'Create a durable task and start its executor. First check for an existing task. Include the objective, source links/IDs, known state, acceptance criteria, and exact remaining actions in the description. Do not repeat the executor’s work yourself.',
+              'Create a durable task and start its executor. First check for an existing task. Include the objective, source links/IDs, known state, acceptance criteria, and exact remaining actions in the description. For code work, list absolute Git repository roots in repositories; each worker gets its own detached worktree from committed HEAD. Do not repeat the executor’s work yourself.',
             inputSchema: workInputSchema,
             execute: async (input, options) =>
               services.work?.createWithExecutor(run, input, options.toolCallId),
@@ -499,7 +503,7 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
   }
 
   if (run.profile.allowShell) {
-    Object.assign(tools, shellTools(run.profileId));
+    Object.assign(tools, shellTools(run.profileId, run.subagent ? run.id : undefined, gitAccess));
   }
 
   // Writing its own skills is part of every agent's work, not of managing itself: what it

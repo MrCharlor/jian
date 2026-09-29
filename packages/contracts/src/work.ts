@@ -18,6 +18,7 @@ export const subagentSchema = spawnSubagentSchema
     parentRunId: z.uuid(),
     spawnKey: z.string().min(1).max(120),
     inputHash: z.string().regex(/^[a-f0-9]{64}$/),
+    repositories: z.array(z.string()).max(4).optional(),
   });
 export type Subagent = z.infer<typeof subagentSchema>;
 
@@ -40,6 +41,7 @@ export const workInputSchema = z.strictObject({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().min(1).max(4000),
   mediaIds: z.array(z.uuid()).max(4).optional(),
+  repositories: z.array(z.string().trim().min(1).max(4096)).max(4).optional(),
 });
 
 export const workPatchSchema = z
@@ -54,6 +56,7 @@ export const workPatchSchema = z
 
 export const workItemSchema = workInputSchema.extend({
   mediaIds: z.array(z.uuid()),
+  repositories: z.array(z.string()),
   id: z.uuid(),
   profileId: z.uuid(),
   sourceSessionId: z.uuid().nullable(),

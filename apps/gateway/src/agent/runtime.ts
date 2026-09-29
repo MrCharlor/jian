@@ -42,6 +42,7 @@ import { boundToolResult, redactOutput, redactText } from './results.js';
 import { deferTools, profileTools, restrictTaskWorkerTools, type ToolServices } from './tools.js';
 import type { ModelResolver, RuntimeOptions } from './types.js';
 import { markSteering, outsideContent } from './untrusted.js';
+import { prepareWorkerWorkspace } from './worker-workspace.js';
 
 /**
  * How long a model call or a tool may go without a sign of life before the turn is given up.
@@ -188,6 +189,7 @@ export class AgentRuntime {
     const ownsOutbound = !this.options.outbound;
     const secrets = new Set<string>();
     let externalUncertain = false;
+    let externalUncertainDetail: string | undefined;
     let lastCompactionAttempt = -4;
     let compactionRequested = false;
 
@@ -245,8 +247,11 @@ export class AgentRuntime {
       const learning =
         (await this.services.sessions.session(profileId, run.sessionId)).channel ===
         LEARNING_SESSION_CHANNEL;
+      const gitAccess = run.subagent
+        ? await prepareWorkerWorkspace(run)
+        : { readOnly: [], writable: [] };
       const tools: ToolSet = {
-        ...profileTools(this.services, run),
+        ...profileTools(this.services, run, gitAccess),
         ...this.services.media?.tools(run, async (usage) => {
           await account(
             {
@@ -411,23 +416,23 @@ export class AgentRuntime {
                   ? await markSteering(judge, result, signal)
                   : result;
               } catch (error) {
-                // The call never came back, so whether the server acted on it is unknowable.
-                // Everything stops: another tool starting now could act on a state nobody has
-                // established, and the owner is told to reconcile before continuing.
-                if (mcpToolNames.includes(name)) {
+                // Only a tool that could change external state has an uncertain outcome when
+                // it does not answer. A declared read-only MCP tool may fail without stopping
+                // the turn; the agent needs its actual error to choose another way forward.
+                if (mcpToolNames.includes(name) && mcpActionKind(definition)) {
+                  const failure = reason(error, secrets);
                   await this.services.lifecycle
                     .checkpoint(profileId, runId, owner, {
                       phase: 'tool-uncertain',
                       toolName: name,
                       toolCallId: options.toolCallId,
-                      reason: reason(error, secrets),
+                      reason: failure,
                     })
                     .catch(() => {});
 
-                  console.error(
-                    `jian: run ${runId} tool ${name} did not come back — ${reason(error, secrets)}`,
-                  );
+                  console.error(`jian: run ${runId} tool ${name} did not come back — ${failure}`);
                   externalUncertain = true;
+                  externalUncertainDetail = `${name}: ${failure}`;
                   controller.abort();
 
                   throw new Error('External tool outcome is uncertain');
@@ -911,7 +916,13 @@ export class AgentRuntime {
             externalUncertain || signal.aborted ? 'interrupted' : 'failed',
             stalled.signal.aborted
               ? `Stopped: nothing came back from the model or a tool for ${STALLED_AFTER_MS / 60_000} minutes. Completed steps are saved; inspect them before continuing.`
-              : executionFailureMessage(error, externalUncertain, signal.aborted, secrets),
+              : executionFailureMessage(
+                  error,
+                  externalUncertain,
+                  signal.aborted,
+                  secrets,
+                  externalUncertainDetail,
+                ),
           )
           .catch(() => {});
 
@@ -1052,9 +1063,10 @@ function executionFailureMessage(
   uncertain: boolean,
   aborted: boolean,
   secrets: Set<string>,
+  uncertainDetail?: string,
 ): string {
   if (uncertain) {
-    return 'External tool outcome is uncertain. Inspect checkpoints and reconcile effects before continuing.';
+    return `External tool outcome is uncertain${uncertainDetail ? ` (${uncertainDetail})` : ''}. Inspect checkpoints and reconcile effects before continuing.`;
   }
 
   if (aborted) {

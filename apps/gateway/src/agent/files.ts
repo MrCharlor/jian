@@ -55,8 +55,8 @@ const clip = (text: string) =>
   text.length > MAX_OUTPUT ? `${text.slice(0, MAX_OUTPUT)}\n… output cut` : text;
 
 /** The file as it is now, refused when it is not text this tool can safely rewrite. */
-async function textOf(profileId: string, file: string) {
-  const handle = await openToRead(profileId, file);
+async function textOf(profileId: string, file: string, workerId?: string) {
+  const handle = await openToRead(profileId, file, workerId);
 
   try {
     const info = await handle.stat();
@@ -82,8 +82,8 @@ async function textOf(profileId: string, file: string) {
 }
 
 /** A search runs confined like a command, so a link inside the tree cannot lead it out. */
-async function run(profileId: string, command: string, args: string[]) {
-  const home = await workspaceOf(profileId);
+async function run(profileId: string, command: string, args: string[], workerId?: string) {
+  const home = await workspaceOf(profileId, workerId);
   const search = await confined(home, command, args);
 
   return new Promise<{ code: number | string; stdout: string; stderr: string }>((done) => {
@@ -100,7 +100,7 @@ async function run(profileId: string, command: string, args: string[]) {
   });
 }
 
-export function fileTools(profileId: string): ToolSet {
+export function fileTools(profileId: string, workerId?: string): ToolSet {
   // What this run read, and the modification time it saw: the proof an edit needs.
   const seen = new Map<string, number>();
 
@@ -137,8 +137,8 @@ export function fileTools(profileId: string): ToolSet {
         limit: z.number().int().min(1).max(10_000).default(READ_LINES),
       }),
       execute: async ({ path, offset, limit }) => {
-        const file = await confine(profileId, path, 'read');
-        const { text, mtime } = await textOf(profileId, file);
+        const file = await confine(profileId, path, 'read', workerId);
+        const { text, mtime } = await textOf(profileId, file, workerId);
         const lines = text.split('\n');
 
         // A final newline is how files end, not an extra empty line to show.
@@ -177,11 +177,11 @@ export function fileTools(profileId: string): ToolSet {
           .max(50),
       }),
       execute: async ({ path, edits }) => {
-        const file = await confine(profileId, path, 'write');
+        const file = await confine(profileId, path, 'write', workerId);
 
         await assertCurrent(file);
 
-        const { text } = await textOf(profileId, file);
+        const { text } = await textOf(profileId, file, workerId);
         const crlf = text.includes('\r\n');
         let next = text;
         let replacements = 0;
@@ -218,7 +218,7 @@ export function fileTools(profileId: string): ToolSet {
           replacements += edit.replaceAll ? found : 1;
         }
 
-        await writeInWorkspace(profileId, file, next);
+        await writeInWorkspace(profileId, file, next, { workerId });
         await remember(file);
 
         // A few numbered lines around the first change, so the result can be checked in place.
@@ -239,10 +239,10 @@ export function fileTools(profileId: string): ToolSet {
         'Create a file, or replace one completely; missing folders are created. To change part of a file use edit_file instead. An existing file must have been read in this run.',
       inputSchema: z.object({ path: absolute, content: z.string().max(MAX_WRITE) }),
       execute: async ({ path, content }) => {
-        const file = await confine(profileId, path, 'write');
+        const file = await confine(profileId, path, 'write', workerId);
 
         await assertCurrent(file);
-        await writeInWorkspace(profileId, file, content);
+        await writeInWorkspace(profileId, file, content, { workerId });
         await remember(file);
 
         return { path: file, bytes: Buffer.byteLength(content) };
@@ -258,7 +258,7 @@ export function fileTools(profileId: string): ToolSet {
         limit: z.number().int().min(1).max(1000).default(MAX_MATCHES),
       }),
       execute: async ({ pattern, path, limit }) => {
-        const root = await confine(profileId, path, 'read');
+        const root = await confine(profileId, path, 'read', workerId);
         const found: Array<{ path: string; mtime: number }> = [];
 
         for await (const entry of glob(pattern, {
@@ -267,7 +267,7 @@ export function fileTools(profileId: string): ToolSet {
         })) {
           const file = resolve(root, entry);
           // A link in the tree may point out of reach; it is left out rather than listed.
-          const reachable = await confine(profileId, file, 'read').then(
+          const reachable = await confine(profileId, file, 'read', workerId).then(
             () => true,
             () => false,
           );
@@ -305,37 +305,47 @@ export function fileTools(profileId: string): ToolSet {
         limit: z.number().int().min(1).max(2000).default(MAX_MATCHES),
       }),
       execute: async ({ pattern, path, glob: only, ignoreCase, contextLines, output, limit }) => {
-        const target = await confine(profileId, path, 'read');
+        const target = await confine(profileId, path, 'read', workerId);
         const mode = output === 'files' ? ['-l'] : output === 'count' ? ['-c'] : ['-n'];
 
-        let result = await run(profileId, 'rg', [
-          '--no-heading',
-          '--color',
-          'never',
-          ...mode,
-          ...(ignoreCase ? ['-i'] : []),
-          ...(contextLines && output === 'content' ? ['-C', String(contextLines)] : []),
-          ...(only ? ['--glob', only] : []),
-          ...SKIPPED.flatMap((name) => ['--glob', `!${name}`]),
-          '--',
-          pattern,
-          target,
-        ]);
+        let result = await run(
+          profileId,
+          'rg',
+          [
+            '--no-heading',
+            '--color',
+            'never',
+            ...mode,
+            ...(ignoreCase ? ['-i'] : []),
+            ...(contextLines && output === 'content' ? ['-C', String(contextLines)] : []),
+            ...(only ? ['--glob', only] : []),
+            ...SKIPPED.flatMap((name) => ['--glob', `!${name}`]),
+            '--',
+            pattern,
+            target,
+          ],
+          workerId,
+        );
 
         // Without ripgrep, grep answers the same question, minus .gitignore.
         // Confined, a missing program is the helper's exit 127 rather than ENOENT.
         if (result.code === 'ENOENT' || result.code === 127) {
-          result = await run(profileId, 'grep', [
-            '-rE',
-            ...mode,
-            ...(ignoreCase ? ['-i'] : []),
-            ...(contextLines && output === 'content' ? ['-C', String(contextLines)] : []),
-            ...(only ? [`--include=${only}`] : []),
-            ...SKIPPED.map((name) => `--exclude-dir=${name}`),
-            '--',
-            pattern,
-            target,
-          ]);
+          result = await run(
+            profileId,
+            'grep',
+            [
+              '-rE',
+              ...mode,
+              ...(ignoreCase ? ['-i'] : []),
+              ...(contextLines && output === 'content' ? ['-C', String(contextLines)] : []),
+              ...(only ? [`--include=${only}`] : []),
+              ...SKIPPED.map((name) => `--exclude-dir=${name}`),
+              '--',
+              pattern,
+              target,
+            ],
+            workerId,
+          );
         }
 
         // Both tools exit 1 when nothing matched, which is an answer, not a failure.
@@ -356,7 +366,7 @@ export function fileTools(profileId: string): ToolSet {
       description: 'List what is in a directory on the machine this gateway runs on.',
       inputSchema: z.object({ path: absolute }),
       execute: async ({ path }) => {
-        const directory = await confine(profileId, path, 'read');
+        const directory = await confine(profileId, path, 'read', workerId);
         const entries = await readdir(directory, { withFileTypes: true });
 
         return {

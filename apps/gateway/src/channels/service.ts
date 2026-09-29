@@ -1278,8 +1278,14 @@ export class Channels {
    * contact's reply — has no incoming message to hang it on, and without this its answer
    * reaches the transcript and nothing else.
    */
-  async deliverRun(profileId: string, sessionId: string, runId: string): Promise<void> {
-    const contact = await findContactBySession(this.services.store.db, profileId, sessionId);
+  async deliverRun(
+    profileId: string,
+    sessionId: string,
+    runId: string,
+    transaction?: Store['db'],
+  ): Promise<void> {
+    const db = transaction ?? this.services.store.db;
+    const contact = await findContactBySession(db, profileId, sessionId);
 
     if (contact?.status !== 'approved') {
       return;
@@ -1288,28 +1294,28 @@ export class Channels {
     // A run already on its way out needs no second exit. A late answer that arrived while the
     // conversation was busy joins the turn in flight instead of starting one, and a second
     // delivery against that turn would replay every message it had already sent.
-    if (await hasDelivery(this.services.store.db, runId)) {
+    if (await hasDelivery(db, runId)) {
       return;
     }
 
-    const connection = await findConnection(this.services.store.db, contact.channelId);
+    const connection = await findConnection(db, contact.channelId);
     const now = new Date().toISOString();
 
-    await this.services.store.transaction(profileId, (tx) =>
-      insertDelivery(tx, {
-        id: randomUUID(),
-        profileId,
-        channelId: contact.channelId,
-        runId,
-        chatId: contact.chatId,
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
-        remoteMessageIds: [],
-        saidCount: 0,
-        ...(connection ? { connectionGeneration: connection.generation } : {}),
-      }),
-    );
+    const delivery = {
+      id: randomUUID(),
+      profileId,
+      channelId: contact.channelId,
+      runId,
+      chatId: contact.chatId,
+      status: 'pending' as const,
+      createdAt: now,
+      updatedAt: now,
+      remoteMessageIds: [],
+      saidCount: 0,
+      ...(connection ? { connectionGeneration: connection.generation } : {}),
+    };
+    if (transaction) await insertDelivery(transaction, delivery);
+    else await this.services.store.transaction(profileId, (tx) => insertDelivery(tx, delivery));
   }
 
   async deliveries(profileId: string) {

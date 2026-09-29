@@ -268,6 +268,12 @@ function WorkDetail({
                 </dd>
               </div>
             )}
+            {item.repositories.map((repository) => (
+              <div key={repository}>
+                <dt>Repository</dt>
+                <dd>{repository}</dd>
+              </div>
+            ))}
           </dl>
         </section>
         <aside className="work-activity" aria-label="Task activity">

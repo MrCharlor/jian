@@ -938,6 +938,86 @@ describe('when Telegram refuses for flood control', () => {
   });
 });
 
+it('delivers a task worker handoff to the Telegram chat once', async () => {
+  const sent: string[] = [];
+  const f = await setup(async (url, options) => {
+    if (String(url).includes('sendMessage')) {
+      sent.push(JSON.parse(String(options?.body)).text);
+    }
+    return Response.json({ ok: true, result: { message_id: sent.length + 1 } });
+  });
+
+  try {
+    await f.channels.receive(f.channel.id, webhook(f.channel.webhookToken));
+    const [contact] = await f.channels.contacts(f.profile.id);
+    if (!contact) throw new Error('Contact request missing');
+    await f.channels.approveContact(f.profile.id, contact.id);
+
+    const [principal] = await f.services.runs.activities(f.profile.id);
+    if (!principal) throw new Error('Principal run missing');
+    const task = await f.services.work.create(
+      f.profile.id,
+      { title: 'Review PR', description: 'Inspect the diff and report.' },
+      principal.sessionId,
+    );
+    const worker = await f.services.work.spawn(
+      principal,
+      {
+        taskId: task.id,
+        role: 'execute',
+        name: 'Reviewer',
+        identity: 'Review code.',
+        brief: 'Review.',
+      },
+      'review-pr',
+    );
+    await f.services.lifecycle.claim(principal.id, f.profile.id, 'principal');
+    await f.services.lifecycle.finish(
+      f.profile.id,
+      principal.id,
+      'principal',
+      'completed',
+      'Worker queued.',
+    );
+    await f.channels.dispatch();
+
+    await f.services.lifecycle.claim(worker.runId, f.profile.id, 'worker');
+    await f.services.lifecycle.finish(
+      f.profile.id,
+      worker.runId,
+      'worker',
+      'completed',
+      'Review needs more evidence.',
+    );
+    f.services.work.useDeliveries(f.channels);
+    await f.services.work.reportWorker(f.profile.id, worker.runId);
+    await f.services.work.reportWorker(f.profile.id, worker.runId);
+
+    const followUp = (await f.services.runs.activities(f.profile.id)).find(
+      (run) => run.requestKey === `task-worker-finished:${worker.runId}`,
+    );
+    if (!followUp) throw new Error('Follow-up run missing');
+    expect(
+      (await f.channels.deliveries(f.profile.id)).filter(
+        (delivery) => delivery.runId === followUp.id,
+      ),
+    ).toHaveLength(1);
+
+    await f.services.lifecycle.claim(followUp.id, f.profile.id, 'principal');
+    await f.services.lifecycle.finish(
+      f.profile.id,
+      followUp.id,
+      'principal',
+      'completed',
+      'The review is still pending.',
+    );
+    await f.channels.dispatch();
+    expect(sent.filter((text) => text === 'The review is still pending.')).toHaveLength(1);
+  } finally {
+    await f.app.close();
+  }
+});
+
 describe('markdown in a bubble that cannot draw it', () => {
   it('reaches Telegram as plain text, table included', async () => {
     const sends: string[] = [];

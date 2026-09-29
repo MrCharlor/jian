@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import type { GatewayApi, Person, Run, ToolStep } from '../../lib/api';
 import { useWorkspace } from '../../lib/workspace';
 import { Badge, Button, Empty, Orb } from '../ui';
@@ -80,7 +80,7 @@ export function History({
           api.messages(profileId, sessionId),
           api.activities(profileId),
           group && api.people ? api.people(profileId, sessionId) : [],
-          api.timeline ? api.timeline(profileId, sessionId).catch(() => []) : [],
+          api.timeline ? api.timeline(profileId, sessionId).catch(() => undefined) : undefined,
         ]);
         // The other agent's tools are read where it worked: its own session, in its profile.
         const places = [
@@ -95,14 +95,16 @@ export function History({
         const worked =
           api.timeline && places.length
             ? await Promise.all(
-                places.map(
-                  (call) => api.timeline?.(call.profileId, call.sessionId).catch(() => []) ?? [],
+                places.map((call) =>
+                  api.timeline?.(call.profileId, call.sessionId).catch(() => undefined),
                 ),
               )
             : [];
         if (stopped) return;
-        setCallTools(new Map(worked.flat().map((item) => [item.runId, item.steps])));
-        setTools(new Map(timeline.map((item) => [item.runId, item.steps])));
+        if (worked.every((item) => item !== undefined)) {
+          setCallTools(new Map(worked.flat().map((item) => [item.runId, item.steps])));
+        }
+        if (timeline) setTools(new Map(timeline.map((item) => [item.runId, item.steps])));
         setMessages(history);
         setPeople(new Map(members.map((person) => [person.id, person])));
         setRun(
@@ -212,26 +214,45 @@ export function History({
                 opensAnswer && answering
                   ? (message.call ? callTools : tools).get(answering)
                   : undefined;
+              const unansweredSteps =
+                message.role === 'user' &&
+                !message.call &&
+                message.runId &&
+                !(run?.id === message.runId && isRunning) &&
+                !messages.some(
+                  (item) => item.role === 'assistant' && item.runId === message.runId,
+                ) &&
+                !messages
+                  .slice(index + 1)
+                  .some((item) => item.role === 'user' && item.runId === message.runId)
+                  ? tools.get(message.runId)
+                  : undefined;
               const who = (item: typeof message) =>
                 answers(item) ? 'agent' : (authored(item).id ?? authored(item).name ?? '');
 
               return (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  group={group}
-                  people={people}
-                  opensRun={!previous || who(previous) !== who(message)}
-                  before={steps && <ToolTimeline steps={steps} />}
-                >
-                  {api.media && (
-                    <MessageMedia
-                      api={{ media: api.media }}
-                      profileId={profileId}
-                      content={message.content}
-                    />
+                <Fragment key={message.id}>
+                  <ChatMessage
+                    message={message}
+                    group={group}
+                    people={people}
+                    opensRun={!previous || who(previous) !== who(message)}
+                    before={steps && <ToolTimeline steps={steps} />}
+                  >
+                    {api.media && (
+                      <MessageMedia
+                        api={{ media: api.media }}
+                        profileId={profileId}
+                        content={message.content}
+                      />
+                    )}
+                  </ChatMessage>
+                  {unansweredSteps && (
+                    <div className="chat-line theirs">
+                      <ToolTimeline steps={unansweredSteps} />
+                    </div>
                   )}
-                </ChatMessage>
+                </Fragment>
               );
             })
           ) : (

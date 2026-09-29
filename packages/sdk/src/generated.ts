@@ -1313,6 +1313,7 @@ export interface operations {
                         title: string;
                         description: string;
                         mediaIds: string[];
+                        repositories: string[];
                         /** Format: uuid */
                         id: string;
                         /** Format: uuid */
@@ -4671,6 +4672,7 @@ export interface operations {
                             parentRunId: string;
                             spawnKey: string;
                             inputHash: string;
+                            repositories?: string[];
                         };
                         requestKey: string;
                         input: string;
@@ -12171,6 +12173,7 @@ export interface operations {
                             parentRunId: string;
                             spawnKey: string;
                             inputHash: string;
+                            repositories?: string[];
                         };
                         requestKey: string;
                         input: string;
@@ -13797,6 +13800,7 @@ export interface operations {
                             parentRunId: string;
                             spawnKey: string;
                             inputHash: string;
+                            repositories?: string[];
                         };
                         requestKey: string;
                         input: string;
@@ -15568,6 +15572,7 @@ export interface operations {
                             parentRunId: string;
                             spawnKey: string;
                             inputHash: string;
+                            repositories?: string[];
                         };
                         requestKey: string;
                         input: string;
@@ -15800,6 +15805,7 @@ export interface operations {
                             parentRunId: string;
                             spawnKey: string;
                             inputHash: string;
+                            repositories?: string[];
                         };
                         requestKey: string;
                         input: string;
@@ -16032,6 +16038,7 @@ export interface operations {
                             parentRunId: string;
                             spawnKey: string;
                             inputHash: string;
+                            repositories?: string[];
                         };
                         requestKey: string;
                         input: string;

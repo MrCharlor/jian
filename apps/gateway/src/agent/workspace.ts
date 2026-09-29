@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { constants } from 'node:fs';
-import { type FileHandle, mkdir, open, readlink, realpath } from 'node:fs/promises';
+import { type FileHandle, lstat, mkdir, open, readlink, realpath } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
@@ -67,7 +67,7 @@ export function workspacesRoot(): string {
 }
 
 /** The profile's directory, created on first use and readable by this user alone. */
-export async function workspaceOf(profileId: string): Promise<string> {
+export async function workspaceOf(profileId: string, workerId?: string): Promise<string> {
   if (!PROFILE_ID.test(profileId)) {
     throw new Error('Invalid profile id');
   }
@@ -76,7 +76,34 @@ export async function workspaceOf(profileId: string): Promise<string> {
 
   await mkdir(join(home, 'tmp'), { recursive: true, mode: 0o700 });
 
-  return realpath(home);
+  if (!workerId) return realpath(home);
+  if (!PROFILE_ID.test(workerId)) throw new Error('Invalid worker id');
+
+  const workers = join(workspacesRoot(), '_workers');
+  await mkdir(workers, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'EEXIST') throw error;
+  });
+  if (!(await lstat(workers)).isDirectory()) throw new Error('Invalid worker workspace root');
+
+  const owner = join(workers, profileId);
+  await mkdir(owner, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'EEXIST') throw error;
+  });
+  if (!(await lstat(owner)).isDirectory()) throw new Error('Invalid worker workspace owner');
+
+  const worker = join(owner, workerId);
+  await mkdir(worker, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'EEXIST') throw error;
+  });
+  if (!(await lstat(worker)).isDirectory()) throw new Error('Invalid worker workspace');
+  const temporary = join(worker, 'tmp');
+  await mkdir(temporary, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'EEXIST') throw error;
+  });
+  if (!(await lstat(temporary)).isDirectory())
+    throw new Error('Invalid worker temporary directory');
+
+  return realpath(worker);
 }
 
 const inside = (path: string, root: string) => path === root || path.startsWith(`${root}${sep}`);
@@ -117,8 +144,13 @@ function assertWithin(real: string, home: string, access: Access, asked: string)
 }
 
 /** The real path, refused when it leads out of what the profile may reach. */
-export async function confine(profileId: string, path: string, access: Access): Promise<string> {
-  const home = await workspaceOf(profileId);
+export async function confine(
+  profileId: string,
+  path: string,
+  access: Access,
+  workerId?: string,
+): Promise<string> {
+  const home = await workspaceOf(profileId, workerId);
   const real = await realOf(path);
 
   assertWithin(real, home, access, path);
@@ -131,21 +163,31 @@ export async function confine(profileId: string, path: string, access: Access): 
  * gateway to a file the profile may not touch. Where /proc is missing (a development machine
  * that is not Linux) the path check is all there is.
  */
-async function assertOpened(handle: FileHandle, profileId: string, access: Access, path: string) {
+async function assertOpened(
+  handle: FileHandle,
+  profileId: string,
+  access: Access,
+  path: string,
+  workerId?: string,
+) {
   const opened = await readlink(`/proc/self/fd/${handle.fd}`).catch(() => undefined);
 
   if (opened !== undefined) {
-    assertWithin(opened, await workspaceOf(profileId), access, path);
+    assertWithin(opened, await workspaceOf(profileId, workerId), access, path);
   }
 }
 
 /** Opens a file to read, only when it is within reach. The caller closes it. */
-export async function openToRead(profileId: string, path: string): Promise<FileHandle> {
-  const real = await confine(profileId, path, 'read');
+export async function openToRead(
+  profileId: string,
+  path: string,
+  workerId?: string,
+): Promise<FileHandle> {
+  const real = await confine(profileId, path, 'read', workerId);
   const handle = await open(real, constants.O_RDONLY | constants.O_NOFOLLOW);
 
   try {
-    await assertOpened(handle, profileId, 'read', path);
+    await assertOpened(handle, profileId, 'read', path, workerId);
   } catch (error) {
     await handle.close();
     throw error;
@@ -162,9 +204,9 @@ export async function writeInWorkspace(
   profileId: string,
   path: string,
   data: string | Uint8Array,
-  { exclusive = false } = {},
+  { exclusive = false, workerId }: { exclusive?: boolean; workerId?: string } = {},
 ): Promise<string> {
-  const real = await confine(profileId, path, 'write');
+  const real = await confine(profileId, path, 'write', workerId);
 
   await mkdir(dirname(real), { recursive: true });
 
@@ -178,7 +220,7 @@ export async function writeInWorkspace(
   );
 
   try {
-    await assertOpened(handle, profileId, 'write', path);
+    await assertOpened(handle, profileId, 'write', path, workerId);
     await handle.truncate(0);
     await handle.writeFile(data);
   } finally {
@@ -226,6 +268,7 @@ export async function confined(
   home: string,
   program: string,
   args: string[],
+  extra: { readOnly?: string[]; writable?: string[] } = {},
 ): Promise<{ file: string; args: string[] }> {
   if ((await sandboxAbi()) < 1) {
     return { file: program, args };
@@ -234,8 +277,8 @@ export async function confined(
   return {
     file: helper(),
     args: [
-      ...COMMAND_READS.flatMap((path) => ['--ro', path]),
-      ...[home, ...DEVICES].flatMap((path) => ['--rw', path]),
+      ...[...COMMAND_READS, ...(extra.readOnly ?? [])].flatMap((path) => ['--ro', path]),
+      ...[home, ...DEVICES, ...(extra.writable ?? [])].flatMap((path) => ['--rw', path]),
       '--',
       program,
       ...args,

@@ -160,6 +160,8 @@ channels.usePublicUrl(config.data.JIAN_PUBLIC_URL);
 services.peers.useDeliveries(channels);
 // Nor has a run a schedule starts in a chat: its answer goes out the same way.
 services.schedules.useDeliveries(channels);
+// A completed task worker wakes its principal in the source chat, including its channel.
+services.work.useDeliveries(channels);
 
 /**
  * How often due schedules are looked for, in milliseconds. A schedule set for 08:00 starts

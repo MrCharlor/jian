@@ -253,7 +253,7 @@ it.each([false, true])(
   },
 );
 
-it.each(['disconnect', 'isError'])(
+it.each(['disconnect', 'isError', 'readOnlyError'])(
   'stops on an unknowable remote outcome and carries on from a refused one (%s)',
   async (failure) => {
     let effects = 0;
@@ -284,6 +284,17 @@ it.each(['disconnect', 'isError'])(
 
         if (failure === 'disconnect') {
           req.socket.destroy();
+        } else if (failure === 'readOnlyError') {
+          res.writeHead(200, { 'Content-Type': 'application/json' }).end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: message.id,
+              error: {
+                code: -32602,
+                message: 'header mismatch: missing Mcp-Param-owner header for parameter "owner"',
+              },
+            }),
+          );
         } else {
           res.writeHead(200, { 'Content-Type': 'application/json' }).end(
             JSON.stringify({
@@ -311,8 +322,10 @@ it.each(['disconnect', 'isError'])(
             ? {
                 tools: [
                   {
-                    name: 'mutate',
-                    description: 'External mutation',
+                    name: failure === 'readOnlyError' ? 'search' : 'mutate',
+                    description:
+                      failure === 'readOnlyError' ? 'Search pull requests' : 'External mutation',
+                    ...(failure === 'readOnlyError' ? { annotations: { readOnlyHint: true } } : {}),
                     inputSchema: { type: 'object', properties: {} },
                   },
                 ],
@@ -365,7 +378,8 @@ it.each(['disconnect', 'isError'])(
               .find((item) => item.name === 'load_mcp_tools');
 
             assert.ok(selector);
-            remoteName = selector.description?.match(/mcp__effects_mutate_[a-f0-9]{8}/)?.[0] ?? '';
+            remoteName =
+              selector.description?.match(/mcp__effects_(?:mutate|search)_[a-f0-9]{8}/)?.[0] ?? '';
             assert.ok(remoteName);
 
             return {
@@ -427,6 +441,7 @@ it.each(['disconnect', 'isError'])(
         expect(finished.status).toBe('interrupted');
         expect(calls).toBe(2);
         expect(finished.error).toContain('reconcil');
+        expect(finished.error).toContain(remoteName);
       } else {
         // A refusal stops nothing: the other call of the step still runs.
         expect(effects).toBe(2);
@@ -434,6 +449,18 @@ it.each(['disconnect', 'isError'])(
         // carries on with it rather than being abandoned.
         expect(finished.status).toBe('completed');
         expect(calls).toBeGreaterThan(2);
+        if (failure === 'readOnlyError') {
+          expect(
+            (await services.lifecycle.checkpoints(profile.id, run.id)).some((checkpoint) => {
+              const data = checkpoint.data as { phase?: string; reason?: string };
+
+              return (
+                data.phase === 'tool-failed' &&
+                data.reason?.includes('missing Mcp-Param-owner header')
+              );
+            }),
+          ).toBe(true);
+        }
       }
 
       // One record per call actually started: a call that never started leaves none.

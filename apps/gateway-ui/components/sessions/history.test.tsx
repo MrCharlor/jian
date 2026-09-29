@@ -98,3 +98,69 @@ it('shows a new run failure when the open session was previously completed', asy
     vi.useRealTimers();
   }
 });
+
+it('keeps tool history visible when a failed run never wrote an answer', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const failed: Run = {
+    id: 'failed-run',
+    profileId: 'profile',
+    sessionId: 'session',
+    requestKey: 'failed',
+    input: 'Review the change',
+    status: 'failed',
+    error: 'The run failed.',
+    createdAt: '2026-09-29T17:58:17Z',
+    updatedAt: '2026-09-29T17:59:23Z',
+  };
+  let timelineFails = false;
+  const api = {
+    messages: async () => [
+      {
+        id: 'request',
+        profileId: 'profile',
+        sessionId: 'session',
+        runId: failed.id,
+        role: 'user' as const,
+        content: 'Review the change',
+        createdAt: failed.createdAt,
+      },
+    ],
+    activities: async () => [failed],
+    timeline: async () => {
+      if (timelineFails) throw new Error('Gateway time-out');
+      return [
+        {
+          runId: failed.id,
+          steps: [
+            {
+              toolCallId: 'tool-1',
+              toolName: 'read_artifact',
+              status: 'done' as const,
+              startedAt: '2026-09-29T17:58:18Z',
+              finishedAt: '2026-09-29T17:58:19Z',
+            },
+          ],
+        },
+      ];
+    },
+  };
+  const element = document.createElement('div');
+  document.body.append(element);
+  const root = createRoot(element);
+
+  try {
+    await act(async () =>
+      root.render(<History api={api} profileId="profile" sessionId="session" />),
+    );
+    expect(element.textContent).toContain('Review the change');
+    expect(element.textContent).toContain('Used 1 tool');
+    timelineFails = true;
+    await act(async () =>
+      root.render(<History api={api} profileId="profile" sessionId="session" revision={1} />),
+    );
+    expect(element.textContent).toContain('Used 1 tool');
+  } finally {
+    await act(async () => root.unmount());
+    element.remove();
+  }
+});

@@ -143,9 +143,11 @@ it('spawns isolated, idempotent task workers and allows verified direct completi
       title: 'Test release',
       description: 'Run checks and report.',
       mediaIds: [image.id],
+      repositories: ['/workspaces/project'],
     },
     chat.id,
   );
+  expect(task.repositories).toEqual(['/workspaces/project']);
   expect(task.mediaIds).toHaveLength(1);
   expect(task.mediaIds[0]).not.toBe(image.id);
   const input = {
@@ -156,6 +158,9 @@ it('spawns isolated, idempotent task workers and allows verified direct completi
     brief: 'Run the unit tests.',
   };
   const first = await services.work.spawn(principal, input, 'tool-call-1');
+  expect((await services.runs.run(profile.id, first.runId)).subagent?.repositories).toEqual([
+    '/workspaces/project',
+  ]);
   const repeat = await services.work.spawn(principal, input, 'tool-call-1');
   expect(repeat.runId).toBe(first.runId);
   await expect(

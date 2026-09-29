@@ -26,6 +26,15 @@ const present = (row: typeof workItems.$inferSelect): WorkItem => ({
 
 /** One profile's durable commitments, separate from runs and timed schedules. */
 export class Work {
+  private deliveries?: {
+    deliverRun(
+      profileId: string,
+      sessionId: string,
+      runId: string,
+      transaction: Store['db'],
+    ): Promise<void>;
+  };
+
   constructor(
     private readonly store: Store,
     private readonly profiles: ProfileReader,
@@ -33,6 +42,10 @@ export class Work {
     private readonly runs: Pick<Runs, 'run' | 'submit'>,
     private readonly clock: Clock = Date.now,
   ) {}
+
+  useDeliveries(deliveries: NonNullable<Work['deliveries']>) {
+    this.deliveries = deliveries;
+  }
 
   private async copyImage(
     tx: Store['db'],
@@ -146,7 +159,7 @@ export class Work {
       )
         return;
       const principal = await this.runs.run(profileId, worker.subagent.parentRunId, tx);
-      await this.runs.submit(
+      const followUp = await this.runs.submit(
         profileId,
         principal.sessionId,
         {
@@ -163,6 +176,7 @@ export class Work {
         },
         { transaction: tx },
       );
+      await this.deliveries?.deliverRun(profileId, principal.sessionId, followUp.id, tx);
       await tx
         .update(runs)
         .set({ subagentReportedAt: new Date(this.clock()) })
@@ -232,6 +246,7 @@ export class Work {
             role: data.role,
             name: data.name,
             identity: data.identity,
+            repositories: item.repositories,
           },
         },
       );
@@ -269,6 +284,7 @@ export class Work {
           title: data.title,
           description: data.description,
           mediaIds,
+          repositories: data.repositories ?? [],
           updatedBy: 'agent',
           createdAt: now,
           updatedAt: now,
