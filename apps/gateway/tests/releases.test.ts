@@ -20,8 +20,8 @@ describe('the release notes the panel announces', () => {
     const notes = readNotes();
 
     expect(notes.length).toBeGreaterThan(0);
-    expect(notes.map((item) => item.version)).toEqual(['0.2.0', '0.1.0']);
-    expect(notes[1]?.body).toBe('Welcome to Jian.');
+    expect(notes.map((item) => item.version)).toEqual(['0.3.0', '0.2.0', '0.1.0']);
+    expect(notes[2]?.body).toBe('Welcome to Jian.');
   });
 
   it('orders a candidate below the release it leads to', () => {
