@@ -171,13 +171,13 @@ export class Work {
   }
 
   /** A worker is a run in a private session, never a profile or a call to the agent pool. */
-  async spawn(parent: Run, input: unknown, spawnKey: string) {
+  async spawn(parent: Run, input: unknown, spawnKey: string, transaction?: Store['db']) {
     if (parent.subagent)
       throw new GatewayError(403, 'Only the principal agent can spawn task workers');
     const data = spawnSubagentSchema.parse(input);
     const inputHash = createHash('sha256').update(JSON.stringify(data)).digest('hex');
     if (!spawnKey || spawnKey.length > 120) throw new GatewayError(400, 'Invalid spawn key');
-    return this.store.transaction(parent.profileId, async (tx) => {
+    const write = async (tx: Store['db']) => {
       const [task] = await tx
         .select()
         .from(workItems)
@@ -241,12 +241,18 @@ export class Work {
         role: data.role,
       });
       return this.execution(child);
-    });
+    };
+    return transaction ? write(transaction) : this.store.transaction(parent.profileId, write);
   }
 
-  async create(profileId: string, input: unknown, sourceSessionId: string): Promise<WorkItem> {
+  async create(
+    profileId: string,
+    input: unknown,
+    sourceSessionId: string,
+    transaction?: Store['db'],
+  ): Promise<WorkItem> {
     const data = workInputSchema.parse(input);
-    return this.store.transaction(profileId, async (tx) => {
+    const write = async (tx: Store['db']) => {
       await this.profiles.profile(profileId, tx);
       await this.sessions.session(profileId, sourceSessionId, tx);
       const now = new Date(this.clock());
@@ -271,6 +277,29 @@ export class Work {
       const item = assertFound(row, 'Work item');
       await recordEvent(tx, this.clock, profileId, 'work.created', { id: item.id });
       return present(item);
+    };
+    return transaction ? write(transaction) : this.store.transaction(profileId, write);
+  }
+
+  async createWithExecutor(parent: Run, input: unknown, spawnKey: string) {
+    if (parent.subagent)
+      throw new GatewayError(403, 'Only the principal agent can create task workers');
+    return this.store.transaction(parent.profileId, async (tx) => {
+      const task = await this.create(parent.profileId, input, parent.sessionId, tx);
+      const worker = await this.spawn(
+        parent,
+        {
+          taskId: task.id,
+          role: 'execute',
+          name: 'Task executor',
+          identity: 'Execute this task independently. Record evidence and keep its card current.',
+          brief:
+            'Complete the task described in the card. Verify external effects, update its status and note, and report any precise blocker. Do not claim unverified completion.',
+        },
+        spawnKey,
+        tx,
+      );
+      return { ...task, worker };
     });
   }
 

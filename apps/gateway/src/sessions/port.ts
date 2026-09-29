@@ -10,12 +10,19 @@ export interface SessionReader {
     limit?: number,
     after?: string,
   ): Promise<Message[]>;
+  uncompactedMessages(profileId: string, sessionId: string, afterId?: string): Promise<Message[]>;
 }
 
 /** Naming is the agent's one write to a session, and only while it has no name. */
 /** Replacing the turns a prompt carries with the record the agent wrote of them. */
 export interface SessionSummarizer {
-  summarize(profileId: string, sessionId: string, summary: string, upTo: string): Promise<void>;
+  summarize(
+    profileId: string,
+    sessionId: string,
+    summary: string,
+    upTo?: string,
+    throughId?: string,
+  ): Promise<void>;
 }
 
 export interface SessionNamer {

@@ -145,12 +145,13 @@ candidates from a text index and injects only relevant matches within the budget
 the full history stays in the database and is read page by page. This is lexical search:
 embeddings are not implemented. Conversation summaries use the selected compaction model automatically or when the agent calls `compact_context`.
 
-For new provider connections, the selected model determines bounded input, output,
-memory, history and tool-result limits. Legacy profiles retain `contextPolicy` until
+For new provider connections, the selected model determines the per-call context window,
+output reservation, memory and tool-result limits. Conversation history continues through
+session checkpoints rather than a fixed message count. Legacy profiles retain `contextPolicy` until
 they use a registered model. Recognised OpenAI models use a local tokenizer; everything else falls back
 to a conservative one token per UTF-8 byte, and the provider's own reported usage is
-recorded separately. These limits reduce spend but do not replace the spending caps you
-set with the provider.
+recorded separately. Jian does not impose a cumulative token cap per run; use provider
+spending caps for cost control.
 
 Skills advertise short descriptions and load their instructions through `load_skill`. MCP
 runs over HTTP with an explicit allowlist of tools. A remote catalogue is discovered on

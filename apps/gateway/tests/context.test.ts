@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Message } from '@jian/contracts';
 import { tool } from 'ai';
 import { describe, expect, it } from 'vitest';
@@ -5,6 +6,8 @@ import { z } from 'zod';
 import { fitPrompt, promptTokens, tokenCounter } from '../src/context/budget.js';
 import { buildContext } from '../src/context/build.js';
 import { compactPrompt, needsCompaction } from '../src/context/compaction.js';
+import { toolHistoryByRun } from '../src/context/tool-history.js';
+import { insertMessage } from '../src/sessions/repository.js';
 import { mockModel } from './helpers/model.js';
 import { testServices } from './helpers/services.js';
 
@@ -37,7 +40,155 @@ async function fixture() {
 }
 
 describe('context', () => {
-  it('retains a Unicode current turn when the older-history budget is zero', async () => {
+  it('replays tool inputs and results from the previous run without executing them', async () => {
+    const { services, profile, session, run: first } = await fixture();
+    const owner = randomUUID();
+    expect(await services.lifecycle.claim(first.id, profile.id, owner)).not.toBeNull();
+    await services.lifecycle.checkpoint(profile.id, first.id, owner, {
+      phase: 'tool-started',
+      toolName: 'lookup',
+      toolCallId: 'call-1',
+      input: { query: 'invoice-47' },
+    });
+    await services.lifecycle.checkpoint(profile.id, first.id, owner, {
+      phase: 'step-completed',
+      tools: [
+        {
+          toolName: 'lookup',
+          toolCallId: 'call-1',
+          result: { invoice: 'invoice-47', status: 'paid' },
+        },
+      ],
+    });
+    await services.lifecycle.finish(
+      profile.id,
+      first.id,
+      owner,
+      'completed',
+      'The invoice was paid.',
+    );
+    const second = await services.runs.submit(profile.id, session.id, {
+      text: 'What was the invoice number?',
+      requestKey: 'two',
+    });
+    const context = await services.contexts.context(second);
+    const evidence = context.messages.find((message) =>
+      message.content.includes('Recorded tool activity'),
+    );
+    expect(evidence?.content).toContain('invoice-47');
+    expect(evidence?.content).toContain('"status":"paid"');
+    expect(context.messages.at(-1)?.content).toBe('What was the invoice number?');
+
+    const priorAnswer = (await services.sessions.messages(profile.id, session.id)).find(
+      (message) => message.runId === first.id && message.role === 'assistant',
+    );
+    expect(priorAnswer).toBeDefined();
+    if (!priorAnswer) throw new Error('Previous answer missing');
+    await services.sessions.summarize(
+      profile.id,
+      session.id,
+      'The invoice lookup returned invoice-47, paid.',
+      priorAnswer.createdAt,
+      priorAnswer.id,
+    );
+    const compacted = await services.contexts.context(second);
+    expect(compacted.system).toContain('invoice-47, paid');
+    expect(
+      compacted.messages.some((message) => message.content.includes('Recorded tool activity')),
+    ).toBe(false);
+  });
+
+  it('uses the saved summary instead of replaying tool results it already covers', () => {
+    const runId = '11111111-1111-4111-8111-111111111111';
+    const rows = [
+      {
+        runId,
+        createdAt: new Date('2026-09-29T10:00:00Z'),
+        data: {
+          phase: 'tool-started',
+          toolName: 'search',
+          toolCallId: 'old',
+          input: { query: 'old' },
+        },
+      },
+      {
+        runId,
+        createdAt: new Date('2026-09-29T10:00:01Z'),
+        data: {
+          phase: 'context-compacted',
+          summary: 'Old search was completed.',
+        },
+      },
+      {
+        runId,
+        createdAt: new Date('2026-09-29T10:00:02Z'),
+        data: {
+          phase: 'tool-uncertain',
+          toolName: 'update',
+          toolCallId: 'new',
+          reason: 'Connection lost',
+        },
+      },
+    ];
+    const result = toolHistoryByRun(rows, 'Old search was completed.').get(runId) ?? '';
+    expect(result).not.toContain('"old"');
+    expect(result).toContain('"state":"uncertain"');
+    expect(result).toContain('Connection lost');
+    expect(toolHistoryByRun(rows, 'Another summary').get(runId)).toContain('"old"');
+  });
+
+  it('carries more than 40 group turns and resumes exactly after a checkpoint', async () => {
+    const services = await testServices();
+    const profile = await services.profiles.createProfile({
+      name: 'Group reader',
+      instructions: 'Read the group.',
+      model: { provider: 'openai', modelId: 'gpt-4o', apiKeyEnv: 'JIAN_PROVIDER_TEST' },
+    });
+    const session = await services.sessions.createSession(profile.id, { title: 'Group' });
+    const stamp = '2026-09-29T10:00:00.000Z';
+    const ids = Array.from(
+      { length: 52 },
+      (_, index) => `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`,
+    );
+    for (const [index, id] of ids.entries()) {
+      await insertMessage(services.store.db, {
+        id,
+        profileId: profile.id,
+        sessionId: session.id,
+        role: 'user',
+        content: `Alice: group turn ${index}`,
+        author: { id: 'alice', name: 'Alice' },
+        createdAt: stamp,
+      });
+    }
+    const first = await services.runs.submit(profile.id, session.id, {
+      text: 'What did Alice say?',
+      requestKey: 'group-first',
+    });
+    const full = await services.contexts.context(first);
+    expect(full.messages[0]?.content).toContain('group turn 0');
+    expect(full.messages[0]?.content).toContain('group turn 51');
+    expect(full.messages.at(-1)?.content).toContain('What did Alice say?');
+
+    await services.sessions.summarize(profile.id, session.id, 'Legacy checkpoint', stamp);
+    expect((await services.contexts.context(first)).messages[0]?.content).toContain('group turn 0');
+
+    await services.sessions.summarize(
+      profile.id,
+      session.id,
+      'Alice discussed the group.',
+      stamp,
+      ids[49],
+    );
+    const resumed = await services.contexts.context(first);
+    expect(resumed.system).toContain('Alice discussed the group.');
+    expect(resumed.messages[0]?.content).not.toContain('group turn 49');
+    expect(resumed.messages[0]?.content).toContain('group turn 50');
+    expect(resumed.messages[0]?.content).toContain('group turn 51');
+    expect(resumed.messages.at(-1)?.content).toContain('What did Alice say?');
+  });
+
+  it('retains a Unicode current turn when the old history setting is zero', async () => {
     const services = await testServices();
 
     const profile = await services.profiles.createProfile({
@@ -89,7 +240,7 @@ describe('context', () => {
     expect(context.messages.at(-1)?.content).toBe('When was the deployment?');
   });
 
-  it('keeps complete tool-call/result pairs while trimming old blocks to fit the total budget', () => {
+  it('refuses an oversized prompt instead of silently dropping tool-call/result blocks', () => {
     const messages = [
       { role: 'user' as const, content: 'old'.repeat(5000) },
       { role: 'assistant' as const, content: 'old answer'.repeat(3000) },
@@ -113,30 +264,16 @@ describe('context', () => {
       },
     ];
 
-    const fitted = fitPrompt({
-      provider: 'anthropic',
-      modelId: 'test',
-      policy: { inputTokens: 4096, outputTokens: 256 },
-      instructions: 'Answer carefully.',
-      messages,
-      tools: {},
-    });
-
-    expect(fitted.messages.some((m) => m.role === 'user' && m.content === 'current question')).toBe(
-      true,
-    );
-
-    expect(
-      fitted.messages.some((m) => m.role === 'user' && m.content === messages[0]?.content),
-    ).toBe(false);
-
-    expect(fitted.messages.filter((m) => m.role === 'tool')).toHaveLength(1);
-
-    expect(
-      fitted.messages.filter((m) => m.role === 'assistant' && Array.isArray(m.content)),
-    ).toHaveLength(1);
-
-    expect(fitted.tokens).toBeLessThanOrEqual(4096 - 256);
+    expect(() =>
+      fitPrompt({
+        provider: 'anthropic',
+        modelId: 'test',
+        policy: { inputTokens: 4096, outputTokens: 256 },
+        instructions: 'Answer carefully.',
+        messages,
+        tools: {},
+      }),
+    ).toThrow('Context budget exceeded');
   });
 
   it('fails if the mandatory current turn and tool schemas cannot fit with output reserved', () => {

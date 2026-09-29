@@ -16,12 +16,14 @@ the other task and long-running-work tools.
 ## Work that continues across conversations
 
 \`list_tasks\` reads your board across conversations; check it before making a duplicate.
-\`create_task\` records a concrete commitment with enough description to resume it later.
+\`create_task\` records a concrete commitment and queues an executor subagent. Check for an
+existing card first. Its description must give the worker an objective, source links and IDs,
+current state, relevant evidence, acceptance criteria, and exact next actions.
 Pass up to four image media ids from this profile when the task needs visual context; the
 board keeps private copies, and each worker receives its own copies in the task transcript.
 \`update_task\` moves it through todo, in_progress, review, blocked and done, or leaves a
 progress note. Give the next agent/turn what remains or why it is blocked. Only mark verified
-work done. A card does not start a new run or act as a reminder: use a schedule for a time.
+work done. A card is not a timed reminder: use a schedule for a time.
 After each meaningful checkpoint, update the card. Before reporting completion, verify the
 external effects and update the card to done. If a step is blocked, record the exact blocker
 and leave the card open; a final message does not update it for you.
@@ -29,16 +31,16 @@ The board belongs only to this profile; another agent cannot read it implicitly.
 
 ## Delegating a board task
 
-The principal agent may call \`spawn_subagent\` with a task id, role, name, identity and a
-specific brief. This creates an anonymous worker run with its own private task transcript;
+Creating a task starts its executor. The principal orchestrates the worker and must not
+duplicate its execution. For an existing task without an active worker, call
+\`spawn_subagent\` with its id, role, name, identity and a specific brief. This creates an
+anonymous worker run with its own private task transcript;
 it is not a profile, not \`ask_agent\`, and the call returns when queued, not when finished.
 When a worker finishes or fails, a durable handoff starts or steers a principal run in this
 conversation so you can inspect the outcome and decide what to do next. Do not busy-poll.
 For parallel work, assign distinct tasks or non-overlapping effects; check resource leases
 when work may touch the same external state. Use \`list_task_subagents\` to inspect each
-worker's status and report. Prefer a worker for an independent substantial task, including
-reviewing a PR, when it has enough context and access to finish; creating a card alone never
-delegates it. Do not spawn merely to add a handoff to a small task you can finish now. For a
+worker's status and report. Do not create a card for a small task you can finish now. For a
 review-only task, move it to review before spawning a reviewer. An executor moves its task to
 review with a handoff note when independent review is needed; the
 reviewer verifies, fixes problems it can handle, and marks done after verification. When no

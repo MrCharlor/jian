@@ -127,6 +127,9 @@ export class Runs {
       text: [parsed.text, ...(parsed.mediaIds ?? []).map(mediaMarker)].filter(Boolean).join('\n'),
     };
 
+    // Catalog refresh may use the network; never hold the profile transaction while it runs.
+    if (!options.transaction) await this.providers.warmCatalog?.();
+
     // Choosing a model for an owner who has not can reach the provider, and the profile lock
     // must not be held across a network call — so it is resolved before the transaction and
     // used only if nothing is configured by the time the transaction reads it.

@@ -4725,10 +4725,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         call?: {
                             /** Format: uuid */
@@ -9189,8 +9188,7 @@ export interface operations {
                          *       "memoryTokens": 1500,
                          *       "historyTokens": 6000,
                          *       "toolResultTokens": 1500,
-                         *       "maxSteps": 200,
-                         *       "maxRunTokens": 500000
+                         *       "maxSteps": 500
                          *     }
                          */
                         contextPolicy: {
@@ -9204,10 +9202,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         /** @default [] */
                         skills: {
@@ -9455,8 +9452,7 @@ export interface operations {
                          *       "memoryTokens": 1500,
                          *       "historyTokens": 6000,
                          *       "toolResultTokens": 1500,
-                         *       "maxSteps": 200,
-                         *       "maxRunTokens": 500000
+                         *       "maxSteps": 500
                          *     }
                          */
                         contextPolicy: {
@@ -9470,10 +9466,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         /** @default [] */
                         skills: {
@@ -9715,8 +9710,7 @@ export interface operations {
                      *       "memoryTokens": 1500,
                      *       "historyTokens": 6000,
                      *       "toolResultTokens": 1500,
-                     *       "maxSteps": 200,
-                     *       "maxRunTokens": 500000
+                     *       "maxSteps": 500
                      *     }
                      */
                     contextPolicy?: {
@@ -9730,9 +9724,8 @@ export interface operations {
                         historyTokens?: number;
                         /** @default 1500 */
                         toolResultTokens?: number;
-                        /** @default 200 */
+                        /** @default 500 */
                         maxSteps?: number;
-                        /** @default 500000 */
                         maxRunTokens?: number;
                     };
                     /** @default [] */
@@ -9865,8 +9858,7 @@ export interface operations {
                          *       "memoryTokens": 1500,
                          *       "historyTokens": 6000,
                          *       "toolResultTokens": 1500,
-                         *       "maxSteps": 200,
-                         *       "maxRunTokens": 500000
+                         *       "maxSteps": 500
                          *     }
                          */
                         contextPolicy: {
@@ -9880,10 +9872,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         /** @default [] */
                         skills: {
@@ -10133,8 +10124,7 @@ export interface operations {
                          *       "memoryTokens": 1500,
                          *       "historyTokens": 6000,
                          *       "toolResultTokens": 1500,
-                         *       "maxSteps": 200,
-                         *       "maxRunTokens": 500000
+                         *       "maxSteps": 500
                          *     }
                          */
                         contextPolicy: {
@@ -10148,10 +10138,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         /** @default [] */
                         skills: {
@@ -10507,9 +10496,8 @@ export interface operations {
                         historyTokens?: number;
                         /** @default 1500 */
                         toolResultTokens?: number;
-                        /** @default 200 */
+                        /** @default 500 */
                         maxSteps?: number;
-                        /** @default 500000 */
                         maxRunTokens?: number;
                     };
                     skills?: {
@@ -10630,8 +10618,7 @@ export interface operations {
                          *       "memoryTokens": 1500,
                          *       "historyTokens": 6000,
                          *       "toolResultTokens": 1500,
-                         *       "maxSteps": 200,
-                         *       "maxRunTokens": 500000
+                         *       "maxSteps": 500
                          *     }
                          */
                         contextPolicy: {
@@ -10645,10 +10632,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         /** @default [] */
                         skills: {
@@ -11028,8 +11014,7 @@ export interface operations {
                              *       "memoryTokens": 1500,
                              *       "historyTokens": 6000,
                              *       "toolResultTokens": 1500,
-                             *       "maxSteps": 200,
-                             *       "maxRunTokens": 500000
+                             *       "maxSteps": 500
                              *     }
                              */
                             contextPolicy: {
@@ -11043,10 +11028,9 @@ export interface operations {
                                 historyTokens: number;
                                 /** @default 1500 */
                                 toolResultTokens: number;
-                                /** @default 200 */
+                                /** @default 500 */
                                 maxSteps: number;
-                                /** @default 500000 */
-                                maxRunTokens: number;
+                                maxRunTokens?: number;
                             };
                             /** @default [] */
                             skills: {
@@ -11262,6 +11246,8 @@ export interface operations {
                         summary?: string;
                         /** Format: date-time */
                         summarizedUpTo?: string;
+                        /** Format: uuid */
+                        summarizedThroughId?: string;
                         model?: {
                             /** Format: uuid */
                             providerId: string;
@@ -11422,6 +11408,8 @@ export interface operations {
                         summary?: string;
                         /** Format: date-time */
                         summarizedUpTo?: string;
+                        /** Format: uuid */
+                        summarizedThroughId?: string;
                         model?: {
                             /** Format: uuid */
                             providerId: string;
@@ -11574,6 +11562,8 @@ export interface operations {
                         summary?: string;
                         /** Format: date-time */
                         summarizedUpTo?: string;
+                        /** Format: uuid */
+                        summarizedThroughId?: string;
                         model?: {
                             /** Format: uuid */
                             providerId: string;
@@ -11732,6 +11722,8 @@ export interface operations {
                         summary?: string;
                         /** Format: date-time */
                         summarizedUpTo?: string;
+                        /** Format: uuid */
+                        summarizedThroughId?: string;
                         model?: {
                             /** Format: uuid */
                             providerId: string;
@@ -12233,10 +12225,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         call?: {
                             /** Format: uuid */
@@ -13860,10 +13851,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         call?: {
                             /** Format: uuid */
@@ -15632,10 +15622,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         call?: {
                             /** Format: uuid */
@@ -15865,10 +15854,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         call?: {
                             /** Format: uuid */
@@ -16098,10 +16086,9 @@ export interface operations {
                             historyTokens: number;
                             /** @default 1500 */
                             toolResultTokens: number;
-                            /** @default 200 */
+                            /** @default 500 */
                             maxSteps: number;
-                            /** @default 500000 */
-                            maxRunTokens: number;
+                            maxRunTokens?: number;
                         };
                         call?: {
                             /** Format: uuid */

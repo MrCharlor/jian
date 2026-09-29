@@ -183,6 +183,7 @@ export class Providers {
       data.audio = data.transcription;
     }
     data.transcription = data.audio === 'disabled' ? null : data.audio;
+    await this.warmCatalog();
     const available = await this.providers();
 
     return this.store.transaction(profileId, async (tx) => {
@@ -226,6 +227,10 @@ export class Providers {
   async loadCapabilities(config: ModelConfig) {
     await this.catalog?.prime();
     return this.capabilities(config);
+  }
+
+  async warmCatalog() {
+    await this.catalog?.prime();
   }
 
   capabilities(config: ModelConfig) {
@@ -297,21 +302,19 @@ export class Providers {
         ...(selection.reasoningEffort ? { reasoningEffort: selection.reasoningEffort } : {}),
         ...(provider.apiKeyEnv ? { apiKeyEnv: provider.apiKeyEnv } : { providerId: provider.id }),
       },
-      // Ceilings, not targets, and every one of them a share of the window this model really
-      // has: a fixed number written for a small model turns a large one into a small one, and
-      // that is what made an ordinary conversation compact itself every few turns.
+      // Reserve output inside the model's actual window. Session compaction, not a fixed
+      // history share, decides when older turns leave the request.
       policy: {
-        inputTokens: Math.min(900_000, Math.max(16_000, Math.floor(model.contextWindow * 0.6))),
+        inputTokens: model.contextWindow,
         outputTokens: Math.min(
-          64_000,
           model.maxOutputTokens,
-          Math.max(4096, Math.floor(model.contextWindow * 0.06)),
+          Math.max(1024, Math.floor(model.contextWindow / 4)),
+          model.contextWindow - 256,
         ),
         memoryTokens: Math.min(32_000, Math.max(1500, Math.floor(model.contextWindow * 0.02))),
-        historyTokens: Math.min(200_000, Math.max(6000, Math.floor(model.contextWindow * 0.15))),
+        historyTokens: model.contextWindow,
         toolResultTokens: Math.min(32_000, Math.max(1500, Math.floor(model.contextWindow * 0.02))),
-        maxSteps: 200,
-        maxRunTokens: 500_000,
+        maxSteps: 500,
       },
     };
   }

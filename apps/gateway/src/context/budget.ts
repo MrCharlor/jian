@@ -14,7 +14,7 @@ const byteCounter: Counter = (text) => Buffer.byteLength(text, 'utf8');
 
 /** Unknown model tokenizers use one token per UTF-8 byte, a deliberately conservative bound. */
 export function tokenCounter(provider: string, modelId: string): Counter {
-  if (provider === 'openai') {
+  if (provider === 'openai' || provider === 'openai-codex') {
     try {
       const name = getEncodingNameForModel(modelId as TiktokenModel);
       let counter = encoders.get(name);
@@ -137,29 +137,8 @@ export function fitPrompt(input: {
   const toolTokens = count(schema) + 32 * Object.keys(input.tools).length;
   const fixedTokens = systemTokens + toolTokens;
 
-  const blocks = blocksOf(input.messages);
-  const lastUserIndex = blocks.findLastIndex((block) => block[0]?.role === 'user');
-  const mandatory = new Set([lastUserIndex, blocks.length - 1]);
-  const selected = blocks.map(() => true);
-
-  // Tokenize each block once; trimming subtracts its cost instead of recounting the whole prompt.
-  const blockCosts = blocks.map((block) =>
-    block.reduce((sum, message) => sum + messageCost(message, count), 0),
-  );
-  let tokens = fixedTokens + blockCosts.reduce((total, cost) => total + cost, 0);
-
-  for (const [index, cost] of blockCosts.entries()) {
-    if (tokens <= limit) {
-      break;
-    }
-
-    if (mandatory.has(index)) {
-      continue;
-    }
-
-    selected[index] = false;
-    tokens -= cost;
-  }
+  const tokens =
+    fixedTokens + input.messages.reduce((sum, message) => sum + messageCost(message, count), 0);
 
   // Naming the parts is the whole value of this failure: the fixed cost is what the owner can
   // act on, and it is almost always the tool schemas rather than anything they wrote.
@@ -167,13 +146,13 @@ export function fitPrompt(input: {
     throw new Error(
       `Context budget exceeded: ${tokens} tokens against a limit of ${limit}. ` +
         `Tool definitions cost ${count(schema)} and the system prompt ${count(input.instructions)}; ` +
-        'raise inputTokens for this profile or connect fewer MCP tools.',
+        'compact the conversation or connect fewer MCP tools.',
     );
   }
 
   return {
     instructions: input.instructions,
-    messages: blocks.flatMap((block, index) => (selected[index] ? block : [])),
+    messages: [...input.messages],
     tokens,
     breakdown: { system: systemTokens, tools: toolTokens, messages: tokens - fixedTokens },
   };

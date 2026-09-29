@@ -18,7 +18,9 @@ about 41,000 of 200,000 tokens (21%)". Each tool result adds to it until the tur
 - A tool result too large to fit is stored, and you get an artifact id to read it a page at a
   time with \`read_artifact\`.
 
-So you are never cut off for running out of context. What you lose to a summary is detail.
+If even the current request and fixed instructions cannot fit, the gateway reports an explicit
+context error instead of silently dropping conversation turns. What you lose to a successful
+summary is detail; the original messages remain searchable.
 
 ## When to compact yourself
 

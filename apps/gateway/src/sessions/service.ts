@@ -24,6 +24,7 @@ import {
   lastMessages,
   listSessionMessages,
   listSessions,
+  listUncompactedMessages,
   renameSession,
   setSessionModel,
   writeSessionSummary,
@@ -313,13 +314,24 @@ export class Sessions {
     return listSessionMessages(this.store.db, sessionId, limit, after);
   }
 
+  async uncompactedMessages(profileId: string, sessionId: string, afterId?: string) {
+    await this.session(profileId, sessionId);
+    return listUncompactedMessages(this.store.db, sessionId, afterId);
+  }
+
   /**
    * Replaces the turns up to `upTo` with the record the agent wrote of them. The messages stay
    * in the database and in the panel: what changes is only what a request carries.
    */
-  async summarize(profileId: string, sessionId: string, summary: string, upTo: string) {
+  async summarize(
+    profileId: string,
+    sessionId: string,
+    summary: string,
+    upTo?: string,
+    throughId?: string,
+  ) {
     await this.session(profileId, sessionId);
 
-    await writeSessionSummary(this.store.db, sessionId, summary, upTo);
+    await writeSessionSummary(this.store.db, sessionId, summary, upTo, throughId);
   }
 }

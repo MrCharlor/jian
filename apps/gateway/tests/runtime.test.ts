@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { AgentRuntime } from '../src/agent/runtime.js';
+import { insertMessage } from '../src/sessions/repository.js';
 import { mockModel } from './helpers/model.js';
 import { events } from './helpers/rows.js';
 import { testServices } from './helpers/services.js';
@@ -589,92 +591,109 @@ it('resolves a provider key from the installation vault and keeps it out of dura
   );
 });
 
-it.each([31700, 32000])('answers at or beyond the token cap (input: %s)', async (inputTokens) => {
-  const services = await testServices();
-  const profile = await services.profiles.createProfile({
-    ...input,
-    model: {
-      provider: 'anthropic',
-      modelId: 'test',
-      credential: 'subscription',
-      apiKeyEnv: 'ANTHROPIC_API_TOKEN',
-    },
-    contextPolicy: { maxRunTokens: 32000 },
-  });
-  const session = await services.sessions.createSession(profile.id, { title: 'Budget' });
-  const run = await services.runs.submit(profile.id, session.id, {
-    text: 'Hello',
-    requestKey: 'budget',
-  });
-  let calls = 0;
+it.each([31700, 32000])(
+  'continues beyond the legacy token cap (input: %s)',
+  async (inputTokens) => {
+    const services = await testServices();
+    const profile = await services.profiles.createProfile({
+      ...input,
+      model: {
+        provider: 'anthropic',
+        modelId: 'test',
+        credential: 'subscription',
+        apiKeyEnv: 'ANTHROPIC_API_TOKEN',
+      },
+      contextPolicy: { maxRunTokens: 32000, maxSteps: 5 },
+    });
+    const session = await services.sessions.createSession(profile.id, { title: 'Budget' });
+    const run = await services.runs.submit(profile.id, session.id, {
+      text: 'Hello',
+      requestKey: 'budget',
+    });
+    let calls = 0;
 
+    const model = mockModel({
+      doGenerate: async (options) => {
+        calls++;
+
+        expect(JSON.stringify(options.prompt)).toContain(
+          "You are Claude Code, Anthropic's official CLI for Claude.",
+        );
+        if (calls === 3) return answer('The work is complete.');
+
+        return {
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: `call-${calls}`,
+              toolName: 'list_activities',
+              input: '{}',
+            },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+          usage: {
+            inputTokens: { total: inputTokens, noCache: inputTokens, cacheRead: 0, cacheWrite: 0 },
+            outputTokens: { total: 300, text: 300, reasoning: 0 },
+          },
+          warnings: [],
+        };
+      },
+    });
+
+    await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+
+    expect((await services.runs.run(profile.id, run.id)).usage).toEqual({
+      inputTokens: inputTokens * 2 + 10,
+      outputTokens: 610,
+      cachedInputTokens: 0,
+      estimated: false,
+      steps: 3,
+    });
+
+    expect(calls).toBe(3);
+
+    const finished = await services.runs.run(profile.id, run.id);
+
+    expect(finished.status).toBe('completed');
+    expect(finished.output).toBe('The work is complete.');
+  },
+);
+
+it('does not show a false cumulative token warning while tools remain available', async () => {
+  const { services, profile, run } = await fixture({ maxRunTokens: 32000 });
+  let calls = 0;
   const model = mockModel({
     doGenerate: async (options) => {
       calls++;
-
-      if (!options.tools?.length) {
-        if (
-          !JSON.stringify(options.prompt).includes(
-            "You are Claude Code, Anthropic's official CLI for Claude.",
-          )
-        ) {
-          throw new Error('Missing subscription identity on closing call');
-        }
-        expect(JSON.stringify(options.prompt)).toContain('Hello');
+      if (calls === 1) {
+        expect(JSON.stringify(options.prompt)).not.toContain('Run budget is nearly spent.');
         return {
-          content: [{ type: 'text', text: 'I ran out of budget mid-way.' }],
-          finishReason: { unified: 'stop', raw: 'stop' },
+          content: [
+            { type: 'tool-call', toolCallId: 'activity', toolName: 'list_activities', input: '{}' },
+          ],
+          finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
           usage: {
-            inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
-            outputTokens: { total: 5, text: 5, reasoning: 0 },
+            inputTokens: { total: 23000, noCache: 23000, cacheRead: 0, cacheWrite: 0 },
+            outputTokens: { total: 10, text: 10, reasoning: 0 },
           },
           warnings: [],
         };
       }
-
-      return {
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: `call-${calls}`,
-            toolName: 'list_activities',
-            input: '{}',
-          },
-        ],
-        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
-        usage: {
-          inputTokens: { total: inputTokens, noCache: inputTokens, cacheRead: 0, cacheWrite: 0 },
-          outputTokens: { total: 300, text: 300, reasoning: 0 },
-        },
-        warnings: [],
-      };
+      expect(options.tools?.length).toBeGreaterThan(0);
+      expect(JSON.stringify(options.prompt)).not.toContain('Run budget is nearly spent.');
+      return answer('Task state recorded.');
     },
   });
-
   await new AgentRuntime(services, () => model).execute(profile.id, run.id);
-
-  expect((await services.runs.run(profile.id, run.id)).usage).toEqual({
-    inputTokens: inputTokens + 10,
-    outputTokens: 305,
-    cachedInputTokens: 0,
-    estimated: false,
-    steps: 1,
-  });
-
-  // One step of the loop, then the closing call: no further tool round is started.
   expect(calls).toBe(2);
-
-  const finished = await services.runs.run(profile.id, run.id);
-
-  expect(finished.status).toBe('completed');
-  expect(finished.output).toBe('I ran out of budget mid-way.');
+  expect((await services.runs.run(profile.id, run.id)).output).toBe('Task state recorded.');
 });
 
 it('uses conservative estimates when a provider omits usage counters', async () => {
   const services = await testServices();
   const profile = await services.profiles.createProfile({
     ...input,
-    contextPolicy: { maxRunTokens: 32000 },
+    contextPolicy: { maxRunTokens: 32000, maxSteps: 5 },
   });
   const session = await services.sessions.createSession(profile.id, { title: 'Missing usage' });
 
@@ -699,6 +718,8 @@ it('uses conservative estimates when a provider omits usage counters', async () 
     doGenerate: async () => {
       calls++;
 
+      if (calls === 3) return answer('The checkpoint is complete.');
+
       return {
         content: [
           {
@@ -720,7 +741,7 @@ it('uses conservative estimates when a provider omits usage counters', async () 
   const finished = await services.runs.run(profile.id, run.id);
 
   expect(finished.status).toBe('completed');
-  expect(calls).toBeLessThan(12);
+  expect(calls).toBe(3);
   expect(finished.usage?.inputTokens).toBeGreaterThan(0);
   expect(finished.output).toContain('checkpoint');
 });
@@ -812,9 +833,10 @@ it.each([false, true])(
           content: [
             {
               type: 'tool-call',
-              toolCallId: `read-${step++}`,
-              toolName: 'read_memories',
-              input: '{}',
+              toolCallId: `read-${step}`,
+              toolName:
+                ['load_tools', 'read_memories', 'compact_context'][step++] ?? 'compact_context',
+              input: step === 1 ? JSON.stringify({ groups: ['tasks'] }) : '{}',
             },
           ],
           finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
@@ -889,9 +911,10 @@ it.each([false])('uses the separately selected compaction model', async (subscri
         content: [
           {
             type: 'tool-call',
-            toolCallId: `read-${step++}`,
-            toolName: 'read_memories',
-            input: '{}',
+            toolCallId: `read-${step}`,
+            toolName:
+              ['load_tools', 'read_memories', 'compact_context'][step++] ?? 'compact_context',
+            input: step === 1 ? JSON.stringify({ groups: ['tasks'] }) : '{}',
           },
         ],
         finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
@@ -1492,4 +1515,45 @@ it('lets the agent request compaction before reaching the automatic threshold', 
   await new AgentRuntime(services, () => model).execute(profile.id, run.id);
   expect(summaries).toBe(1);
   expect((await services.runs.run(profile.id, run.id)).status).toBe('completed');
+});
+
+it('persists a cursor only through earlier messages covered by compaction', async () => {
+  const { services, profile, session, run } = await fixture({ maxSteps: 6 });
+  const earlierId = randomUUID();
+  await insertMessage(services.store.db, {
+    id: earlierId,
+    profileId: profile.id,
+    sessionId: session.id,
+    role: 'user',
+    content: `Earlier deployment discussion: ${'context '.repeat(300)}`,
+    createdAt: '2026-09-29T09:00:00.000Z',
+  });
+  let step = 0;
+  const model = mockModel({
+    doGenerate: async (options) => {
+      if (!options.tools?.length) return answer('Checkpoint: earlier deployment discussion.');
+      if (step++ >= 2) return answer('Continuing after checkpoint.');
+      const toolName = step === 1 ? 'load_tools' : 'compact_context';
+      return {
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: `call-${step}`,
+            toolName,
+            input: toolName === 'load_tools' ? JSON.stringify({ groups: ['tasks'] }) : '{}',
+          },
+        ],
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+        usage,
+        warnings: [],
+      };
+    },
+  });
+  await new AgentRuntime(services, () => model).execute(profile.id, run.id);
+  const saved = await services.sessions.session(profile.id, session.id);
+  expect(saved.summarizedThroughId).toBe(earlierId);
+  expect(saved.summary).toContain('earlier deployment discussion');
+  const resumed = await services.contexts.context(run);
+  expect(resumed.messages[0]?.content).not.toContain('Earlier deployment discussion:');
+  expect(resumed.messages.at(-1)?.content).toContain(run.input);
 });

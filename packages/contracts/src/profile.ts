@@ -168,18 +168,16 @@ export const contextPolicySchema = z
     // The ceilings follow the model's own window, so a million-token model is not run inside a
     // budget written for a small one. The defaults here are the floor a profile starts from
     // before a model is chosen; the run's own policy is derived from what that model holds.
-    inputTokens: z.number().int().min(16000).max(900000).default(32000),
-    outputTokens: z.number().int().min(256).max(64000).default(4096),
+    inputTokens: z.number().int().min(16000).max(20_000_000).default(32000),
+    outputTokens: z.number().int().min(256).max(1_000_000).default(4096),
     memoryTokens: z.number().int().min(0).max(32000).default(1500),
-    historyTokens: z.number().int().min(0).max(200000).default(6000),
+    historyTokens: z.number().int().min(0).max(20_000_000).default(6000),
     toolResultTokens: z.number().int().min(128).max(32000).default(1500),
-    // A backstop, not the thing that should fire. What really ends a turn is its token budget;
-    // a step ceiling low enough to be reached is a turn thrown away with the work already paid
-    // for. There is no clock on a turn: only a call that stops answering is given up on.
-    maxSteps: z.number().int().min(1).max(500).default(200),
-    // A stop for a turn that has gone wrong, not a bound on a turn doing its job: reaching it
-    // ends the loop with an answer rather than a failure.
-    maxRunTokens: z.number().int().min(32000).max(20_000_000).default(500000),
+    // A runaway-loop backstop, not a context or cumulative token limit.
+    maxSteps: z.number().int().min(1).max(500).default(500),
+    // Accepted for stored profiles and old clients; no longer stops a run. Remove only after
+    // those records and clients have migrated.
+    maxRunTokens: z.number().int().min(32000).max(20_000_000).optional(),
   })
   .refine((policy) => policy.outputTokens < policy.inputTokens, {
     message: 'Output reservation must be smaller than the input budget',

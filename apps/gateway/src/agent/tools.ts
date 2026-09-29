@@ -87,7 +87,7 @@ export type ToolServices = {
   schedules?: Pick<Schedules, 'list' | 'create' | 'update' | 'remove'>;
   settings?: { timeZone(): Promise<string> };
   stats?: Pick<Stats, 'stats' | 'usageRuns'>;
-  work?: Pick<Work, 'list' | 'create' | 'update' | 'spawn' | 'executions'>;
+  work?: Pick<Work, 'list' | 'createWithExecutor' | 'update' | 'spawn' | 'executions'>;
 };
 
 /** Task workers inherit machine/web/media work, not the principal's people or profile. */
@@ -144,9 +144,10 @@ export function profileTools(services: ToolServices, run: Run): ToolSet {
           }),
           create_task: tool({
             description:
-              'Record work that should survive this conversation. First check the board for an existing task. Creating a card does not start another run or schedule work.',
+              'Create a durable task and start its executor. First check for an existing task. Include the objective, source links/IDs, known state, acceptance criteria, and exact remaining actions in the description. Do not repeat the executor’s work yourself.',
             inputSchema: workInputSchema,
-            execute: async (input) => services.work?.create(run.profileId, input, run.sessionId),
+            execute: async (input, options) =>
+              services.work?.createWithExecutor(run, input, options.toolCallId),
           }),
           update_task: tool({
             description:

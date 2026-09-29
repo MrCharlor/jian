@@ -438,3 +438,30 @@ export async function listCheckpoints(
 
   return rows.map(toCheckpoint);
 }
+
+/** Tool evidence for turns still present in a session's uncompact history. */
+export async function listContextToolCheckpoints(
+  db: Queryable,
+  profileId: string,
+  runIds: string[],
+): Promise<Array<{ runId: string; createdAt: Date; data: unknown }>> {
+  if (!runIds.length) return [];
+  return db
+    .select({ runId: checkpoints.runId, createdAt: checkpoints.createdAt, data: checkpoints.data })
+    .from(checkpoints)
+    .where(
+      and(
+        eq(checkpoints.profileId, profileId),
+        inArray(checkpoints.runId, runIds),
+        inArray(sql<string>`${checkpoints.data}->>'phase'`, [
+          'tool-started',
+          'step-completed',
+          'tool-failed',
+          'tool-refused',
+          'tool-uncertain',
+          'context-compacted',
+        ]),
+      ),
+    )
+    .orderBy(asc(checkpoints.createdAt), asc(checkpoints.id));
+}

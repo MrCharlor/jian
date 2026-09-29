@@ -123,12 +123,13 @@ it('freezes the chosen model and its context budget per run', async () => {
   });
 
   expect(chosen.model?.modelId).toBe('gpt-4.1-mini');
-  // A share of the window this model really has, not a number written for a small one.
-  expect(chosen.contextPolicy?.inputTokens).toBe(76_800);
+  expect(chosen.contextPolicy?.inputTokens).toBe(128_000);
+  expect(chosen.contextPolicy?.maxSteps).toBe(500);
   expect(standard.model?.modelId).toBe('internal-preview');
   // Uncatalogued, so it runs on the floor rather than on a ceiling nobody stated — never
   // above what a model whose window is known would get.
-  expect(standard.contextPolicy?.inputTokens).toBeLessThanOrEqual(76_800);
+  expect(standard.contextPolicy?.inputTokens).toBeLessThanOrEqual(128_000);
+  expect(standard.contextPolicy?.maxSteps).toBe(500);
   expect(JSON.stringify(chosen)).not.toContain('synthetic-api-key');
 
   await expect(

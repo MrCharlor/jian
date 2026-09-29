@@ -263,9 +263,9 @@ describe('group conversations', () => {
       if (!run) throw new Error('Run missing');
 
       const context = await f.services.contexts.context(run);
-      const transcript = context.messages.map((message) => message.content).join('\n');
+      const transcript = context.messages.map((message) => message.content).join('\n\n');
 
-      expect(context.messages).toHaveLength(1);
+      expect(context.messages).toHaveLength(2);
 
       // What the agent only heard is read back through the same contract as anything else.
       const history = await f.app.inject({

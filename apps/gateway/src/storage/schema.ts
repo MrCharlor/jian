@@ -163,6 +163,7 @@ export const sessions = pgTable(
     scope: text('scope').$type<'direct' | 'group'>(),
     summary: text('summary'),
     summarizedUpTo: timestamp('summarized_up_to', { withTimezone: true }),
+    summarizedThroughId: uuid('summarized_through_id'),
     model: jsonb('model').$type<ModelSelection>(),
     ponytailMode: text('ponytail_mode')
       .$type<'lite' | 'full' | 'ultra' | 'off'>()

@@ -17,6 +17,7 @@ export async function compactPrompt(input: {
   provider: string;
   modelId: string;
   messages: ModelMessage[];
+  currentStartIndex?: number;
   previous?: string;
   providerOptions?: Record<string, Record<string, JSONValue>>;
   policy: { inputTokens: number; outputTokens: number };
@@ -25,10 +26,21 @@ export async function compactPrompt(input: {
   onUsage: (usage: LanguageModelUsage, inputTokens: number, text: string) => Promise<void>;
 }): Promise<{ messages: ModelMessage[]; summary: string } | undefined> {
   const blocks = blocksOf(input.messages);
-  const older = blocks.slice(0, -2).flat();
-  if (older.length < 2) return undefined;
+  let seen = 0;
+  const currentBlock = blocks.findIndex((block) => {
+    const contains = seen + block.length > (input.currentStartIndex ?? Number.POSITIVE_INFINITY);
+    seen += block.length;
+    return contains;
+  });
+  const keepFrom =
+    input.currentStartIndex !== undefined && currentBlock === 0
+      ? blocks.length
+      : Math.max(currentBlock < 0 ? 0 : currentBlock, blocks.length - 2);
+  const older = blocks.slice(0, keepFrom).flat();
+  if (!older.length || (input.currentStartIndex === undefined && older.length < 2))
+    return undefined;
 
-  const recent = blocks.slice(-2).flat();
+  const recent = blocks.slice(keepFrom).flat();
   const lastUser = input.messages.findLast((message) => message.role === 'user');
   const count = tokenCounter(input.provider, input.modelId);
   const policy = { ...input.policy, outputTokens: Math.min(2048, input.policy.outputTokens) };

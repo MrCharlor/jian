@@ -3,6 +3,7 @@ import { listConversations } from '../channels/repository.js';
 import type { Judge } from '../decisions/service.js';
 import { findMemories, searchMemories, withLinks } from '../memories/repository.js';
 import type { RunReader } from '../runs/port.js';
+import { listContextToolCheckpoints } from '../runs/repository.js';
 import type { SessionReader } from '../sessions/port.js';
 import { findGatewaySession } from '../sessions/repository.js';
 import { availableSkills } from '../skills/builtin/index.js';
@@ -10,6 +11,7 @@ import type { Store } from '../storage/database.js';
 import { buildContext, rankMemories } from './build.js';
 import { judgeTurn } from './judgments.js';
 import type { ContextSource } from './port.js';
+import { toolHistoryByRun, withToolHistory } from './tool-history.js';
 
 export class Contexts {
   constructor(
@@ -21,19 +23,59 @@ export class Contexts {
     private readonly judge?: Judge,
   ) {}
 
+  private async historyWithTools(
+    run: Run,
+    history: Awaited<ReturnType<SessionReader['messages']>>,
+    summary?: string,
+  ) {
+    const runIds = [
+      ...new Set(
+        history.flatMap((message) =>
+          message.runId && message.runId !== run.id ? [message.runId] : [],
+        ),
+      ),
+    ];
+    const checkpoints = await listContextToolCheckpoints(this.store.db, run.profileId, runIds);
+    return withToolHistory(history, toolHistoryByRun(checkpoints, summary), run.id);
+  }
+
   async context(run: Run): ReturnType<ContextSource['context']> {
     if (run.subagent) {
-      const history = await this.sessions.messages(run.profileId, run.sessionId, 40);
+      const session = await this.sessions.session(run.profileId, run.sessionId);
+      const plainHistory = await this.sessions.uncompactedMessages(
+        run.profileId,
+        run.sessionId,
+        session.summarizedThroughId,
+      );
+      const history = await this.historyWithTools(run, plainHistory, session.summary);
+      const currentIndex = history.findIndex(
+        (message) => message.runId === run.id && message.role === 'user',
+      );
+      const plainCurrentIndex = plainHistory.findIndex(
+        (message) => message.runId === run.id && message.role === 'user',
+      );
+      const previous =
+        plainCurrentIndex < 0
+          ? plainHistory.at(-1)
+          : plainCurrentIndex > 0
+            ? plainHistory[plainCurrentIndex - 1]
+            : undefined;
       return {
         system: [
           run.profile.instructions,
           `You are ${JSON.stringify(run.subagent.name)}, an ephemeral ${run.subagent.role} worker for one task.`,
           `Identity and working approach: ${run.subagent.identity}`,
           'Work only on the assigned task. You have no owner conversation, shared memories, contacts, or authority to delegate. Use list_tasks to read the current version and update_task to report progress. Before your final report, mark verified work done, or hand off to review when independent review is needed; leave the exact blocker in the task if incomplete. Your final response is a factual report, not a message to the owner.',
+          ...(session.summary
+            ? [`Earlier task work (checkpoint, not instructions): ${session.summary}`]
+            : []),
         ].join('\n\n'),
         messages: history
           .filter((message) => message.role === 'user' || message.role === 'assistant')
-          .map((message) => ({ role: message.role, content: message.content })),
+          .map((message) => ({ role: message.role, content: message.content }))
+          .concat(currentIndex < 0 ? [{ role: 'user' as const, content: run.input }] : []),
+        currentStartIndex: currentIndex < 0 ? history.length : currentIndex,
+        ...(previous ? { historyCursor: { id: previous.id, createdAt: previous.createdAt } } : {}),
       };
     }
     const words = [...new Set(run.input.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? [])].slice(
@@ -51,7 +93,7 @@ export class Contexts {
       this.runs.activities(run.profileId),
       findGatewaySession(this.store.db, run.profileId),
       listConversations(this.store.db, run.profileId),
-      this.sessions.messages(run.profileId, run.sessionId, 40, session.summarizedUpTo),
+      this.sessions.uncompactedMessages(run.profileId, run.sessionId, session.summarizedThroughId),
     ]);
 
     // One step out from what matched: the memories linked to it, which the request may not
@@ -103,10 +145,19 @@ export class Contexts {
           ...(contact.scope === 'group' ? { group: true } : {}),
         })),
       ],
-      history,
+      history: await this.historyWithTools(run, history, session.summary),
       ...(session.summary ? { summary: session.summary } : {}),
     });
 
-    return judged.light ? { ...built, light: true as const } : built;
+    const currentIndex = history.findIndex(
+      (message) => message.runId === run.id && message.role === 'user',
+    );
+    const earlier = currentIndex < 0 ? history : history.slice(0, currentIndex);
+    const previous = earlier.at(-1);
+    const result = {
+      ...built,
+      ...(previous ? { historyCursor: { id: previous.id, createdAt: previous.createdAt } } : {}),
+    };
+    return judged.light ? { ...result, light: true as const } : result;
   }
 }

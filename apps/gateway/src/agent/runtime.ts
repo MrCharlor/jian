@@ -188,7 +188,6 @@ export class AgentRuntime {
     const ownsOutbound = !this.options.outbound;
     const secrets = new Set<string>();
     let externalUncertain = false;
-    let spent = false;
     let lastCompactionAttempt = -4;
     let compactionRequested = false;
 
@@ -465,10 +464,10 @@ export class AgentRuntime {
         context.light ? lightEffort(config) : config,
         policy.outputTokens,
       );
-      let usedTokens = 0;
       let preparedInputTokens = 0;
       let preparedPrompt: unknown;
       let lastMessages = context.messages as ModelMessage[];
+      let currentStartIndex = context.currentStartIndex;
       const estimate = tokenCounter(config.provider, config.modelId);
       const account = async (
         usage: LanguageModelUsage,
@@ -483,8 +482,6 @@ export class AgentRuntime {
           inputTokens,
           usage.inputTokenDetails?.cacheReadTokens ?? 0,
         );
-        usedTokens += Math.max(0, inputTokens - cachedInputTokens) + outputTokens;
-        spent ||= usedTokens >= policy.maxRunTokens;
         await this.services.lifecycle.recordUsage(profileId, runId, owner, {
           inputTokens,
           outputTokens,
@@ -530,10 +527,9 @@ export class AgentRuntime {
         model,
         instructions: codingInstructions,
         tools: guarded,
-        stopWhen: [
-          stepCountIs(learning ? Math.min(LEARNING_STEPS, policy.maxSteps) : policy.maxSteps),
-          () => spent,
-        ],
+        stopWhen: stepCountIs(
+          learning ? Math.min(LEARNING_STEPS, policy.maxSteps) : policy.maxSteps,
+        ),
         maxRetries: 0,
         maxOutputTokens: policy.outputTokens,
         ...(reasoning ? { providerOptions: reasoning } : {}),
@@ -600,6 +596,24 @@ export class AgentRuntime {
             messages,
             tools: activeTools,
           });
+          // A summary cannot shrink the system instructions or tool definitions.
+          if (
+            promptTokens({
+              ...config,
+              instructions: codingInstructions,
+              messages: [],
+              tools: activeTools,
+            }) >
+            policy.inputTokens - policy.outputTokens
+          ) {
+            fitPrompt({
+              ...config,
+              policy,
+              instructions: codingInstructions,
+              messages,
+              tools: activeTools,
+            });
+          }
           if (
             compactionRequested ||
             (stepNumber - lastCompactionAttempt >= 4 &&
@@ -644,6 +658,7 @@ export class AgentRuntime {
                   : model,
                 ...summaryConfig,
                 messages,
+                currentStartIndex,
                 previous: session.summary,
                 providerOptions: reasoningProviderOptions(
                   summaryConfig,
@@ -674,7 +689,8 @@ export class AgentRuntime {
                   profileId,
                   run.sessionId,
                   summary,
-                  run.createdAt,
+                  context.historyCursor?.createdAt,
+                  context.historyCursor?.id,
                 );
                 messages = compacted.messages.map((message) => ({
                   ...message,
@@ -683,6 +699,7 @@ export class AgentRuntime {
                       ? redactText(message.content, secrets)
                       : message.content,
                 })) as ModelMessage[];
+                currentStartIndex = messages.findLastIndex((message) => message.role === 'user');
               }
             } catch (error) {
               signal.throwIfAborted();
@@ -699,14 +716,14 @@ export class AgentRuntime {
             policy,
             instructions: codingInstructions,
             messages,
-            tools: spent ? {} : activeTools,
+            tools: activeTools,
           });
 
           preparedInputTokens = fitted.tokens;
           preparedPrompt = {
             estimatedTokens: fitted.tokens,
             ...fitted.breakdown,
-            activeTools: spent ? [] : activeNames,
+            activeTools: activeNames,
           };
           lastMessages = fitted.messages;
 
@@ -722,7 +739,7 @@ export class AgentRuntime {
               config.provider === 'anthropic'
                 ? cacheable(fitted.messages, cacheTtl, 3)
                 : fitted.messages,
-            activeTools: spent ? [] : activeNames,
+            activeTools: activeNames,
             maxOutputTokens: policy.outputTokens,
             providerOptions: withOpenAiPromptCache(
               reasoning,
@@ -832,9 +849,7 @@ export class AgentRuntime {
       // Failing there threw the whole turn away — the person paid for the tools and got a
       // sentence pointing at a log. One more call, with no tools, turns it into an answer.
       const exhausted =
-        (spent && finishReason !== 'stop') ||
-        finishReason === 'tool-calls' ||
-        (!answer.trim() && finishReason === 'length');
+        finishReason === 'tool-calls' || (!answer.trim() && finishReason === 'length');
 
       // A provider can return stop with reasoning but no text. Recover only the report;
       // replaying the loop could repeat writes that already succeeded.

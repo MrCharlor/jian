@@ -29,14 +29,32 @@ it('keeps durable work scoped to one profile, editable across runs, and versione
     text: 'Track the work.',
     requestKey: 'work-test',
   });
+  await expect(
+    services.work.createWithExecutor(
+      run,
+      { title: 'Atomic failure', description: 'Must not leave an orphaned task.' },
+      '',
+    ),
+  ).rejects.toMatchObject({ statusCode: 400 });
+  expect(await services.work.list(first.id)).toEqual([]);
   const tools = profileTools(services, run);
   const call = { toolCallId: 'work', messages: [], context: {} };
   const created = (await tools.create_task?.execute?.(
     { title: 'Prepare release', description: 'Verify the build and report the result.' },
     call,
-  )) as { id: string; version: number; sourceSessionId: string; status: string };
+  )) as {
+    id: string;
+    version: number;
+    sourceSessionId: string;
+    status: string;
+    worker: { runId: string; status: string };
+  };
 
   expect(created).toMatchObject({ sourceSessionId: chat.id, status: 'todo', version: 1 });
+  expect(created.worker.status).toBe('queued');
+  expect(await services.work.executions(first.id, created.id)).toMatchObject([
+    { runId: created.worker.runId, role: 'execute' },
+  ]);
   expect(await services.work.list(first.id)).toHaveLength(1);
   expect(await services.work.list(second.id)).toEqual([]);
   await expect(

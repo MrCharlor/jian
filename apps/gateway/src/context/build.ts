@@ -56,7 +56,11 @@ const localTime = (iso: string, zone: string) =>
 export function buildContext(
   run: Run,
   sources: ContextSources,
-): { system: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> } {
+): {
+  system: string;
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  currentStartIndex: number;
+} {
   const policy = run.contextPolicy ?? run.profile.contextPolicy;
   const model = run.model ?? run.profile.model;
   const count = tokenCounter(model.provider, model.modelId);
@@ -127,24 +131,8 @@ export function buildContext(
     createdAt: run.createdAt,
   };
 
-  // The current request is mandatory. historyTokens only limits earlier conversation turns.
-  const selected: Message[] = [current];
-  let historyTokens = 0;
-
-  for (const message of sources.history.slice(0, Math.max(currentIndex, 0)).reverse()) {
-    const cost = count(message.content) + 8;
-
-    if (historyTokens + cost > policy.historyTokens) {
-      break;
-    }
-
-    selected.unshift(message);
-    historyTokens += cost;
-  }
-
-  while (selected[0]?.role === 'assistant') {
-    selected.shift();
-  }
+  // Never discard a conversation turn here; the runtime compacts it before model input.
+  const selected = [...sources.history.filter((message) => message.id !== current.id), current];
 
   const activities = sources.activities
     .filter((activity) => activity.id !== run.id)
@@ -245,14 +233,16 @@ export function buildContext(
     ...earlier,
   ].join('\n\n');
 
-  // What the agent read in a group without answering arrives as a run of user messages. It is
-  // one stretch of conversation, and not every provider accepts two user turns in a row.
+  // Join a stretch of unread group messages, but keep the current request separate so the
+  // older stretch can be checkpointed without summarizing away the live request.
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  let currentStartIndex = 0;
 
   for (const message of selected) {
     const last = messages.at(-1);
+    if (message === current) currentStartIndex = messages.length;
 
-    if (last?.role === 'user' && message.role === 'user') {
+    if (message !== current && last?.role === 'user' && message.role === 'user') {
       last.content = `${last.content}\n\n${message.content}`;
     } else {
       messages.push({ role: message.role, content: message.content });
@@ -274,5 +264,6 @@ export function buildContext(
   return {
     system: `${system}\n\n${hint}Context: this turn starts at about ${used.toLocaleString('en')} of ${policy.inputTokens.toLocaleString('en')} tokens (${share}%). Tool results add to it as you work; near the limit the older part is summarised automatically. See managing-context.`,
     messages,
+    currentStartIndex,
   };
 }

@@ -8,6 +8,7 @@ export interface ProviderAdmin {
 }
 
 export interface ProviderSelection {
+  warmCatalog?(): Promise<void>;
   selectedModel(
     selection: ModelSelection,
     reader: Queryable,

@@ -23,6 +23,7 @@ export function toSession(row: SessionRow): Session {
     ...(row.scope ? { scope: row.scope } : {}),
     ...(row.summary ? { summary: row.summary } : {}),
     ...(row.summarizedUpTo ? { summarizedUpTo: row.summarizedUpTo.toISOString() } : {}),
+    ...(row.summarizedThroughId ? { summarizedThroughId: row.summarizedThroughId } : {}),
     ...(row.model ? { model: row.model } : {}),
     createdAt: row.createdAt.toISOString(),
   };
@@ -51,6 +52,7 @@ export async function insertSession(db: Queryable, session: Session): Promise<vo
     scope: session.scope ?? null,
     summary: session.summary ?? null,
     summarizedUpTo: session.summarizedUpTo ? new Date(session.summarizedUpTo) : null,
+    summarizedThroughId: session.summarizedThroughId ?? null,
     model: session.model ?? null,
     createdAt: new Date(session.createdAt),
   });
@@ -262,16 +264,52 @@ export async function listSessionMessages(
   return rows.map(toMessage).reverse();
 }
 
+/** All turns not yet represented by the session checkpoint, in stable timestamp/id order. */
+export async function listUncompactedMessages(
+  db: Queryable,
+  sessionId: string,
+  afterId?: string,
+): Promise<Message[]> {
+  const [cursor] = afterId
+    ? await db
+        .select({ createdAt: messages.createdAt, id: messages.id })
+        .from(messages)
+        .where(and(eq(messages.sessionId, sessionId), eq(messages.id, afterId)))
+        .limit(1)
+    : [];
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.sessionId, sessionId),
+        cursor
+          ? or(
+              gt(messages.createdAt, cursor.createdAt),
+              and(eq(messages.createdAt, cursor.createdAt), gt(messages.id, cursor.id)),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(messages.createdAt, messages.id);
+  return rows.map(toMessage);
+}
+
 /** The conversation as the prompt will carry it from now on, and where that record stops. */
 export async function writeSessionSummary(
   db: Queryable,
   sessionId: string,
   summary: string,
-  upTo: string,
+  upTo?: string,
+  throughId?: string,
 ): Promise<void> {
   await db
     .update(sessions)
-    .set({ summary, summarizedUpTo: new Date(upTo) })
+    .set({
+      summary,
+      ...(upTo ? { summarizedUpTo: new Date(upTo) } : {}),
+      ...(throughId ? { summarizedThroughId: throughId } : {}),
+    })
     .where(eq(sessions.id, sessionId));
 }
 
