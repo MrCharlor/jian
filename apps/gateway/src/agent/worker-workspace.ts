@@ -1,13 +1,19 @@
 import { execFile } from 'node:child_process';
-import { lstat, mkdir, realpath, stat } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, open, readdir, realpath, rm, stat } from 'node:fs/promises';
 import { basename, join, sep } from 'node:path';
 import { promisify } from 'node:util';
 import type { Run } from '@jian/contracts';
 import { commandEnvironment } from './shell.js';
-import { confined, workspaceOf } from './workspace.js';
+import { confined, workerWorkspacePath, workspaceOf } from './workspace.js';
 
 const execute = promisify(execFile);
 const inside = (path: string, root: string) => path === root || path.startsWith(`${root}${sep}`);
+const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+const missing = async (path: string) =>
+  lstat(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  });
 const directory = async (path: string) => {
   await mkdir(path, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== 'EEXIST') throw error;
@@ -15,11 +21,56 @@ const directory = async (path: string) => {
   if (!(await lstat(path)).isDirectory()) throw new Error('Worker repository directory is invalid');
 };
 
-/** Prepare committed source trees without giving a worker write access to another worktree. */
-export async function prepareWorkerWorkspace(run: Run): Promise<{
+export type WorkerGitAccess = {
   readOnly: string[];
   writable: string[];
-}> {
+  sshCommand?: string;
+};
+
+async function sharedSsh(home: string, profileHome: string, access: WorkerGitAccess) {
+  const ssh = join(profileHome, '.ssh');
+  const entry = await missing(ssh);
+  if (!entry) return;
+  if (!entry.isDirectory() || !inside(await realpath(ssh), profileHome)) {
+    throw new Error('Profile SSH directory must stay inside its workspace');
+  }
+
+  const workerSsh = join(home, '.ssh');
+  await directory(workerSsh);
+  const knownHosts = join(ssh, 'known_hosts');
+  if ((await missing(knownHosts))?.isFile() && !(await missing(join(workerSsh, 'known_hosts')))) {
+    await copyFile(knownHosts, join(workerSsh, 'known_hosts'));
+  }
+  const keys: string[] = [];
+  for (const entry of await readdir(ssh, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const path = join(ssh, entry.name);
+    const handle = await open(path, 'r');
+    try {
+      const header = Buffer.alloc(80);
+      const { bytesRead } = await handle.read(header, 0, header.length, 0);
+      if (/^-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/.test(header.toString('utf8', 0, bytesRead))) {
+        keys.push(path);
+      }
+    } finally {
+      await handle.close();
+    }
+  }
+  access.readOnly.push(ssh);
+  const config = join(ssh, 'config');
+  access.sshCommand = [
+    '/usr/bin/ssh',
+    ...((await missing(config))?.isFile() ? ['-F', config] : []),
+    '-o',
+    `UserKnownHostsFile=${join(workerSsh, 'known_hosts')}`,
+    ...keys.flatMap((key) => ['-i', key]),
+  ]
+    .map(quote)
+    .join(' ');
+}
+
+/** Prepare committed source trees without giving a worker write access to another worktree. */
+export async function prepareWorkerWorkspace(run: Run): Promise<WorkerGitAccess> {
   if (!run.subagent) return { readOnly: [], writable: [] };
 
   const home = await workspaceOf(run.profileId, run.id);
@@ -36,7 +87,8 @@ export async function prepareWorkerWorkspace(run: Run): Promise<{
       })
     ).stdout.trim();
   };
-  const gitAccess = { readOnly: [] as string[], writable: [] as string[] };
+  const gitAccess: WorkerGitAccess = { readOnly: [], writable: [] };
+  await sharedSsh(home, profileHome, gitAccess);
 
   for (const [index, asked] of (run.subagent.repositories ?? []).entries()) {
     const source = await realpath(asked);
@@ -63,10 +115,7 @@ export async function prepareWorkerWorkspace(run: Run): Promise<{
     const parent = join(repositories, String(index + 1));
     const target = join(parent, basename(source));
     await directory(parent);
-    const existing = await lstat(target).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return undefined;
-      throw error;
-    });
+    const existing = await missing(target);
     if (existing) {
       if (
         !existing.isDirectory() ||
@@ -102,4 +151,55 @@ export async function prepareWorkerWorkspace(run: Run): Promise<{
   }
 
   return gitAccess;
+}
+
+/** Remove only this run's detached trees after its task and every worker have finished. */
+export async function removeWorkerWorkspace(
+  profileId: string,
+  workerId: string,
+  repositories: string[],
+): Promise<void> {
+  const home = workerWorkspacePath(profileId, workerId);
+  const entry = await missing(home);
+  if (!entry) return;
+  if (!entry.isDirectory()) throw new Error('Worker workspace is not a directory');
+  const profileHome = await workspaceOf(profileId);
+
+  for (const [index, asked] of repositories.entries()) {
+    const source = await realpath(asked);
+    if (!inside(source, profileHome)) throw new Error('Worker repository left its profile');
+    const target = join(home, 'repos', String(index + 1), basename(source));
+    const tree = await missing(target);
+    if (!tree) continue;
+    if (!tree.isDirectory()) throw new Error('Worker worktree is not a directory');
+    const common = await realpath(
+      (
+        await execute('/usr/bin/git', [
+          '-C',
+          source,
+          'rev-parse',
+          '--path-format=absolute',
+          '--git-common-dir',
+        ])
+      ).stdout.trim(),
+    );
+    const actual = await realpath(
+      (
+        await execute('/usr/bin/git', [
+          '-C',
+          target,
+          'rev-parse',
+          '--path-format=absolute',
+          '--git-common-dir',
+        ])
+      ).stdout.trim(),
+    );
+    if (common !== actual || !inside(common, profileHome)) {
+      throw new Error('Worker worktree does not belong to its repository');
+    }
+    await execute('/usr/bin/git', ['-C', source, 'worktree', 'remove', '--force', target], {
+      timeout: 120_000,
+    });
+  }
+  await rm(home, { recursive: true, force: true });
 }

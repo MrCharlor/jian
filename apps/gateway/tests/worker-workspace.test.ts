@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -14,7 +15,7 @@ import type { Run } from '@jian/contracts';
 import { afterAll, expect, it } from 'vitest';
 import { fileTools } from '../src/agent/files.js';
 import { shellTools } from '../src/agent/shell.js';
-import { prepareWorkerWorkspace } from '../src/agent/worker-workspace.js';
+import { prepareWorkerWorkspace, removeWorkerWorkspace } from '../src/agent/worker-workspace.js';
 import { sandboxAbi, workspaceOf } from '../src/agent/workspace.js';
 
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'jian-worker-')));
@@ -23,8 +24,8 @@ process.env.JIAN_WORKSPACES = root;
 const profileId = '11111111-1111-4111-8111-111111111111';
 const git = (cwd: string, ...args: string[]) =>
   execFileSync('/usr/bin/git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim();
-const worker = (id: string, repositories: string[]) =>
-  ({ id, profileId, subagent: { repositories } }) as Run;
+const worker = (id: string, repositories: string[], owner = profileId) =>
+  ({ id, profileId: owner, subagent: { repositories } }) as Run;
 const call = (tool: unknown, input: unknown) =>
   (tool as { execute: (input: unknown, context: unknown) => Promise<unknown> }).execute(input, {
     toolCallId: 'test',
@@ -139,4 +140,55 @@ it('gives two workers separate committed trees and preserves a worker tree on re
   await expect(prepareWorkerWorkspace(worker(linkedTargetId, [source]))).rejects.toThrow(
     'not its expected worktree',
   );
+
+  writeFileSync(join(firstTree, 'uncommitted.txt'), 'worker scratch');
+  await removeWorkerWorkspace(profileId, firstId, [source]);
+  expect(existsSync(firstTree)).toBe(false);
+  expect(existsSync(secondTree)).toBe(true);
+  expect(git(source, 'worktree', 'list', '--porcelain')).not.toContain(firstTree);
+  await removeWorkerWorkspace(profileId, firstId, [source]);
+  await removeWorkerWorkspace(profileId, secondId, [source]);
+  expect(existsSync(secondTree)).toBe(false);
+});
+
+it('lets Git SSH use the profile key read-only without copying it into the worker home', async () => {
+  const owner = '88888888-8888-4888-8888-888888888888';
+  const home = await workspaceOf(owner);
+  const ssh = join(home, '.ssh');
+  mkdirSync(ssh, { mode: 0o700 });
+  writeFileSync(join(ssh, 'id_ed25519'), '-----BEGIN OPENSSH PRIVATE KEY-----\nsynthetic\n');
+  writeFileSync(join(ssh, 'config'), 'Host bitbucket.org\n  User git\n');
+  writeFileSync(join(ssh, 'known_hosts'), 'bitbucket.org synthetic-host-key\n');
+  const runId = '99999999-9999-4999-8999-999999999999';
+  const access = await prepareWorkerWorkspace(worker(runId, [], owner));
+  const workerHome = await workspaceOf(owner, runId);
+  expect(access.readOnly).toContain(ssh);
+  expect(existsSync(join(workerHome, '.ssh/id_ed25519'))).toBe(false);
+  expect(readFileSync(join(workerHome, '.ssh/known_hosts'), 'utf8')).toContain('bitbucket.org');
+  const shell = shellTools(owner, runId, access).run_command;
+  const config = (await call(shell, {
+    command: 'eval "$GIT_SSH_COMMAND -G bitbucket.org"',
+    timeoutMs: 10_000,
+  })) as { exitCode: number; stdout: string };
+  expect(config.exitCode).toBe(0);
+  expect(config.stdout).toContain(`identityfile ${join(ssh, 'id_ed25519')}`);
+  expect(config.stdout).toContain('user git');
+  expect(
+    await call(shell, {
+      command: 'git ls-remote --get-url https://bitbucket.org/vxcaselabs/vx-erp.git',
+      timeoutMs: 10_000,
+    }),
+  ).toMatchObject({ exitCode: 0, stdout: 'git@bitbucket.org:vxcaselabs/vx-erp.git\n' });
+  if ((await sandboxAbi()) > 0) {
+    expect(
+      await call(shell, {
+        command: `printf corrupted > '${join(ssh, 'id_ed25519')}'`,
+        timeoutMs: 10_000,
+      }),
+    ).not.toMatchObject({ exitCode: 0 });
+  }
+  expect(readFileSync(join(ssh, 'id_ed25519'), 'utf8')).toContain('synthetic');
+  await removeWorkerWorkspace(owner, runId, []);
+  expect(existsSync(workerHome)).toBe(false);
+  expect(existsSync(join(ssh, 'id_ed25519'))).toBe(true);
 });

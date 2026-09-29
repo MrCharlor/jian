@@ -7,6 +7,7 @@ import {
   workPatchSchema,
 } from '@jian/contracts';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { removeWorkerWorkspace } from '../agent/worker-workspace.js';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
@@ -144,20 +145,50 @@ export class Work {
     };
   }
 
+  private async cleanupDoneTask(profileId: string, id: string) {
+    const [task] = await this.store.db
+      .select({ status: workItems.status })
+      .from(workItems)
+      .where(and(eq(workItems.profileId, profileId), eq(workItems.id, id)));
+    if (task?.status !== 'done') return;
+    const workers = await this.store.db
+      .select({ id: runs.id, status: runs.status, subagent: runs.subagent })
+      .from(runs)
+      .where(and(eq(runs.profileId, profileId), eq(runs.workItemId, id)));
+    if (workers.some((worker) => ['queued', 'running'].includes(worker.status))) {
+      return;
+    }
+    for (const worker of workers) {
+      if (worker.subagent) {
+        await removeWorkerWorkspace(profileId, worker.id, worker.subagent.repositories ?? []);
+      }
+    }
+  }
+
+  /** Retry filesystem cleanup after a crash between completing a task and removing its trees. */
+  async cleanupCompleted() {
+    const tasks = await this.store.db
+      .select({ profileId: workItems.profileId, id: workItems.id })
+      .from(workItems)
+      .where(eq(workItems.status, 'done'));
+    for (const task of tasks) {
+      await this.cleanupDoneTask(task.profileId, task.id).catch((error) => {
+        console.warn(`jian: task ${task.id} workspace cleanup will retry — ${String(error)}`);
+      });
+    }
+  }
+
   /** An atomic, retryable handoff: a crash cannot lose or duplicate the principal's wake-up. */
   async reportWorker(profileId: string, runId: string) {
-    return this.store.transaction(profileId, async (tx) => {
+    const taskId = await this.store.transaction(profileId, async (tx) => {
       const [state] = await tx
         .select({ reportedAt: runs.subagentReportedAt })
         .from(runs)
         .where(and(eq(runs.profileId, profileId), eq(runs.id, runId)));
       const worker = await this.runs.run(profileId, runId, tx);
-      if (
-        state?.reportedAt ||
-        !worker.subagent ||
-        !['completed', 'failed', 'interrupted'].includes(worker.status)
-      )
+      if (!worker.subagent || !['completed', 'failed', 'interrupted'].includes(worker.status))
         return;
+      if (state?.reportedAt) return worker.workItemId;
       const principal = await this.runs.run(profileId, worker.subagent.parentRunId, tx);
       const followUp = await this.runs.submit(
         profileId,
@@ -181,7 +212,13 @@ export class Work {
         .update(runs)
         .set({ subagentReportedAt: new Date(this.clock()) })
         .where(and(eq(runs.profileId, profileId), eq(runs.id, runId)));
+      return worker.workItemId;
     });
+    if (taskId) {
+      await this.cleanupDoneTask(profileId, taskId).catch((error) => {
+        console.warn(`jian: task ${taskId} workspace cleanup will retry — ${String(error)}`);
+      });
+    }
   }
 
   /** A worker is a run in a private session, never a profile or a call to the agent pool. */
@@ -326,7 +363,7 @@ export class Work {
         throw new GatewayError(403, 'A worker can update only its own task');
       }
     }
-    return this.store.transaction(profileId, async (tx) => {
+    const updated = await this.store.transaction(profileId, async (tx) => {
       const [current] = await tx
         .select()
         .from(workItems)
@@ -354,5 +391,11 @@ export class Work {
       });
       return present(result);
     });
+    if (updated.status === 'done') {
+      await this.cleanupDoneTask(profileId, id).catch((error) => {
+        console.warn(`jian: task ${id} workspace cleanup will retry — ${String(error)}`);
+      });
+    }
+    return updated;
   }
 }

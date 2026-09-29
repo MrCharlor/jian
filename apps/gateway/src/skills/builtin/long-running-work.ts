@@ -22,6 +22,8 @@ current state, relevant evidence, acceptance criteria, and exact next actions.
 For code tasks, list each Git repository root under your workspace in \`repositories\`.
 Each worker gets separate worktrees from committed HEAD; uncommitted source changes are not copied.
 The worker's shell starts in its own workspace, with repositories under \`repos/\`.
+Commit and push worker changes before marking a task done; completed tasks have their worker
+workspaces removed after all workers exit.
 Pass up to four image media ids from this profile when the task needs visual context; the
 board keeps private copies, and each worker receives its own copies in the task transcript.
 \`update_task\` moves it through todo, in_progress, review, blocked and done, or leaves a

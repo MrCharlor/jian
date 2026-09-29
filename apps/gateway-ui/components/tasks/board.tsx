@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   GatewayApi,
   Message,
@@ -151,8 +151,11 @@ function WorkDetail({
   >([]);
   const [error, setError] = useState('');
   const { ref: dialog, closing, requestClose } = useDialogMotion(close);
+  const heading = useRef<HTMLHeadingElement>(null);
   const subscribe = useEvents();
   const { scroller, onScroll } = useFollowBottom();
+
+  useEffect(() => heading.current?.focus({ preventScroll: true }), []);
 
   useEffect(() => {
     let active = true;
@@ -232,7 +235,9 @@ function WorkDetail({
               Updated {new Date(item.updatedAt).toLocaleString()}
             </time>
           </div>
-          <h1>{item.title}</h1>
+          <h1 ref={heading} tabIndex={-1}>
+            {item.title}
+          </h1>
           <div className="work-detail-description markdown">
             <Markdown text={item.description} breaks />
             {item.mediaIds?.length ? (
@@ -280,14 +285,14 @@ function WorkDetail({
           <h2>Activity</h2>
           <section
             ref={scroller}
-            className="message-history"
+            className={`message-history${!history && !error ? ' work-activity-loading' : ''}`}
             aria-label="Task activity history"
             onScroll={(event) => onScroll(event.currentTarget)}
           >
             <div className="message-list">
               {!history && !error && (
-                <div className="history-loading" role="status">
-                  <Orb size={64} />
+                <div className="history-loading" role="status" aria-label="Loading task activity">
+                  <Orb size={20} />
                 </div>
               )}
               {error && (

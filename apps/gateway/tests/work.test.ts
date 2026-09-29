@@ -1,5 +1,11 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { profileTools, restrictTaskWorkerTools } from '../src/agent/tools.js';
+import { prepareWorkerWorkspace } from '../src/agent/worker-workspace.js';
+import { workspaceOf } from '../src/agent/workspace.js';
 import { createApp } from '../src/app.js';
 import { findMedia } from '../src/media/repository.js';
 import { listUnreportedTaskWorkers } from '../src/runs/repository.js';
@@ -7,6 +13,69 @@ import { testServices } from './helpers/services.js';
 
 const token = 'synthetic-test-token-at-least-32-characters';
 const headers = { authorization: `Bearer ${token}` };
+
+it('removes every task worktree only after done and all workers are terminal', async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'jian-task-cleanup-')));
+  const previous = process.env.JIAN_WORKSPACES;
+  process.env.JIAN_WORKSPACES = root;
+  try {
+    const services = await testServices();
+    const profile = await services.profiles.createProfile({
+      name: 'Worker owner',
+      instructions: 'Keep source isolated.',
+      model: { provider: 'openai', modelId: 'test', apiKeyEnv: 'JIAN_PROVIDER_TEST' },
+    });
+    const session = await services.sessions.createSession(profile.id, { channel: 'api' });
+    const principal = await services.runs.submit(profile.id, session.id, {
+      text: 'Coordinate work.',
+      requestKey: 'cleanup-principal',
+    });
+    const source = join(await workspaceOf(profile.id), 'project');
+    mkdirSync(source);
+    const git = (...args: string[]) =>
+      execFileSync('/usr/bin/git', ['-C', source, ...args], { encoding: 'utf8' }).trim();
+    git('init', '-q');
+    writeFileSync(join(source, 'file.txt'), 'committed');
+    git('add', 'file.txt');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'start');
+    const task = await services.work.create(
+      profile.id,
+      { title: 'Code task', description: 'Finish the work.', repositories: [source] },
+      session.id,
+    );
+    const input = {
+      taskId: task.id,
+      role: 'execute' as const,
+      name: 'Worker',
+      identity: 'Finish the task.',
+      brief: 'Use your worktree.',
+    };
+    const first = await services.work.spawn(principal, input, 'first');
+    const second = await services.work.spawn(principal, input, 'second');
+    await prepareWorkerWorkspace(await services.runs.run(profile.id, first.runId));
+    await prepareWorkerWorkspace(await services.runs.run(profile.id, second.runId));
+    const firstHome = await workspaceOf(profile.id, first.runId);
+    const secondHome = await workspaceOf(profile.id, second.runId);
+    await services.work.update(profile.id, task.id, { status: 'done', expectedVersion: 1 });
+    expect(existsSync(firstHome)).toBe(true);
+    expect(existsSync(secondHome)).toBe(true);
+    await services.lifecycle.claim(first.runId, profile.id, 'first-lease');
+    await services.lifecycle.finish(profile.id, first.runId, 'first-lease', 'completed', 'Done.');
+    await services.work.reportWorker(profile.id, first.runId);
+    expect(existsSync(firstHome)).toBe(true);
+    await services.lifecycle.claim(second.runId, profile.id, 'second-lease');
+    await services.lifecycle.finish(profile.id, second.runId, 'second-lease', 'completed', 'Done.');
+    await services.work.reportWorker(profile.id, second.runId);
+    expect(existsSync(firstHome)).toBe(false);
+    expect(existsSync(secondHome)).toBe(false);
+    expect(git('worktree', 'list', '--porcelain')).not.toContain('_workers');
+    await services.work.cleanupCompleted();
+  } finally {
+    if (previous === undefined) delete process.env.JIAN_WORKSPACES;
+    else process.env.JIAN_WORKSPACES = previous;
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 it('keeps durable work scoped to one profile, editable across runs, and versioned', async () => {
   const services = await testServices();

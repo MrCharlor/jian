@@ -27,6 +27,13 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 /** A profile id names a directory, so it must be nothing but an id. */
 const PROFILE_ID = /^[0-9a-f-]{36}$/;
 
+export function workerWorkspacePath(profileId: string, workerId: string): string {
+  if (!PROFILE_ID.test(profileId) || !PROFILE_ID.test(workerId)) {
+    throw new Error('Invalid worker workspace id');
+  }
+  return join(workspacesRoot(), '_workers', profileId, workerId);
+}
+
 /** The system a profile may read: its programs, libraries and configuration. */
 const SYSTEM = [
   '/usr',
@@ -91,7 +98,7 @@ export async function workspaceOf(profileId: string, workerId?: string): Promise
   });
   if (!(await lstat(owner)).isDirectory()) throw new Error('Invalid worker workspace owner');
 
-  const worker = join(owner, workerId);
+  const worker = workerWorkspacePath(profileId, workerId);
   await mkdir(worker, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== 'EEXIST') throw error;
   });

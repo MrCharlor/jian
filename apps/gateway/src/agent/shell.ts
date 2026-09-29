@@ -58,6 +58,7 @@ const PASSED = new Set([
 export function commandEnvironment(
   home: string,
   source: NodeJS.ProcessEnv = process.env,
+  gitSshCommand?: string,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
 
@@ -79,6 +80,14 @@ export function commandEnvironment(
     TMPDIR: join(home, 'tmp'),
     GOPATH: join(home, 'go'),
     NPM_CONFIG_PREFIX: join(home, '.local'),
+    ...(gitSshCommand
+      ? {
+          GIT_SSH_COMMAND: gitSshCommand,
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: 'url.git@bitbucket.org:.insteadOf',
+          GIT_CONFIG_VALUE_0: 'https://bitbucket.org/',
+        }
+      : {}),
     PATH: [join(home, '.local', 'bin'), join(home, 'go', 'bin'), ...system].join(':'),
   };
 }
@@ -92,7 +101,10 @@ function clip(text: string, limit: number): string {
 export function shellTools(
   profileId: string,
   workerId?: string,
-  gitAccess: { readOnly: string[]; writable: string[] } = { readOnly: [], writable: [] },
+  gitAccess: { readOnly: string[]; writable: string[]; sshCommand?: string } = {
+    readOnly: [],
+    writable: [],
+  },
 ): ToolSet {
   return {
     run_command: tool({
@@ -114,7 +126,7 @@ export function shellTools(
             shell.args,
             {
               cwd: directory,
-              env: commandEnvironment(home),
+              env: commandEnvironment(home, process.env, gitAccess.sshCommand),
               timeout: timeoutMs,
               maxBuffer: MAX_OUTPUT * 4,
               encoding: 'utf8',

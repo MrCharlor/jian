@@ -10,6 +10,10 @@ if (!profile) throw new Error('Missing profile fixture');
 
 it('shows agent work and its read-only activity', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  let resolveHistory = () => {};
+  const historyGate = new Promise<void>((resolve) => {
+    resolveHistory = resolve;
+  });
   const item: WorkItem = {
     id: '11111111-1111-4111-8111-111111111111',
     profileId: profile.id,
@@ -60,16 +64,19 @@ it('shows agent work and its read-only activity', async () => {
       data: 'AA==',
       createdAt: item.createdAt,
     })),
-    workHistory: vi.fn(async () => [
-      { id: 1, type: 'work.created', status: 'todo', note: '', createdAt: item.createdAt },
-      {
-        id: 2,
-        type: 'work.updated',
-        status: 'review',
-        note: 'Build passed.',
-        createdAt: item.updatedAt,
-      },
-    ]),
+    workHistory: vi.fn(async () => {
+      await historyGate;
+      return [
+        { id: 1, type: 'work.created', status: 'todo', note: '', createdAt: item.createdAt },
+        {
+          id: 2,
+          type: 'work.updated',
+          status: 'review',
+          note: 'Build passed.',
+          createdAt: item.updatedAt,
+        },
+      ];
+    }),
   } as unknown as GatewayApi;
   const element = document.createElement('div');
   document.body.append(element);
@@ -93,6 +100,14 @@ it('shows agent work and its read-only activity', async () => {
     'Review release',
   );
   await act(async () => element.querySelector<HTMLButtonElement>('.work-card')?.click());
+  const heading = element.querySelector('.work-detail-content h1');
+  expect(heading?.getAttribute('tabindex')).toBe('-1');
+  expect(document.activeElement).toBe(heading);
+  expect(element.querySelector('.work-activity-loading')).not.toBeNull();
+  expect(element.querySelector<HTMLElement>('.work-activity-loading .orb')?.style.width).toBe(
+    '20px',
+  );
+  await act(async () => resolveHistory());
   expect(api.workHistory).toHaveBeenCalledWith(profile.id, item.id);
   expect(element.querySelector('.work-detail-content h1')?.textContent).toBe('Review release');
   expect(element.querySelector('.work-detail-status[data-status="review"]')?.textContent).toContain(

@@ -11,10 +11,15 @@ export class RunQueue {
   private timer?: ReturnType<typeof setTimeout>;
   private stopped = false;
   private pending: Promise<void> = Promise.resolve();
+  private lastCleanup = 0;
 
   constructor(
     private boss: PgBoss,
-    private services: { lifecycle: RunRecovery; store: Store; work: Pick<Work, 'reportWorker'> },
+    private services: {
+      lifecycle: RunRecovery;
+      store: Store;
+      work: Pick<Work, 'reportWorker' | 'cleanupCompleted'>;
+    },
     private runtime: AgentRuntime,
     private report: (message: string) => void = console.error,
   ) {}
@@ -51,6 +56,11 @@ export class RunQueue {
       await this.services.work
         .reportWorker(worker.profileId, worker.id)
         .catch(() => this.report(`jian: task worker ${worker.id} handoff failed; will retry`));
+    }
+
+    if (Date.now() - this.lastCleanup >= 60_000) {
+      this.lastCleanup = Date.now();
+      await this.services.work.cleanupCompleted();
     }
 
     const queued = await listQueuedRuns(this.services.store.db, 1000);

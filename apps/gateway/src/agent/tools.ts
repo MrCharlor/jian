@@ -155,7 +155,7 @@ export function profileTools(
           }),
           update_task: tool({
             description:
-              'Move a task or leave a progress/handoff note. Use the version from list_tasks; stale updates conflict. After completing and verifying work, update the task before your final report. Move to review only when independent review is needed; otherwise mark done.',
+              'Move a task or leave a progress/handoff note. Use the version from list_tasks; stale updates conflict. Commit and push code before marking done: worker workspaces are removed after all workers finish. Move to review only when independent review is needed; otherwise mark verified work done before your final report.',
             inputSchema: z.object({ id: z.uuid(), ...workPatchSchema.shape }),
             execute: async ({ id, ...patch }) =>
               services.work?.update(run.profileId, id, patch, run),

@@ -247,6 +247,10 @@
 .work-activity .message-history {
   padding: 20px;
 }
+.work-activity .message-history.work-activity-loading {
+  display: grid;
+  place-items: center;
+}
 .work-activity-entry time {
   display: block;
   margin-bottom: 8px;
