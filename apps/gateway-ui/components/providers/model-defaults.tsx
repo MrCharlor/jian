@@ -2,12 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type {
-  ModelDefaultsInput,
-  ModelSelection,
-  ProfileData,
-  ReasoningEffort,
-} from '../../lib/api';
+import type { ModelDefaultsInput, ModelSelection, ReasoningEffort } from '../../lib/api';
 import { useAutosave } from '../../lib/autosave';
 import { useWorkspace } from '../../lib/workspace';
 import type { SectionProps } from '../props';
@@ -19,23 +14,17 @@ const empty: RoleValue = {
   providerId: '',
   modelId: '',
   reasoningEffort: '',
-  manual: false,
   disabled: false,
 };
 
-function initial(data: ProfileData, selection: ModelSelection | 'disabled' | null): RoleValue {
+function initial(selection: ModelSelection | 'disabled' | null): RoleValue {
   if (selection === 'disabled') return { ...empty, disabled: true };
   if (!selection) return empty;
-
-  const listed = (data.providerModels[selection.providerId]?.models ?? []).some(
-    (model) => model.id === selection.modelId,
-  );
 
   return {
     providerId: selection.providerId,
     modelId: selection.modelId,
     reasoningEffort: selection.reasoningEffort ?? '',
-    manual: !listed,
     disabled: false,
   };
 }
@@ -59,7 +48,7 @@ export function ModelDefaults({ profile, data, api, busy }: SectionProps) {
   const [values, setValues] = useState<Record<Role, RoleValue>>(
     () =>
       Object.fromEntries(
-        roles.map((role) => [role.key, initial(data, data.modelDefaults[role.key])]),
+        roles.map((role) => [role.key, initial(data.modelDefaults[role.key])]),
       ) as Record<Role, RoleValue>,
   );
 
@@ -84,7 +73,7 @@ export function ModelDefaults({ profile, data, api, busy }: SectionProps) {
     }
   });
 
-  const change = (role: Role, patch: Partial<RoleValue>, delay = 0) => {
+  const change = (role: Role, patch: Partial<RoleValue>) => {
     const updated = { ...latest.current[role], ...patch };
     const next = {
       ...latest.current,
@@ -94,7 +83,7 @@ export function ModelDefaults({ profile, data, api, busy }: SectionProps) {
 
     latest.current = next;
     setValues(next);
-    schedule(delay);
+    schedule(0);
   };
   return (
     <>

@@ -43,10 +43,14 @@ const jevQuestionSchema = z.discriminatedUnion('type', [
     type: z.literal('choice'),
     instructions: z.string().trim().min(1).max(2_000),
     criteria: z
-      .record(z.string().min(1).max(100), z.string().max(600).nullable())
+      .object({})
+      .catchall(z.string().max(600).nullable())
       .refine(
-        (criteria) => Object.keys(criteria).length >= 2 && Object.keys(criteria).length <= 20,
-        'choice needs between two and twenty alternatives',
+        (criteria) =>
+          Object.keys(criteria).length >= 2 &&
+          Object.keys(criteria).length <= 20 &&
+          Object.keys(criteria).every((key) => key.length >= 1 && key.length <= 100),
+        'choice needs between two and twenty alternatives with keys of at most 100 characters',
       ),
   }),
   z.object({
@@ -59,10 +63,13 @@ const jevQuestionSchema = z.discriminatedUnion('type', [
 const jevInputSchema = z.object({
   use: decisionUseSchema,
   state: z
-    .record(z.string().max(100), z.unknown())
+    .object({})
+    .catchall(z.unknown())
     .refine(
-      (state) => JSON.stringify(state).length <= 24_000,
-      'state is too large; send only the facts needed for this judgment',
+      (state) =>
+        Object.keys(state).every((key) => key.length <= 100) &&
+        JSON.stringify(state).length <= 24_000,
+      'state keys must be at most 100 characters and the state must fit within 24000 characters',
     ),
   question: jevQuestionSchema,
 });

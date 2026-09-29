@@ -6,9 +6,10 @@ import { accountHeaders } from './model.js';
  *
  * `client_version` is read as a Codex CLI version and decides what the backend will show: it
  * hides anything whose minimum version is newer, and the request is refused outright without
- * it. The zero sentinel asks for everything the account has.
+ * it. Keep this at a Codex version known to list the current account models; 0.0.0 omits newer
+ * models even when the same account sees them in the Codex CLI.
  */
-const CATALOG = 'https://chatgpt.com/backend-api/codex/models?client_version=0.0.0';
+const CATALOG = 'https://chatgpt.com/backend-api/codex/models?client_version=0.155.0';
 
 const catalog = z.object({
   models: z

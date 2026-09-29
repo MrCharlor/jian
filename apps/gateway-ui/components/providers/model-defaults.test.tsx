@@ -40,6 +40,7 @@ async function modelMenu(
       providerModels: {
         google: { models: [model('gemini-3-pro'), model('gemini-3-pro-image', ['image'])] },
         anthropic: { models: [model('claude-sonnet-5')] },
+        openai: { models: [model('gpt-image-1', ['image'])] },
       },
       modelDefaults,
     },
@@ -124,12 +125,7 @@ it('keeps a saved channel override visible until changing the shared default upd
 it('offers image generation only where it works, and explains the missing OpenAI API key', async () => {
   const view = await modelMenu('Image generation', false);
   try {
-    expect(view.options()).toEqual([
-      'Disabled',
-      'Automatic',
-      'gemini-3-pro-imageGemini',
-      'Type an id…Gemini',
-    ]);
+    expect(view.options()).toEqual(['Disabled', 'Automatic', 'gemini-3-pro-imageGemini']);
     expect(view.element.textContent).toContain('ChatGPT login does not authorize image generation');
   } finally {
     await view.close();
@@ -174,10 +170,23 @@ it('saves Disabled as a distinct state from Automatic', async () => {
   }
 });
 
-it('offers the configured OpenAI API key for image generation', async () => {
+it('offers listed OpenAI image models without an arbitrary-id option', async () => {
   const view = await modelMenu('Image generation', true);
   try {
-    expect(view.options()).toContain('Type an id…OpenAI · API key');
+    expect(view.options()).toContain('gpt-image-1OpenAI · API key');
+    expect(view.options()).not.toContain('Type an id…OpenAI · API key');
+  } finally {
+    await view.close();
+  }
+});
+
+it('keeps a saved model visible when the provider no longer lists it', async () => {
+  const view = await modelMenu('Conversations & channels', false, {
+    conversation: { providerId: 'codex', modelId: 'gpt-6-sol' },
+  });
+  try {
+    expect(view.options()).toContain('gpt-6-solOpenAI · ChatGPT · not offered for this activity');
+    expect(view.card.querySelector('input[placeholder="Model id"]')).toBeNull();
   } finally {
     await view.close();
   }

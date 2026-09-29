@@ -287,6 +287,30 @@ describe('judging the turn before it starts', () => {
 });
 
 describe('the ask_jev tool', () => {
+  it('sends an OpenAI-compatible schema while validating dynamic keys locally', async () => {
+    const f = await fixture();
+    const schema = profileTools(f.services, f.run).ask_jev?.inputSchema as z.ZodType;
+    const input = {
+      use: 'turn',
+      state: { item: 'appointment' },
+      question: {
+        type: 'choice',
+        instructions: 'Choose one.',
+        criteria: { a: 'First', b: 'Second' },
+      },
+    };
+
+    expect(JSON.stringify(z.toJSONSchema(schema))).not.toContain('propertyNames');
+    expect(schema.safeParse(input).success).toBe(true);
+    expect(schema.safeParse({ ...input, state: { ['x'.repeat(101)]: true } }).success).toBe(false);
+    expect(
+      schema.safeParse({
+        ...input,
+        question: { ...input.question, criteria: { ['x'.repeat(101)]: 'First', b: 'Second' } },
+      }).success,
+    ).toBe(false);
+  });
+
   it('translates the public yes/no shape and returns Jev’s answer', async () => {
     const f = await fixture();
     const { judge, calls } = fakeJudge((id, question, state) => {

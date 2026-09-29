@@ -14,8 +14,13 @@ function token(account?: string) {
 
 const catalog = {
   models: [
-    { slug: 'gpt-5.3-codex', display_name: 'GPT-5.3 Codex', priority: 2 },
-    { slug: 'gpt-5.5', display_name: 'GPT-5.5', priority: 1 },
+    { slug: 'gpt-6-astra', display_name: 'GPT-6-Astra', priority: 1 },
+    { slug: 'gpt-6-sol', display_name: 'GPT-6-Sol', priority: 2 },
+    { slug: 'gpt-6-luna', display_name: 'GPT-6-Luna', priority: 3 },
+    { slug: 'gpt-5.6-sol', display_name: 'GPT-5.6-Sol', priority: 4 },
+    { slug: 'gpt-5.6-terra', display_name: 'GPT-5.6-Terra', priority: 7 },
+    { slug: 'gpt-5.6-luna', display_name: 'GPT-5.6-Luna', priority: 8 },
+    { slug: 'gpt-5.5', display_name: 'GPT-5.5', priority: 12 },
     { slug: 'internal-preview', visibility: 'hidden', priority: 0 },
   ],
 };
@@ -31,12 +36,17 @@ describe('the models a ChatGPT login may call', () => {
     }) as typeof globalThis.fetch);
 
     expect(models).toEqual([
+      { id: 'gpt-6-astra', displayName: 'GPT-6-Astra' },
+      { id: 'gpt-6-sol', displayName: 'GPT-6-Sol' },
+      { id: 'gpt-6-luna', displayName: 'GPT-6-Luna' },
+      { id: 'gpt-5.6-sol', displayName: 'GPT-5.6-Sol' },
+      { id: 'gpt-5.6-terra', displayName: 'GPT-5.6-Terra' },
+      { id: 'gpt-5.6-luna', displayName: 'GPT-5.6-Luna' },
       { id: 'gpt-5.5', displayName: 'GPT-5.5' },
-      { id: 'gpt-5.3-codex', displayName: 'GPT-5.3 Codex' },
     ]);
 
     // Without the version the backend refuses, and without the account it answers empty.
-    expect(asked[0]?.url).toContain('client_version=0.0.0');
+    expect(asked[0]?.url).toContain('client_version=0.155.0');
     expect(asked[0]?.headers.get('chatgpt-account-id')).toBe('acct-1');
     expect(asked[0]?.headers.get('authorization')).toBe(`Bearer ${token('acct-1')}`);
   });

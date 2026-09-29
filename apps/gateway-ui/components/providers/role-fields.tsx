@@ -2,8 +2,7 @@
 
 import { supportsModelRole, supportsProviderRole } from '@jian/contracts';
 import type { ProfileData, Provider } from '../../lib/api';
-import { TYPING_DELAY_MS } from '../../lib/autosave';
-import { Button, Field } from '../ui';
+import { Field } from '../ui';
 import { Select, type SelectOption } from '../ui/select';
 import { efforts, modelLabel, optionalRoles, type Role, type roles } from './catalog';
 
@@ -11,16 +10,12 @@ export type RoleValue = {
   providerId: string;
   modelId: string;
   reasoningEffort: string;
-  /** The id was typed instead of picked, so the panel knows nothing about its capabilities. */
-  manual: boolean;
   disabled: boolean;
 };
 
 /** A provider id is a UUID, so the first colon is always where the model id begins. */
 export const choiceOf = (providerId: string, modelId: string) =>
   providerId && modelId ? `${providerId}:${modelId}` : '';
-
-const MANUAL = '__manual__:';
 
 export const providerName = (provider: Provider) =>
   `${provider.name}${provider.kind === 'openai' ? (provider.authMode === 'codex' ? ' · ChatGPT' : ' · API key') : ''}`;
@@ -50,23 +45,13 @@ export function modelChoices(
 }
 
 /** What one activity can offer and has chosen, read the same by its card and its dialog. */
-export function describeRole(
-  role: (typeof roles)[number],
-  value: RoleValue,
-  data: ProfileData,
-  configured: Provider[],
-) {
-  const eligible = configured.filter((provider) => supportsProviderRole(provider, role.key));
+export function describeRole(value: RoleValue, data: ProfileData, configured: Provider[]) {
   const provider = configured.find((item) => item.id === value.providerId);
   const list = value.providerId ? data.providerModels[value.providerId] : undefined;
   const selected = (list?.models ?? []).find((model) => model.id === value.modelId);
-  // A typed id has no capability row here, so every level is offered and the gateway refuses
-  // the ones the model does not take.
-  const allowed = value.manual
-    ? efforts
-    : efforts.filter((effort) => selected?.reasoningEfforts.includes(effort.value));
+  const allowed = efforts.filter((effort) => selected?.reasoningEfforts.includes(effort.value));
 
-  return { eligible, provider, list, selected, allowed };
+  return { provider, list, selected, allowed };
 }
 
 export function RoleFields({
@@ -84,10 +69,9 @@ export function RoleFields({
   configured: Provider[];
   hasOpenAIKey: boolean;
   busy: boolean;
-  /** A delay in ms before saving; a menu choice saves at once, a typed id after a pause. */
-  change: (role: Role, patch: Partial<RoleValue>, delay?: number) => void;
+  change: (role: Role, patch: Partial<RoleValue>) => void;
 }) {
-  const { eligible, provider, list, allowed } = describeRole(role, value, data, configured);
+  const { provider, list, allowed } = describeRole(value, data, configured);
   const choices = modelChoices(role.key, data, configured);
   const current = value.disabled ? 'disabled' : choiceOf(value.providerId, value.modelId);
 
@@ -99,99 +83,54 @@ export function RoleFields({
         </p>
       )}
       <div className="settings-fields">
-        <Field
-          label="Model"
-          hint={
-            value.manual
-              ? `An id typed by hand for ${provider ? providerName(provider) : 'this provider'}. Use it when the provider publishes no list.`
-              : undefined
-          }
-        >
-          {value.manual ? (
-            <input
-              type="text"
-              value={value.modelId}
-              disabled={busy}
-              maxLength={160}
-              placeholder="Model id"
-              onChange={(event) =>
-                change(role.key, { modelId: event.target.value }, TYPING_DELAY_MS)
-              }
-            />
-          ) : (
-            <Select
-              value={current}
-              disabled={busy}
-              onValueChange={(choice) => {
-                if (choice === 'disabled') {
-                  change(role.key, {
-                    providerId: '',
-                    modelId: '',
-                    reasoningEffort: '',
-                    manual: false,
-                    disabled: true,
-                  });
-                } else if (!choice) {
-                  change(role.key, {
-                    providerId: '',
-                    modelId: '',
-                    reasoningEffort: '',
-                    manual: false,
-                    disabled: false,
-                  });
-                } else if (choice.startsWith(MANUAL)) {
-                  change(role.key, {
-                    providerId: choice.slice(MANUAL.length),
-                    modelId: '',
-                    reasoningEffort: '',
-                    manual: true,
-                    disabled: false,
-                  });
-                } else {
-                  const split = choice.indexOf(':');
-
-                  change(role.key, {
-                    providerId: choice.slice(0, split),
-                    modelId: choice.slice(split + 1),
-                    reasoningEffort: '',
-                    manual: false,
-                    disabled: false,
-                  });
-                }
-              }}
-              options={[
-                ...(optionalRoles.has(role.key) ? [{ value: 'disabled', label: 'Disabled' }] : []),
-                { value: '', label: 'Automatic' },
-                ...choices,
-                ...(current && !choices.some((choice) => choice.value === current)
-                  ? [
-                      {
-                        value: current,
-                        label: value.modelId,
-                        detail: provider
-                          ? `${providerName(provider)} · not offered for this activity`
-                          : 'Saved provider, no longer connected',
-                      },
-                    ]
-                  : []),
-                ...eligible.map((item) => ({
-                  value: `${MANUAL}${item.id}`,
-                  label: 'Type an id…',
-                  detail: providerName(item),
-                })),
-              ]}
-            />
-          )}
-        </Field>
-        {value.manual && (
-          <Button
-            variant="quiet"
+        <Field label="Model">
+          <Select
+            value={current}
             disabled={busy}
-            onClick={() => change(role.key, { manual: false, modelId: '', reasoningEffort: '' })}
-          >
-            Choose from the list
-          </Button>
-        )}
+            onValueChange={(choice) => {
+              if (choice === 'disabled') {
+                change(role.key, {
+                  providerId: '',
+                  modelId: '',
+                  reasoningEffort: '',
+                  disabled: true,
+                });
+              } else if (!choice) {
+                change(role.key, {
+                  providerId: '',
+                  modelId: '',
+                  reasoningEffort: '',
+                  disabled: false,
+                });
+              } else {
+                const split = choice.indexOf(':');
+
+                change(role.key, {
+                  providerId: choice.slice(0, split),
+                  modelId: choice.slice(split + 1),
+                  reasoningEffort: '',
+                  disabled: false,
+                });
+              }
+            }}
+            options={[
+              ...(optionalRoles.has(role.key) ? [{ value: 'disabled', label: 'Disabled' }] : []),
+              { value: '', label: 'Automatic' },
+              ...choices,
+              ...(current && !choices.some((choice) => choice.value === current)
+                ? [
+                    {
+                      value: current,
+                      label: value.modelId,
+                      detail: provider
+                        ? `${providerName(provider)} · not offered for this activity`
+                        : 'Saved provider, no longer connected',
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </Field>
         {role.key === 'image' && !value.disabled && !hasOpenAIKey && (
           <p className="note">
             <a href="/ui/providers/">Configure an OpenAI API key in Providers.</a> ChatGPT login
