@@ -101,8 +101,8 @@ it('shows agent work and its read-only activity', async () => {
   );
   await act(async () => element.querySelector<HTMLButtonElement>('.work-card')?.click());
   const heading = element.querySelector('.work-detail-content h1');
-  expect(heading?.getAttribute('tabindex')).toBe('-1');
-  expect(document.activeElement).toBe(heading);
+  expect(heading?.hasAttribute('tabindex')).toBe(false);
+  expect(document.activeElement).toBe(element.querySelector('dialog.work-detail-page'));
   expect(element.querySelector('.work-activity-loading')).not.toBeNull();
   expect(element.querySelector<HTMLElement>('.work-activity-loading .orb')?.style.width).toBe(
     '20px',

@@ -146,6 +146,9 @@
 .work-detail-page[open] {
   display: flex;
 }
+.work-detail-page:focus {
+  outline: none;
+}
 .work-detail-page::backdrop {
   background: rgb(0 0 0 / 78%);
   backdrop-filter: blur(8px);

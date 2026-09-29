@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type {
   GatewayApi,
   Message,
@@ -151,11 +151,11 @@ function WorkDetail({
   >([]);
   const [error, setError] = useState('');
   const { ref: dialog, closing, requestClose } = useDialogMotion(close);
-  const heading = useRef<HTMLHeadingElement>(null);
   const subscribe = useEvents();
   const { scroller, onScroll } = useFollowBottom();
 
-  useEffect(() => heading.current?.focus({ preventScroll: true }), []);
+  // The dialog keeps keyboard focus inside it without highlighting a control on open.
+  useEffect(() => dialog.current?.focus({ preventScroll: true }), [dialog]);
 
   useEffect(() => {
     let active = true;
@@ -213,6 +213,7 @@ function WorkDetail({
   return (
     <dialog
       ref={dialog}
+      tabIndex={-1}
       className="work-detail-page"
       data-closing={closing}
       aria-label={item.title}
@@ -235,9 +236,7 @@ function WorkDetail({
               Updated {new Date(item.updatedAt).toLocaleString()}
             </time>
           </div>
-          <h1 ref={heading} tabIndex={-1}>
-            {item.title}
-          </h1>
+          <h1>{item.title}</h1>
           <div className="work-detail-description markdown">
             <Markdown text={item.description} breaks />
             {item.mediaIds?.length ? (
