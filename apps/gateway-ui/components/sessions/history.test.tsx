@@ -4,8 +4,17 @@ import { expect, it, vi } from 'vitest';
 import type { GatewayApi, Run } from '../../lib/api';
 import { History } from './history';
 
-// No stream here: the history falls back to reading again on its own.
-vi.mock('../../lib/workspace', () => ({ useWorkspace: () => ({ subscribe: () => () => {} }) }));
+let hear: ((event: { type: string }) => void) | undefined;
+vi.mock('../../lib/workspace', () => ({
+  useWorkspace: () => ({
+    subscribe: (listener: () => void) => {
+      hear = listener;
+      return () => {
+        hear = undefined;
+      };
+    },
+  }),
+}));
 
 it('centers the standard orb while a conversation is loading', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -85,7 +94,8 @@ it('shows a new run failure when the open session was previously completed', asy
       updatedAt: '2026-09-22T00:03:00Z',
     };
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      hear?.({ type: 'run.failed' });
+      await vi.advanceTimersByTimeAsync(150);
     });
 
     expect(element.textContent).toContain('Found it.');

@@ -202,11 +202,9 @@ function WorkDetail({
     const stop = subscribe((event) => {
       if (event.type.startsWith('work.') || event.type.startsWith('run.')) void load();
     });
-    const poll = setInterval(() => void load(), 15_000);
     return () => {
       active = false;
       stop();
-      clearInterval(poll);
     };
   }, [api, profileId, item.id, subscribe]);
 

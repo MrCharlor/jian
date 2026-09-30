@@ -58,14 +58,14 @@ export function registerEventRoutes(app: FastifyInstance, options: EventOptions)
       reply.raw.write(': connected\n\n');
 
       let closed = false;
-      let timer: ReturnType<typeof setTimeout>;
+      const wake = new AbortController();
       // When each working run last changed its progress, as this stream last told it.
       const told = new Map<string, string>();
 
       reply.raw.on('close', () => {
         closed = true;
         streams -= 1;
-        clearTimeout(timer);
+        wake.abort();
       });
 
       const pump = async () => {
@@ -82,10 +82,9 @@ export function registerEventRoutes(app: FastifyInstance, options: EventOptions)
           }
 
           if (reply.raw.writableNeedDrain) {
-            timer = setTimeout(pump, 1000);
-            timer.unref();
+            await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            return;
+            return pump();
           }
 
           const events = await readEvents(options.store.db, profileId, cursor);
@@ -130,8 +129,11 @@ export function registerEventRoutes(app: FastifyInstance, options: EventOptions)
           return;
         }
 
-        timer = setTimeout(pump, 1000);
-        timer.unref();
+        await Promise.race([
+          options.store.waitForEvent(profileId, wake.signal),
+          new Promise((resolve) => setTimeout(resolve, 25_000)),
+        ]);
+        return pump();
       };
 
       void pump();

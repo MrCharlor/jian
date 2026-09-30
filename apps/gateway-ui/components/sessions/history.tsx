@@ -73,8 +73,7 @@ export function History({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Retry and revision explicitly restart the read.
   useEffect(() => {
     let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
+    const read = async () => {
       try {
         const [history, activities, members, timeline] = await Promise.all([
           api.messages(profileId, sessionId),
@@ -114,8 +113,6 @@ export function History({
             .at(-1),
         );
         setError('');
-        // The stream says when to read; this only covers an event lost while it reconnected.
-        timer = setTimeout(poll, isRunning ? 10_000 : 30_000);
       } catch (failure) {
         if (!stopped)
           setError(failure instanceof Error ? failure.message : 'The history could not be loaded.');
@@ -123,12 +120,11 @@ export function History({
         if (!stopped) setLoading(false);
       }
     };
-    void poll();
+    void read();
     return () => {
       stopped = true;
-      clearTimeout(timer);
     };
-  }, [api, profileId, sessionId, isRunning, retry, revision, group, heard]);
+  }, [api, profileId, sessionId, retry, revision, group, heard]);
 
   // The last question this profile carried to another agent, while its answer has not come back.
   const lastCall = messages

@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import type { Queryable } from '../storage/database.js';
 import { events } from '../storage/schema.js';
 import type { Clock } from './clock.js';
@@ -18,4 +19,5 @@ export async function recordEvent(
     data: data ?? null,
     createdAt: new Date(clock()),
   });
+  await tx.execute(sql`select pg_notify('jian_events', ${profileId})`);
 }

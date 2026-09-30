@@ -11,9 +11,9 @@
   }
   .select-trigger:focus-visible,
   .select-trigger[data-popup-open] {
-    @apply border-accent bg-canvas;
+    @apply border-control bg-surface;
     outline: none;
-    box-shadow: 0 0 0 1px var(--accent);
+    box-shadow: none;
   }
   .select-value {
     @apply flex min-w-0 items-center gap-3;

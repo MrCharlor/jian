@@ -4,6 +4,24 @@ Every release of Jian, newest first.
 
 <!-- Generated from docs/releases by scripts/changelog.mjs. Edit the release note, then run `make changelog`. -->
 
+## 0.4.4 — 2026-09-30
+
+The panel follows gateway changes without repeated database polling, and focus rings no longer distract from the interface.
+
+### Live panel updates
+
+* **Event-driven updates:** the gateway wakes profile event streams with PostgreSQL notifications after committed changes, including live run progress. The stream no longer queries the database every second while it waits.
+* **Less redundant refresh work:** conversation history and task details now refresh from the existing event stream instead of maintaining their own polling timers. QR pairing, external OAuth status and stream reconnection keep their targeted retries.
+* **Durable delivery:** event cursors, replay after reconnect and the existing heartbeat remain unchanged.
+
+### Focus and controls
+
+* **Quiet focus states:** dialogs, cards, inputs, selects, the composer, grouped fields and the audio player no longer draw strong focus outlines or rings. Keyboard focus remains available without the distracting border treatment.
+
+### Upgrading
+
+No migration or configuration change is required.
+
 ## 0.4.3 — 2026-09-29
 
 GPT-6.1 Sol and model-specific higher reasoning levels for OpenAI.

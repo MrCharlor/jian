@@ -75,9 +75,10 @@
   svg {
     @apply shrink-0;
   }
+  /* Focus remains available to keyboard and assistive technology without a panel-wide ring. */
+  :focus,
   :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
+    outline: none;
   }
   ::selection {
     @apply bg-accent text-on-accent;
@@ -95,9 +96,9 @@
   input:not([type="checkbox"]):not([type="radio"]):focus,
   textarea:focus,
   select:focus {
-    @apply border-accent bg-canvas;
+    @apply border-control bg-surface;
     outline: none;
-    box-shadow: 0 0 0 1px var(--accent);
+    box-shadow: none;
   }
   textarea {
     @apply min-h-20 resize-y leading-relaxed;

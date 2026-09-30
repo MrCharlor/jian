@@ -107,11 +107,8 @@
   background: var(--column-fill);
   text-align: left;
 }
-.work-card:hover,
-.work-card:focus-visible {
+.work-card:hover {
   background: color-mix(in srgb, var(--status-dot) 16%, var(--surface));
-  outline: 2px solid var(--status-dot);
-  outline-offset: -2px;
 }
 .work-card strong {
   font-size: 0.8125rem;
@@ -159,8 +156,7 @@
   color: var(--muted);
   font-size: 0.8125rem;
 }
-.work-back:hover,
-.work-back:focus-visible {
+.work-back:hover {
   color: var(--ink);
 }
 .work-detail-layout {
@@ -397,10 +393,6 @@
   transition: border-color 0.15s ease;
 }
 
-.stacked-fields:focus-within {
-  border-color: var(--accent);
-}
-
 .stacked-fields > input {
   border: 0;
   border-radius: 0;
@@ -410,16 +402,6 @@
 .stacked-fields > input + input {
   border-top: 1px solid var(--control);
   transition: border-color 0.15s ease;
-}
-
-/* The divider belongs to the group, so it takes the group's colour with it. */
-.stacked-fields:focus-within > input + input {
-  border-top-color: var(--accent);
-}
-
-/* The group already carries the accent border; the bar alone says which row has focus. */
-.stacked-fields > input:focus {
-  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .value-rows {

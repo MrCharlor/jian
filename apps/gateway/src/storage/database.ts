@@ -19,6 +19,8 @@ export interface Store {
   transaction<T>(profileId: string, body: (tx: Queryable) => Promise<T>): Promise<T>;
   migrate(): Promise<void>;
   close(): Promise<void>;
+  /** Wakes event streams when a profile transaction commits a change. */
+  waitForEvent(profileId: string, signal: AbortSignal): Promise<void>;
 }
 
 /** The SQL drizzle-kit writes. It ships with the image and is applied on startup. */

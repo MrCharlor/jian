@@ -264,10 +264,17 @@ export async function writeProgress(
   owner: string,
   progress: RunProgress | null,
 ): Promise<void> {
-  await db
-    .update(runs)
-    .set({ progress })
-    .where(and(eq(runs.id, runId), eq(runs.leaseOwner, owner), eq(runs.status, 'running')));
+  await db.execute(sql`
+    with changed as (
+      update ${runs}
+      set ${sql.raw('progress')} = ${progress ? sql`${JSON.stringify(progress)}::jsonb` : sql`null`}
+      where ${runs.id} = ${runId}
+        and ${runs.leaseOwner} = ${owner}
+        and ${runs.status} = 'running'
+      returning ${runs.profileId}
+    )
+    select pg_notify('jian_events', ${sql.raw('profile_id')}::text) from changed
+  `);
 }
 
 /** A session admits one run at a time, and `runs_activity` answers without reading the rest. */

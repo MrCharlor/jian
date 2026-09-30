@@ -70,4 +70,8 @@ export class TestStore implements Store {
 
   /** The worker owns the database; a test closing it would take the next test with it. */
   async close(): Promise<void> {}
+
+  async waitForEvent(_profileId: string, _signal: AbortSignal): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
 }
