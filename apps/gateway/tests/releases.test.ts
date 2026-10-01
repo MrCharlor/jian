@@ -49,6 +49,8 @@ describe('the release notes the panel announces', () => {
     expect(await new ReleaseNotes(store, undefined, history).releases()).toEqual({
       notes: [],
       unseen: [],
+      updates: [],
+      behind: 0,
     });
     expect((await new ReleaseNotes(store, '0.0.0-dev', history).releases()).unseen).toEqual([]);
   });
@@ -71,6 +73,30 @@ describe('the release notes the panel announces', () => {
         ['owner-relaunch', '0.1.0'],
       ]),
     );
+  });
+
+  it('reports newer public releases while respecting the running release channel', async () => {
+    const { store } = await testServices();
+    const fetcher = async () =>
+      new Response(
+        JSON.stringify([
+          { tag_name: 'v2.3.0', body: 'Stable', published_at: '2026-09-30T00:00:00Z' },
+          {
+            tag_name: 'v2.2.0-rc.2',
+            body: 'Candidate',
+            prerelease: true,
+            published_at: '2026-09-29T00:00:00Z',
+          },
+        ]),
+        { status: 200 },
+      );
+
+    const stable = await new ReleaseNotes(store, '2.1.0', [], fetcher).releases();
+    expect(stable).toMatchObject({ behind: 1 });
+    expect(stable.updates.map((item) => item.version)).toEqual(['2.3.0']);
+
+    const candidate = await new ReleaseNotes(store, '2.2.0-rc.1', [], fetcher).releases();
+    expect(candidate.updates.map((item) => item.version)).toEqual(['2.3.0', '2.2.0-rc.2']);
   });
 
   it('is read and marked only by the owner', async () => {

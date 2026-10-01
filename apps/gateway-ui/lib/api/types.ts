@@ -56,6 +56,8 @@ export type NewProvider = RequestBody<'createProvider'>;
 export type ModelDefaultsInput = RequestBody<'setModelDefaults'>;
 export type DecisionsStatus = JsonResponse<'getDecisions', 200>;
 export type DecisionsSettingsPatch = RequestBody<'updateDecisionsSettings'>;
+export type SshKey = JsonResponse<'listSshKeys', 200>[number];
+export type NewSshKey = RequestBody<'createSshKey'>;
 
 /** The open profile's whole screenful. Every section reads its slice from here. */
 export type ProfileData = {

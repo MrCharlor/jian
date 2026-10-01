@@ -20,6 +20,7 @@ import { createSafeFetch } from './security/outbound.js';
 import type { Vault } from './security/vault.js';
 import { Sessions } from './sessions/service.js';
 import { Settings } from './settings/service.js';
+import { SshKeys } from './ssh/service.js';
 import { Stats } from './stats/service.js';
 import { Stickers } from './stickers/service.js';
 import type { Store } from './storage/database.js';
@@ -50,6 +51,7 @@ export type Services = {
   work: Work;
   vault: Vault;
   gatewayVault: GatewayVault;
+  sshKeys: SshKeys;
 };
 
 /** One wiring point: every area gets the same store, vault and clock. */
@@ -91,7 +93,7 @@ export function buildServices({
     clock,
   );
 
-  return {
+  const services = {
     profiles,
     providers,
     sessions,
@@ -99,7 +101,12 @@ export function buildServices({
     media,
     web: new WebSearch(store, gatewayVault, fetcher ?? createSafeFetch().fetch),
     // Stamped into the image at build time; a gateway run from source has none.
-    releases: new ReleaseNotes(store, process.env.JIAN_VERSION),
+    releases: new ReleaseNotes(
+      store,
+      process.env.JIAN_VERSION,
+      undefined,
+      fetcher ?? createSafeFetch().fetch,
+    ),
     repository: new RepositoryStars(fetcher ?? createSafeFetch().fetch),
     decisions,
     runs,
@@ -124,5 +131,8 @@ export function buildServices({
     work: new Work(store, profiles, sessions, runs, clock),
     vault,
     gatewayVault,
+    sshKeys: new SshKeys(profiles),
   };
+
+  return services;
 }

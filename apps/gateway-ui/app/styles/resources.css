@@ -558,7 +558,7 @@
   grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr));
 }
 .lifetime-stats .stat-tile:first-child {
-  background: #171717;
+  background: var(--accent-soft);
 }
 .stat-icon {
   display: grid;

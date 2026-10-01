@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { releases } from '../../stories/fixtures';
-import { updatedHandlers } from '../../stories/handlers';
+import { outdatedHandlers, updatedHandlers } from '../../stories/handlers';
 import { Markdown } from '../ui/markdown';
 import { ReleaseNotes, useReleaseNotes } from './dialog';
 
@@ -30,6 +30,16 @@ function OpenHistory() {
 
 /** Every release up to the running one, opened from the sidebar at any time. */
 export const History: Story = {
+  render: () => (
+    <ReleaseNotes>
+      <OpenHistory />
+    </ReleaseNotes>
+  ),
+};
+
+/** An older installation: the sidebar shows a glowing count and the click opens pending notes. */
+export const Outdated: Story = {
+  parameters: { msw: { handlers: outdatedHandlers } },
   render: () => (
     <ReleaseNotes>
       <OpenHistory />

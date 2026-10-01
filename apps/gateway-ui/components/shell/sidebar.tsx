@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react';
 import { gatewayApi } from '../../lib/api';
 import { currentSection, groupLabels, navigation } from '../../lib/navigation';
 import { useWorkspace } from '../../lib/workspace';
-import { useReleaseNotes } from '../releases/dialog';
+import { useReleaseNotes, useReleaseUpdate } from '../releases/dialog';
 import { GitHubLogo, Mark } from '../ui';
 import { ProfileSwitcher } from './profile-switcher';
+import { ThemeSwitcher } from './theme';
 
 export function Sidebar({
   open,
@@ -24,6 +25,7 @@ export function Sidebar({
   const active = currentSection(pathname);
   const { data, loading, signOut } = useWorkspace();
   const releaseNotes = useReleaseNotes();
+  const releaseUpdate = useReleaseUpdate();
   // Requests waiting on the owner, shown wherever they are in the panel.
   const pending = data?.contacts.filter((contact) => contact.status === 'pending').length ?? 0;
 
@@ -75,9 +77,11 @@ export function Sidebar({
         ))}
       </nav>
       <div className="sidebar-footer">
+        <ThemeSwitcher />
         <GitHubLink />
         <button
           type="button"
+          className={releaseUpdate.behind > 0 ? 'release-update' : undefined}
           onClick={() => {
             onNavigate();
             releaseNotes();
@@ -85,6 +89,12 @@ export function Sidebar({
         >
           <ScrollText size={16} />
           Release notes
+          {releaseUpdate.behind > 0 && (
+            <span className="release-update-count">
+              {releaseUpdate.behind}
+              <span className="sr-only"> releases behind</span>
+            </span>
+          )}
         </button>
         <button type="button" onClick={() => void signOut()}>
           <LogOut size={16} />

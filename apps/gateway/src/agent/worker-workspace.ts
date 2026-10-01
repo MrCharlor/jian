@@ -25,6 +25,7 @@ export type WorkerGitAccess = {
   readOnly: string[];
   writable: string[];
   sshCommand?: string;
+  ghConfigDir?: string;
 };
 
 async function sharedSsh(home: string, profileHome: string, access: WorkerGitAccess) {
@@ -88,10 +89,28 @@ export async function prepareWorkerWorkspace(run: Run): Promise<WorkerGitAccess>
     ).stdout.trim();
   };
   const gitAccess: WorkerGitAccess = { readOnly: [], writable: [] };
+  const config = join(profileHome, '.config');
+  await directory(config);
+  gitAccess.ghConfigDir = join(config, 'gh');
+  gitAccess.writable.push(config);
   await sharedSsh(home, profileHome, gitAccess);
 
   for (const [index, asked] of (run.subagent.repositories ?? []).entries()) {
-    const source = await realpath(asked);
+    let source: string;
+    try {
+      source = await realpath(asked);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'EACCES' || code === 'EPERM') {
+        throw new Error(
+          `Repository ${index + 1} cannot be accessed at ${asked}; use a Git root inside this profile's workspace, not /root or another user's directory`,
+        );
+      }
+      if (code === 'ENOENT') {
+        throw new Error(`Repository ${index + 1} does not exist at ${asked}`);
+      }
+      throw error;
+    }
     if (!inside(source, profileHome) || !(await stat(source)).isDirectory()) {
       throw new Error(`Repository ${index + 1} must be inside this agent's workspace`);
     }

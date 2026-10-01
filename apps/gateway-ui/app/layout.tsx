@@ -3,6 +3,7 @@ import '@fontsource-variable/ibm-plex-sans';
 import '@fontsource/ibm-plex-mono/400.css';
 import { Notifications } from '../components/shell/notice';
 import { ServiceWorker } from '../components/shell/service-worker';
+import { ThemeProvider } from '../components/shell/theme';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -13,13 +14,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: '#050505', colorScheme: 'dark' };
+export const viewport: Viewport = { themeColor: '#050505', colorScheme: 'dark light' };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
         <Notifications />
         <ServiceWorker />
       </body>

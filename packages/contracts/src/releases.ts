@@ -21,6 +21,9 @@ export const releasesSchema = z.strictObject({
     .describe('Absent on a build with no version stamped on it, which has nothing to announce.'),
   notes: z.array(releaseNoteSchema),
   unseen: z.array(releaseNoteSchema),
+  /** Stable releases newer than the running build, when the gateway could reach GitHub. */
+  updates: z.array(releaseNoteSchema),
+  behind: z.number().int().nonnegative(),
 });
 
 /** Where the project lives, and its GitHub stars when GitHub could be reached. */

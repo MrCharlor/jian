@@ -660,6 +660,8 @@ export const releases = {
   version: '0.1.0',
   notes: [latestRelease],
   unseen: [latestRelease],
+  updates: [],
+  behind: 0,
 };
 
 /** Three stickers the agent kept from its chats, as small WebP images. */

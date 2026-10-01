@@ -9,6 +9,7 @@ import { releaseReads } from '../storage/schema.js';
 const OWNER = 'owner-relaunch';
 
 const VERSION = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
+const RELEASES_API = 'https://api.github.com/repos/lucasaarch/jian/releases?per_page=100';
 
 /**
  * Where this build's notes are: copied next to the compiled server by the build, or read from
@@ -97,6 +98,7 @@ export class ReleaseNotes {
     private readonly store: Store,
     version: string | undefined,
     private readonly notes: ReleaseNote[] = readNotes(),
+    private readonly fetcher?: typeof fetch,
   ) {
     const stamped = version?.replace(/^v/, '');
 
@@ -116,6 +118,8 @@ export class ReleaseNotes {
       : [];
     const seen = await this.seen();
 
+    const updates = running ? await this.updates(running, candidate) : [];
+
     return {
       ...(running ? { version: running } : {}),
       notes: known,
@@ -126,6 +130,8 @@ export class ReleaseNotes {
             seen ? compareVersions(note.version, seen) > 0 : note.version === running,
           )
         : [],
+      updates,
+      behind: updates.length,
     };
   }
 
@@ -158,5 +164,56 @@ export class ReleaseNotes {
       .limit(1);
 
     return row?.version;
+  }
+
+  private remote?: { notes: ReleaseNote[]; until: number };
+
+  private async updates(running: string, candidate: boolean): Promise<ReleaseNote[]> {
+    if (!this.fetcher) return [];
+    const now = Date.now();
+    if (this.remote && this.remote.until > now) {
+      return this.filterUpdates(this.remote.notes, running, candidate);
+    }
+
+    const notes = await this.fetcher(RELEASES_API, {
+      headers: { accept: 'application/vnd.github+json', 'user-agent': 'jian-gateway' },
+      signal: AbortSignal.timeout(5_000),
+    })
+      .then(async (response) => (response.ok ? ((await response.json()) as unknown) : []))
+      .then((body) =>
+        Array.isArray(body)
+          ? body.flatMap((release) => {
+              if (!release || typeof release !== 'object') return [];
+              const item = release as Record<string, unknown>;
+              const tag = typeof item.tag_name === 'string' ? item.tag_name : '';
+              const body = typeof item.body === 'string' ? item.body.trim() : '';
+              const date =
+                typeof item.published_at === 'string' ? item.published_at.slice(0, 10) : '';
+              const match = VERSION.exec(tag);
+              return match && body && /^\d{4}-\d{2}-\d{2}$/.test(date)
+                ? [
+                    {
+                      version: tag.replace(/^v/, ''),
+                      date,
+                      body,
+                      prerelease: Boolean(item.prerelease),
+                    },
+                  ]
+                : [];
+            })
+          : [],
+      )
+      .catch(() => [] as ReleaseNote[]);
+
+    this.remote = { notes, until: now + (notes.length ? 60 * 60_000 : 10 * 60_000) };
+    return this.filterUpdates(notes, running, candidate);
+  }
+
+  private filterUpdates(notes: ReleaseNote[], running: string, candidate: boolean) {
+    return notes
+      .filter(
+        (note) => compareVersions(note.version, running) > 0 && (candidate || !note.prerelease),
+      )
+      .sort((a, b) => compareVersions(b.version, a.version));
   }
 }

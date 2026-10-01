@@ -10,8 +10,9 @@ import OverviewPage from '../../app/(workspace)/page';
 import ProvidersPage from '../../app/(workspace)/providers/page';
 import SessionsPage from '../../app/(workspace)/sessions/page';
 import SkillsPage from '../../app/(workspace)/skills/page';
+import SshKeysPage from '../../app/(workspace)/ssh-keys/page';
 import WorkPage from '../../app/(workspace)/tasks/page';
-import { emptyHandlers, updatedHandlers } from '../handlers';
+import { emptyHandlers, outdatedHandlers, updatedHandlers } from '../handlers';
 
 /**
  * Every screen of the panel as it really renders: the workspace layout, the sidebar, and the
@@ -44,6 +45,7 @@ export const Channels = page(ChannelsPage, '/channels');
 export const Memories = page(MemoriesPage, '/memories');
 export const Skills = page(SkillsPage, '/skills');
 export const Mcp = page(McpPage, '/mcp');
+export const SshKeys = page(SshKeysPage, '/ssh-keys');
 
 /** A gateway on its first day: no providers, no channels, no conversations. */
 export const FirstRun: Story = {
@@ -60,6 +62,15 @@ export const AfterAnUpdate: Story = {
   parameters: {
     ...page(OverviewPage, '/').parameters,
     msw: { handlers: updatedHandlers },
+  },
+};
+
+/** An older installation: the Release notes action shows the number of pending releases. */
+export const Outdated: Story = {
+  ...page(OverviewPage, '/'),
+  parameters: {
+    ...page(OverviewPage, '/').parameters,
+    msw: { handlers: outdatedHandlers },
   },
 };
 

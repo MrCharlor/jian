@@ -84,6 +84,7 @@ import {
 } from './schedules.js';
 import { panelSessionEndSchema, panelSessionInputSchema, panelSessionSchema } from './security.js';
 import { catalogQuerySchema, catalogSchema, skillImportSchema } from './skills.js';
+import { sshKeyCreateSchema, sshKeySchema } from './ssh.js';
 import { webSearchInputSchema, webSearchStatusSchema } from './web.js';
 import { workExecutionSchema, workHistorySchema, workItemSchema } from './work.js';
 
@@ -114,6 +115,32 @@ export const cursorSchema = z.strictObject({
 });
 
 export const operations: Operation[] = [
+  {
+    method: 'GET',
+    path: `${profile}/ssh-keys`,
+    operationId: 'listSshKeys',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid() }),
+    response: z.array(sshKeySchema),
+  },
+  {
+    method: 'POST',
+    path: `${profile}/ssh-keys`,
+    operationId: 'createSshKey',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid() }),
+    body: sshKeyCreateSchema,
+    response: sshKeySchema,
+    status: 201,
+  },
+  {
+    method: 'DELETE',
+    path: `${profile}/ssh-keys/:keyId`,
+    operationId: 'deleteSshKey',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid(), keyId: z.uuid() }),
+    response: z.strictObject({ id: z.uuid() }),
+  },
   {
     method: 'GET',
     path: `${profile}/work`,

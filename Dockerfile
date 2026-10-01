@@ -1,6 +1,9 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 RUN corepack enable
+# Git's default SSH and agent-supplied GIT_SSH_COMMAND both resolve this wrapper through PATH.
+COPY apps/gateway/ssh.sh /usr/local/bin/ssh
+RUN chmod 755 /usr/local/bin/ssh
 # The Git hooks are not installed in an image, and pnpm must not prune devDependencies
 # before the build runs.
 ENV HUSKY=0 CI=true

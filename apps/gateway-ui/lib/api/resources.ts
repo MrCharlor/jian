@@ -4,6 +4,16 @@ import type { ScheduleInput, SchedulePatch } from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
 export const resourceCalls = (client: Client) => ({
+  sshKeys: (profileId: string) =>
+    result(client.GET('/v1/profiles/{profileId}/ssh-keys', { params: profile(profileId) })),
+  createSshKey: (profileId: string, body: { name: string }) =>
+    result(client.POST('/v1/profiles/{profileId}/ssh-keys', { params: profile(profileId), body })),
+  deleteSshKey: (profileId: string, keyId: string) =>
+    result(
+      client.DELETE('/v1/profiles/{profileId}/ssh-keys/{keyId}', {
+        params: { path: { profileId, keyId } },
+      }),
+    ),
   work: (profileId: string) =>
     result(client.GET('/v1/profiles/{profileId}/work', { params: profile(profileId) })),
   workHistory: (profileId: string, workId: string) =>

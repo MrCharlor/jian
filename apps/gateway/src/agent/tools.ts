@@ -25,6 +25,7 @@ import type { Schedules } from '../schedules/service.js';
 import type { SessionNamer, SessionReader, SessionSummarizer } from '../sessions/port.js';
 import { findSkill } from '../skills/builtin/index.js';
 import { skillTools } from '../skills/tools.js';
+import type { SshKeys } from '../ssh/service.js';
 import type { Stats } from '../stats/service.js';
 import type { Store } from '../storage/database.js';
 import { artifacts, checkpoints } from '../storage/schema.js';
@@ -88,30 +89,8 @@ export type ToolServices = {
   settings?: { timeZone(): Promise<string> };
   stats?: Pick<Stats, 'stats' | 'usageRuns'>;
   work?: Pick<Work, 'list' | 'createWithExecutor' | 'update' | 'spawn' | 'executions'>;
+  sshKeys: Pick<SshKeys, 'list' | 'create' | 'remove'>;
 };
-
-/** Task workers inherit machine/web/media work, not the principal's people or profile. */
-const TASK_WORKER_TOOLS = new Set([
-  'list_tasks',
-  'update_task',
-  'read_artifact',
-  'compact_context',
-  'read_file',
-  'edit_file',
-  'write_file',
-  'find_files',
-  'search_files',
-  'list_directory',
-  'run_command',
-  'web_search',
-  'fetch_url',
-  'analyze_media',
-  'generate_image',
-]);
-
-export function restrictTaskWorkerTools(tools: ToolSet): void {
-  for (const name of Object.keys(tools)) if (!TASK_WORKER_TOOLS.has(name)) delete tools[name];
-}
 
 export function profileTools(
   services: ToolServices,
@@ -122,6 +101,27 @@ export function profileTools(
   const rechecked = new Set<string>();
 
   const tools: ToolSet = {
+    list_ssh_keys: tool({
+      description:
+        'List this profile’s SSH keys. Returns names, public keys and fingerprints only; private keys never leave the workspace.',
+      inputSchema: z.object({}),
+      execute: async () => services.sshKeys.list(run.profileId),
+    }),
+
+    create_ssh_key: tool({
+      description:
+        'Create an Ed25519 SSH key for this profile through Jian. Never use ssh-keygen or create SSH keys through the shell.',
+      inputSchema: z.object({ name: z.string().trim().min(1).max(80) }),
+      execute: async ({ name }) => services.sshKeys.create(run.profileId, { name }),
+    }),
+
+    delete_ssh_key: tool({
+      description:
+        'Delete one of this profile’s SSH keys. List the keys first and use the returned id.',
+      inputSchema: z.object({ id: z.uuid() }),
+      execute: async ({ id }) => services.sshKeys.remove(run.profileId, id),
+    }),
+
     list_activities: tool({
       description: 'Read the actual queued/running tasks across this profile’s sessions.',
       inputSchema: z.object({}),
@@ -146,13 +146,17 @@ export function profileTools(
               return run.subagent ? items?.filter((item) => item.id === run.workItemId) : items;
             },
           }),
-          create_task: tool({
-            description:
-              'Create a durable task and start its executor. First check for an existing task. Include the objective, source links/IDs, known state, acceptance criteria, and exact remaining actions in the description. For code work, list absolute Git repository roots in repositories; each worker gets its own detached worktree from committed HEAD. Do not repeat the executor’s work yourself.',
-            inputSchema: workInputSchema,
-            execute: async (input, options) =>
-              services.work?.createWithExecutor(run, input, options.toolCallId),
-          }),
+          ...(!run.subagent
+            ? {
+                create_task: tool({
+                  description:
+                    'Create a durable task and start its executor. First check for an existing task. Include the objective, source links/IDs, known state, acceptance criteria, and exact remaining actions in the description. For code work, list absolute Git repository roots in repositories; each worker gets its own detached worktree from committed HEAD. Do not repeat the executor’s work yourself.',
+                  inputSchema: workInputSchema,
+                  execute: async (input, options) =>
+                    services.work?.createWithExecutor(run, input, options.toolCallId),
+                }),
+              }
+            : {}),
           update_task: tool({
             description:
               'Move a task or leave a progress/handoff note. Use the version from list_tasks; stale updates conflict. Commit and push code before marking done: worker workspaces are removed after all workers finish. Move to review only when independent review is needed; otherwise mark verified work done before your final report.',

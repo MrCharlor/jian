@@ -19,7 +19,9 @@ the other task and long-running-work tools.
 \`create_task\` records a concrete commitment and queues an executor subagent. Check for an
 existing card first. Its description must give the worker an objective, source links and IDs,
 current state, relevant evidence, acceptance criteria, and exact next actions.
-For code tasks, list each Git repository root under your workspace in \`repositories\`.
+For code tasks, list each Git repository root under your workspace in \`repositories\`. Use the
+absolute path visible to this profile (never a host path such as \`/root/project\`); the Gateway
+must be able to access it as the \`node\` user before it can create a worker worktree.
 Each worker gets separate worktrees from committed HEAD; uncommitted source changes are not copied.
 The worker's shell starts in its own workspace, with repositories under \`repos/\`.
 Commit and push worker changes before handing off to review or marking a task done; a reviewer

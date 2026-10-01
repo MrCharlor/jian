@@ -4,9 +4,17 @@ import '../app/globals.css';
 import type { Preview } from '@storybook/nextjs-vite';
 import { setupWorker } from 'msw/browser';
 import { mswLoader } from 'msw-storybook-addon/csf3';
+import { ThemeProvider } from '../components/shell/theme';
 import { handlers } from '../stories/handlers';
 
 const preview: Preview = {
+  decorators: [
+    (Story) => (
+      <ThemeProvider>
+        <Story />
+      </ThemeProvider>
+    ),
+  ],
   loaders: [
     // A request no handler answers goes to the network, which in Storybook means it fails
     // visibly instead of being made up.

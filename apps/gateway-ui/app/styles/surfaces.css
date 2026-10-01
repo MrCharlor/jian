@@ -10,7 +10,7 @@
   /* The brand and the profile on top and the footer below stay put; only the sections scroll
      between them, so Sign out stays in reach. */
   .sidebar {
-    @apply fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-hidden border-r border-line bg-[#090909] pt-6;
+    @apply fixed inset-y-0 left-0 z-30 flex w-60 flex-col overflow-hidden border-r border-line bg-surface pt-6;
   }
   .sidebar > .brand,
   .sidebar > .profile-selector,
@@ -82,6 +82,38 @@
   .sidebar-footer button,
   .sidebar-github {
     @apply mt-3 flex items-center gap-2 py-1 hover:text-accent;
+  }
+  .sidebar-footer button.release-update {
+    @apply w-full text-warn;
+    animation: release-update-pulse 2s ease-in-out infinite;
+  }
+  .release-update-count {
+    @apply ml-auto grid min-h-5 min-w-5 place-items-center rounded-full bg-warn px-1.5 text-[11px] font-semibold text-on-accent;
+    animation: release-count-glow 1.8s ease-in-out infinite;
+  }
+  @keyframes release-update-pulse {
+    0%,
+    100% {
+      text-shadow: 0 0 0 color-mix(in srgb, var(--color-warn) 0%, transparent);
+    }
+    50% {
+      text-shadow: 0 0 0.75rem color-mix(in srgb, var(--color-warn) 80%, transparent);
+    }
+  }
+  @keyframes release-count-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 0.35rem color-mix(in srgb, var(--color-warn) 45%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0.9rem color-mix(in srgb, var(--color-warn) 95%, transparent);
+    }
+  }
+  .sidebar-footer .theme-switcher {
+    @apply m-0 flex w-full gap-1 border-0 bg-transparent p-0;
+  }
+  .sidebar-footer .theme-switcher button {
+    @apply m-0 min-h-8 flex-1 justify-center rounded-sm px-2 py-1;
   }
   .sidebar-footer > .sidebar-github:first-child {
     @apply mt-0;

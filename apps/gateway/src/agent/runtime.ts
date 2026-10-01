@@ -39,7 +39,7 @@ import { availableNote, connectMcpTools, unavailableNote } from './mcp.js';
 import { Narrator } from './narrator.js';
 import { ProgressReporter } from './progress.js';
 import { boundToolResult, redactOutput, redactText } from './results.js';
-import { deferTools, profileTools, restrictTaskWorkerTools, type ToolServices } from './tools.js';
+import { deferTools, profileTools, type ToolServices } from './tools.js';
 import type { ModelResolver, RuntimeOptions } from './types.js';
 import { markSteering, outsideContent } from './untrusted.js';
 import { prepareWorkerWorkspace } from './worker-workspace.js';
@@ -289,8 +289,6 @@ export class AgentRuntime {
       if (learning) {
         for (const name of Object.keys(tools)) if (!LEARNING_TOOLS.has(name)) delete tools[name];
       }
-      if (run.subagent) restrictTaskWorkerTools(tools);
-
       // Loaded within the run and never across runs: a turn states what it needs. A look back
       // has only a handful, all loaded from the start.
       const loadedTools = new Set<string>(learning ? Object.keys(tools) : []);

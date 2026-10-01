@@ -59,6 +59,7 @@ export function commandEnvironment(
   home: string,
   source: NodeJS.ProcessEnv = process.env,
   gitSshCommand?: string,
+  ghConfigDir?: string,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
 
@@ -77,6 +78,7 @@ export function commandEnvironment(
   return {
     ...env,
     HOME: home,
+    GH_CONFIG_DIR: ghConfigDir ?? join(home, '.config', 'gh'),
     TMPDIR: join(home, 'tmp'),
     GOPATH: join(home, 'go'),
     NPM_CONFIG_PREFIX: join(home, '.local'),
@@ -101,7 +103,12 @@ function clip(text: string, limit: number): string {
 export function shellTools(
   profileId: string,
   workerId?: string,
-  gitAccess: { readOnly: string[]; writable: string[]; sshCommand?: string } = {
+  gitAccess: {
+    readOnly: string[];
+    writable: string[];
+    sshCommand?: string;
+    ghConfigDir?: string;
+  } = {
     readOnly: [],
     writable: [],
   },
@@ -116,6 +123,13 @@ export function shellTools(
         timeoutMs: z.number().int().min(1000).max(TIMEOUT_MS).default(30_000),
       }),
       execute: async ({ command, cwd, timeoutMs }) => {
+        if (/(?:^|[;&|\s])ssh-keygen(?:\s|$)/.test(command)) {
+          return {
+            exitCode: 126,
+            stdout: '',
+            stderr: 'SSH keys must be managed with the SSH key tools, not ssh-keygen.',
+          };
+        }
         const home = await workspaceOf(profileId, workerId);
         const directory = cwd ? await confine(profileId, cwd, 'read', workerId) : home;
         const shell = await confined(home, '/bin/sh', ['-c', command], gitAccess);
@@ -126,7 +140,12 @@ export function shellTools(
             shell.args,
             {
               cwd: directory,
-              env: commandEnvironment(home, process.env, gitAccess.sshCommand),
+              env: commandEnvironment(
+                home,
+                process.env,
+                gitAccess.sshCommand,
+                gitAccess.ghConfigDir,
+              ),
               timeout: timeoutMs,
               maxBuffer: MAX_OUTPUT * 4,
               encoding: 'utf8',

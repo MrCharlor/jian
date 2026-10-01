@@ -19,6 +19,27 @@
   --shade: #000000;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f7f7f5;
+  --ink: #171716;
+  --muted: #686864;
+  --line: #deded9;
+  --control: #aaa9a1;
+  --surface: #ffffff;
+  --accent: #171716;
+  --accent-hover: #3d3d39;
+  --accent-soft: #ecece8;
+  --on-accent: #ffffff;
+  --good: #237a51;
+  --good-soft: #e3f3eb;
+  --warn: #93620c;
+  --warn-soft: #fff2d5;
+  --bad: #b22e3d;
+  --bad-soft: #fde7e9;
+  --shade: #ffffff;
+}
+
 @theme inline {
   --color-canvas: var(--canvas);
   --color-ink: var(--ink);

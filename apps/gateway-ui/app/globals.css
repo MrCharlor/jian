@@ -114,6 +114,30 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: none;
+    mix-blend-mode: normal;
+    z-index: 1;
+  }
+  ::view-transition-new(root) {
+    animation: theme-reveal 620ms cubic-bezier(0.33, 0, 0.15, 1) both;
+    mix-blend-mode: normal;
+    z-index: 2;
+  }
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0% at var(--theme-reveal-x, 50%) var(--theme-reveal-y, 50%));
+  }
+  to {
+    clip-path: circle(
+      var(--theme-reveal-r, 100%) at var(--theme-reveal-x, 50%) var(--theme-reveal-y, 50%)
+    );
+  }
+}
+
 @layer components {
   .grow {
     @apply min-w-0 flex-1;
@@ -148,6 +172,16 @@
   }
   .icon-button:disabled {
     @apply cursor-default opacity-50 hover:bg-transparent hover:text-muted;
+  }
+  .theme-switcher {
+    @apply flex items-center gap-1 rounded-sm border border-line bg-surface p-1;
+  }
+  .theme-switcher button {
+    @apply inline-flex min-h-8 items-center gap-1.5 rounded-sm px-2 text-xs text-muted transition-colors;
+  }
+  .theme-switcher button:hover,
+  .theme-switcher button.active {
+    @apply bg-accent-soft text-ink;
   }
   .text-button {
     @apply inline-flex items-center gap-2 py-1 text-xs font-medium text-accent hover:underline;

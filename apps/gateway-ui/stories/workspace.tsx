@@ -1,4 +1,5 @@
 import type { Decorator } from '@storybook/nextjs-vite';
+import { ThemeProvider } from '../components/shell/theme';
 import { WorkspaceProvider } from '../lib/workspace';
 import { profiles } from './fixtures';
 
@@ -7,7 +8,9 @@ import { profiles } from './fixtures';
  * which the story's handlers answer. For a piece of the chrome shown on its own.
  */
 export const withWorkspace: Decorator = (Story) => (
-  <WorkspaceProvider initialProfiles={profiles} onSignOut={() => {}}>
-    <Story />
-  </WorkspaceProvider>
+  <ThemeProvider>
+    <WorkspaceProvider initialProfiles={profiles} onSignOut={() => {}}>
+      <Story />
+    </WorkspaceProvider>
+  </ThemeProvider>
 );

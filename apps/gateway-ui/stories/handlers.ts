@@ -64,6 +64,28 @@ export const handlers = [
   http.get('*/v1/profiles/:profileId', ({ params }) =>
     ok(data.profiles.find((profile) => profile.id === params.profileId) ?? data.profiles[0]),
   ),
+  http.get('*/v1/profiles/:profileId/ssh-keys', () =>
+    ok([
+      {
+        id: 'f1b2c3d4-1111-4111-8111-111111111111',
+        name: 'GitHub deploy',
+        publicKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeStoryKey github',
+        fingerprint: 'SHA256/story-fingerprint',
+        createdAt: new Date().toISOString(),
+      },
+    ]),
+  ),
+  http.post('*/v1/profiles/:profileId/ssh-keys', async ({ request }) => {
+    const body = (await request.json()) as { name: string };
+    return ok({
+      id: 'f1b2c3d4-2222-4222-8222-222222222222',
+      name: body.name,
+      publicKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeStoryKey created',
+      fingerprint: 'SHA256/story-fingerprint',
+      createdAt: new Date().toISOString(),
+    });
+  }),
+  http.delete('*/v1/profiles/:profileId/ssh-keys/:keyId', ({ params }) => ok({ id: params.keyId })),
   http.patch('*/v1/profiles/:profileId', async ({ params, request }) => {
     const current = data.profiles.find((profile) => profile.id === params.profileId);
 
@@ -536,3 +558,31 @@ export const emptyHandlers = [
 
 /** An update just landed: the release dialog opens over the page. */
 export const updatedHandlers = [http.get('*/v1/releases', () => ok(data.releases)), ...handlers];
+
+/** An older installation with two stable releases waiting to be applied. */
+export const outdatedHandlers = [
+  http.get('*/v1/releases', () =>
+    ok({
+      ...data.releases,
+      unseen: [],
+      updates: [
+        {
+          version: '0.3.0',
+          date: '2026-10-01',
+          summary: 'Task workers inherit the profile context.',
+          body: '## Profile workers\n\nWorkers now share the profile context and tools.',
+          prerelease: false,
+        },
+        {
+          version: '0.2.0',
+          date: '2026-09-30',
+          summary: 'SSH keys are managed from Jian.',
+          body: '## SSH keys\n\nCreate and manage keys from the panel.',
+          prerelease: false,
+        },
+      ],
+      behind: 2,
+    }),
+  ),
+  ...handlers,
+];

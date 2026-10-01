@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { profileTools, restrictTaskWorkerTools } from '../src/agent/tools.js';
+import { profileTools } from '../src/agent/tools.js';
 import { prepareWorkerWorkspace } from '../src/agent/worker-workspace.js';
 import { workspaceOf } from '../src/agent/workspace.js';
 import { createApp } from '../src/app.js';
@@ -241,18 +241,13 @@ it('spawns isolated, idempotent task workers and allows verified direct completi
   ).toBe(false);
   const worker = await services.runs.run(profile.id, first.runId);
   const workerTools = profileTools(services, worker);
-  restrictTaskWorkerTools(workerTools);
   expect(Object.keys(workerTools)).toContain('update_task');
-  for (const name of [
-    'spawn_subagent',
-    'create_task',
-    'ask_agent',
-    'list_sessions',
-    'remember',
-    'message_contact',
-  ]) {
-    expect(workerTools).not.toHaveProperty(name);
-  }
+  expect(workerTools).toHaveProperty('ask_agent');
+  expect(workerTools).toHaveProperty('list_sessions');
+  expect(workerTools).toHaveProperty('remember');
+  expect(workerTools).toHaveProperty('message_contact');
+  expect(workerTools).not.toHaveProperty('spawn_subagent');
+  expect(workerTools).not.toHaveProperty('create_task');
   const copied = worker.input.match(/\[Attached media: ([0-9a-f-]{36})\]/)?.[1];
   expect(copied).toBeTruthy();
   expect((await findMedia(services.store.db, profile.id, copied ?? '')).sessionId).toBe(
@@ -268,7 +263,7 @@ it('spawns isolated, idempotent task workers and allows verified direct completi
     `Your repository worktrees are ${join(await workspaceOf(profile.id, first.runId), 'repos/1/project')}`,
   );
   expect(context.system).toContain("Paths from other workers' reports are not accessible");
-  expect(context.system).not.toContain('Coordinate the release.');
+  expect(context.system).toContain('Coordinate the release.');
   await expect(
     services.runs.submit(profile.id, first.sessionId, { text: 'Intrude', requestKey: 'direct' }),
   ).rejects.toMatchObject({ statusCode: 403 });

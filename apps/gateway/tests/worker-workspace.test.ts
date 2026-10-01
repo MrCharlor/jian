@@ -63,7 +63,8 @@ it('gives two workers separate committed trees and preserves a worker tree on re
   const second = worker(secondId, [source]);
   const gitAccess = await prepareWorkerWorkspace(first);
   expect(gitAccess.readOnly).toHaveLength(1);
-  expect(gitAccess.writable).toHaveLength(2);
+  expect(gitAccess.writable).toHaveLength(3);
+  expect(gitAccess.ghConfigDir).toBe(join(home, '.config', 'gh'));
   await prepareWorkerWorkspace(second);
   const firstTree = join(await workspaceOf(profileId, firstId), 'repos/1/project');
   const secondTree = join(await workspaceOf(profileId, secondId), 'repos/1/project');
