@@ -16,12 +16,13 @@ export function revealTheme(origin: { x: number; y: number }, apply: () => void)
     return;
   }
 
+  // View-transition snapshots are viewport-sized, even when the document
+  // itself is taller because the current page scrolls.
   const root = document.documentElement;
-  const box = root.getBoundingClientRect();
-  const width = Math.max(1, box.width);
-  const height = Math.max(1, box.height);
-  const x = origin.x - box.left;
-  const y = origin.y - box.top;
+  const width = Math.max(1, window.innerWidth);
+  const height = Math.max(1, window.innerHeight);
+  const x = origin.x;
+  const y = origin.y;
   const reference = Math.hypot(width, height) / Math.SQRT2;
 
   root.style.setProperty('--theme-reveal-x', `${(x / width) * 100}%`);

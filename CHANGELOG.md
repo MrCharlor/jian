@@ -4,6 +4,18 @@ Every release of Jian, newest first.
 
 <!-- Generated from docs/releases by scripts/changelog.mjs. Edit the release note, then run `make changelog`. -->
 
+## 0.5.1-rc.2 — 2026-10-01
+
+Keep theme reveals aligned on pages with vertical scrolling.
+
+### Panel
+
+* **Theme reveals on scrolling pages:** the circular theme transition now calculates its origin and radius from the viewport captured by the browser, keeping the reveal anchored to the clicked control on pages with vertical scroll.
+
+### Upgrading
+
+No database migration or configuration change is required. This is a prerelease and does not move the `latest` image tag.
+
 ## 0.5.1-rc.1 — 2026-10-01
 
 Keep the theme reveal animation smooth in Chrome.
