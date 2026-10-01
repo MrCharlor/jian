@@ -4,6 +4,18 @@ Every release of Jian, newest first.
 
 <!-- Generated from docs/releases by scripts/changelog.mjs. Edit the release note, then run `make changelog`. -->
 
+## 0.5.1-rc.1 — 2026-10-01
+
+Keep the theme reveal animation smooth in Chrome.
+
+### Panel
+
+* **Smooth theme transitions in Chrome:** the circular theme reveal now declares its View Transition animation before the browser captures the new page, preventing the animation from stopping early or revealing the page all at once.
+
+### Upgrading
+
+No database migration or configuration change is required. This is a prerelease and does not move the `latest` image tag.
+
 ## 0.5.0 — 2026-10-01
 
 Profile SSH key management, richer task workers, themes, release notices, and clearer loading states.
