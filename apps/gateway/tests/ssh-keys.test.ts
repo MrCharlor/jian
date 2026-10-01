@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, expect, it } from 'vitest';
@@ -27,7 +28,10 @@ it('creates, lists and removes a profile SSH key without returning the private k
   const home = await workspaceOf(profile.id);
   const privateKey = join(home, '.ssh', 'jian', created.id, 'id_ed25519');
   expect(existsSync(privateKey)).toBe(true);
-  expect(readFileSync(privateKey, 'utf8')).toContain('PRIVATE KEY');
+  expect(readFileSync(privateKey, 'utf8')).toContain('BEGIN OPENSSH PRIVATE KEY');
+  expect(
+    execFileSync('/usr/bin/ssh-keygen', ['-y', '-f', privateKey], { encoding: 'utf8' }).trim(),
+  ).toBe(created.publicKey.split(' ').slice(0, 2).join(' '));
   expect(await services.sshKeys.list(profile.id)).toEqual([created]);
 
   await expect(services.sshKeys.remove(profile.id, created.id)).resolves.toEqual({

@@ -16,7 +16,7 @@ vi.mock('../../lib/workspace', () => ({
   }),
 }));
 
-it('centers the standard orb while a conversation is loading', async () => {
+it('centers a spinner while a conversation is loading', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   let settle!: (messages: Awaited<ReturnType<GatewayApi['messages']>>) => void;
   const api = {
@@ -34,7 +34,7 @@ it('centers the standard orb while a conversation is loading', async () => {
     await act(async () =>
       root.render(<History api={api} profileId="profile" sessionId="session" />),
     );
-    expect(element.querySelector('.message-history.loading .history-loading .orb')).not.toBeNull();
+    expect(element.querySelector('.message-history.loading .history-loading .spin')).not.toBeNull();
     expect(element.textContent).not.toContain('Loading the history');
     await act(async () => settle([]));
   } finally {

@@ -7,7 +7,7 @@ import type { GatewayApi, Profile, ProfileData, ProfileStats } from '../../lib/a
 import { LOCALE } from '../../lib/format';
 import { useEvents } from '../../lib/workspace';
 import { Avatar } from '../profile/avatar-field';
-import { Button, CountUp, Orb, SectionHeading } from '../ui';
+import { Button, CountUp, SectionHeading, Spinner } from '../ui';
 import { Select } from '../ui/select';
 import { duration } from './format';
 import { ActivityHeatmap } from './heatmap';
@@ -81,7 +81,7 @@ export function Overview({
             </Button>
           </>
         ) : (
-          <Orb size={64} />
+          <Spinner size={32} />
         )}
       </div>
     );

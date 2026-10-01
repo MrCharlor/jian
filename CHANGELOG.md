@@ -4,6 +4,23 @@ Every release of Jian, newest first.
 
 <!-- Generated from docs/releases by scripts/changelog.mjs. Edit the release note, then run `make changelog`. -->
 
+## 0.5.0-rc.2 — 2026-10-01
+
+Fix generated SSH private keys and use conventional spinners for panel loading states.
+
+### SSH keys
+
+* **OpenSSH-compatible private keys:** newly generated Ed25519 keys are now stored in OpenSSH's native private-key format. Existing public keys remain unchanged, and the generated private/public pair is validated against `ssh-keygen`.
+
+### Panel loading
+
+* **Conventional spinners:** page and data loading states now use standard spinners instead of thinking orbs. Thinking orbs remain reserved for the session chat, run progress and tool-call timeline where the agent is actively processing.
+* **Consistent sizing:** full-page loading uses a 32px spinner and compact activity loading uses 20px.
+
+### Upgrading
+
+No database migration or configuration change is required. Existing keys created before this release should be regenerated so OpenSSH can use their private files. This is a prerelease and does not move the `latest` image tag.
+
 ## 0.5.0-rc.1 — 2026-10-01
 
 Profile SSH key management, fuller task-worker context, light theme, and notices for newer releases.

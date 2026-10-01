@@ -12,5 +12,6 @@ export { DateTimePicker, TimePicker } from './pickers';
 export { hasLogo, ProviderLogo, serviceOf } from './provider-logo';
 export { ResourceRow } from './resource-row';
 export { Secret } from './secret';
+export { Spinner } from './spinner';
 export { StackedFields } from './stacked-fields';
 export { Switch } from './switch';

@@ -1,4 +1,10 @@
-import { createHash, generateKeyPairSync, type KeyObject, randomUUID } from 'node:crypto';
+import {
+  createHash,
+  generateKeyPairSync,
+  type KeyObject,
+  randomBytes,
+  randomUUID,
+} from 'node:crypto';
 import { chmod, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SshKey, SshKeyCreate } from '@jian/contracts';
@@ -16,13 +22,45 @@ const uint32 = (value: number) => {
   return buffer;
 };
 
-function publicKey(key: KeyObject, name: string) {
+const sshString = (value: Buffer | string) => {
+  const data = Buffer.isBuffer(value) ? value : Buffer.from(value);
+  return Buffer.concat([uint32(data.length), data]);
+};
+
+function sshPublicKey(key: KeyObject, name: string) {
   const raw = key.export({ type: 'spki', format: 'der' }).subarray(-32);
   const type = Buffer.from('ssh-ed25519');
   const blob = Buffer.concat([uint32(type.length), type, uint32(raw.length), raw]);
   const value = `ssh-ed25519 ${blob.toString('base64')} jian-${name.replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
   const fingerprint = `SHA256/${createHash('sha256').update(blob).digest('base64').replace(/=+$/, '')}`;
-  return { value, fingerprint };
+  return { value, fingerprint, blob, raw };
+}
+
+/** OpenSSH does not read PKCS#8 PEM files as identities; write its native envelope instead. */
+function openSshPrivateKey(privateKey: KeyObject, publicKey: ReturnType<typeof sshPublicKey>) {
+  const seed = privateKey.export({ type: 'pkcs8', format: 'der' }).subarray(-32);
+  const check = randomBytes(4);
+  const body = Buffer.concat([
+    check,
+    check,
+    sshString('ssh-ed25519'),
+    sshString(publicKey.raw),
+    sshString(Buffer.concat([seed, publicKey.raw])),
+    sshString(''),
+  ]);
+  const padding = Buffer.from(
+    Array.from({ length: (8 - (body.length % 8)) % 8 || 8 }, (_, index) => index + 1),
+  );
+  const payload = Buffer.concat([
+    Buffer.from('openssh-key-v1\0'),
+    sshString('none'),
+    sshString('none'),
+    sshString(''),
+    uint32(1),
+    sshString(publicKey.blob),
+    sshString(Buffer.concat([body, padding])),
+  ]).toString('base64');
+  return `-----BEGIN OPENSSH PRIVATE KEY-----\n${payload.match(/.{1,70}/g)?.join('\n')}\n-----END OPENSSH PRIVATE KEY-----\n`;
 }
 
 export class SshKeys {
@@ -64,7 +102,7 @@ export class SshKeys {
         privateKey: KeyObject;
       };
       const createdAt = new Date().toISOString();
-      const key = publicKey(pair.publicKey, input.name);
+      const key = sshPublicKey(pair.publicKey, input.name);
       const result: SshKey = {
         id,
         name: input.name,
@@ -72,11 +110,9 @@ export class SshKeys {
         fingerprint: key.fingerprint,
         createdAt,
       };
-      await writeFile(
-        join(target, 'id_ed25519'),
-        pair.privateKey.export({ type: 'pkcs8', format: 'pem' }),
-        { mode: 0o600 },
-      );
+      await writeFile(join(target, 'id_ed25519'), openSshPrivateKey(pair.privateKey, key), {
+        mode: 0o600,
+      });
       await writeFile(join(target, 'id_ed25519.pub'), `${key.value}\n`, { mode: 0o644 });
       await writeFile(join(target, 'metadata.json'), JSON.stringify(result), { mode: 0o600 });
       return result;

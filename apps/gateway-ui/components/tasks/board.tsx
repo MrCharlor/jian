@@ -16,7 +16,7 @@ import { useFollowBottom } from '../sessions/follow-bottom';
 import { MessageMedia } from '../sessions/media';
 import { ChatMessage } from '../sessions/message';
 import { ToolTimeline } from '../sessions/timeline';
-import { Button, Empty, Orb, SectionHeading } from '../ui';
+import { Button, Empty, SectionHeading, Spinner } from '../ui';
 import { useDialogMotion } from '../ui/dialog-motion';
 import { Markdown } from '../ui/markdown';
 
@@ -74,7 +74,7 @@ export function WorkBoard({ profile, api }: SectionProps) {
         </Button>
       ) : !items ? (
         <div className="loading-state" role="status" aria-label="Loading work">
-          <Orb size={64} />
+          <Spinner size={32} />
         </div>
       ) : items.length === 0 ? (
         <Empty title="No work yet">
@@ -289,7 +289,7 @@ function WorkDetail({
             <div className="message-list">
               {!history && !error && (
                 <div className="history-loading" role="status" aria-label="Loading task activity">
-                  <Orb size={20} />
+                  <Spinner size={20} />
                 </div>
               )}
               {error && (

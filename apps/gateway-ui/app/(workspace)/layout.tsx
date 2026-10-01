@@ -8,7 +8,7 @@ import { ReleaseNotes } from '../../components/releases/dialog';
 import { NoticeBar } from '../../components/shell/notice';
 import { Sidebar } from '../../components/shell/sidebar';
 import { Topbar } from '../../components/shell/topbar';
-import { Button, Empty, Orb } from '../../components/ui';
+import { Button, Empty, Spinner } from '../../components/ui';
 import { gatewayApi, type Profile } from '../../lib/api';
 import { useWorkspace, WorkspaceProvider } from '../../lib/workspace';
 
@@ -36,7 +36,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   if (!profiles) {
     return (
       <main className="boot" aria-busy="true" aria-label="Checking the session">
-        <Orb size={64} />
+        <Spinner size={32} />
       </main>
     );
   }
@@ -146,7 +146,7 @@ function Shell({ children }: { children: ReactNode }) {
               <div className="loading-state" role="status">
                 {loading ? (
                   <>
-                    <Orb size={64} />
+                    <Spinner size={32} />
                     <span>Loading your workspace…</span>
                   </>
                 ) : (

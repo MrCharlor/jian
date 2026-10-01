@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { GatewayApi, Person, Run, ToolStep } from '../../lib/api';
 import { useWorkspace } from '../../lib/workspace';
-import { Badge, Button, Empty, Orb } from '../ui';
+import { Badge, Button, Empty, Spinner } from '../ui';
 import { useFollowBottom } from './follow-bottom';
 import { MessageMedia } from './media';
 import { authored, ChatMessage } from './message';
@@ -189,7 +189,7 @@ export function History({
         <div className="message-list">
           {loading ? (
             <div className="history-loading" role="status" aria-label="Loading conversation">
-              <Orb size={64} />
+              <Spinner size={32} />
             </div>
           ) : messages.length ? (
             messages.map((message, index) => {

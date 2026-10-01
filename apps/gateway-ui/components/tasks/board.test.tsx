@@ -104,9 +104,7 @@ it('shows agent work and its read-only activity', async () => {
   expect(heading?.hasAttribute('tabindex')).toBe(false);
   expect(document.activeElement).toBe(element.querySelector('dialog.work-detail-page'));
   expect(element.querySelector('.work-activity-loading')).not.toBeNull();
-  expect(element.querySelector<HTMLElement>('.work-activity-loading .orb')?.style.width).toBe(
-    '20px',
-  );
+  expect(element.querySelector<HTMLElement>('.work-activity-loading .spin')).not.toBeNull();
   await act(async () => resolveHistory());
   expect(api.workHistory).toHaveBeenCalledWith(profile.id, item.id);
   expect(element.querySelector('.work-detail-content h1')?.textContent).toBe('Review release');
