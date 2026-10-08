@@ -3,7 +3,7 @@ name: Bug report
 about: Report a reproducible problem in Jian
 title: "[Bug]: "
 labels: bug
-assignees: lucasaarch
+assignees: MrCharlor
 ---
 
 ## Description

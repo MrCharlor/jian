@@ -3,7 +3,7 @@ name: Feature request
 about: Suggest an improvement for Jian
 title: "[Feature]: "
 labels: enhancement
-assignees: lucasaarch
+assignees: MrCharlor
 ---
 
 ## Problem

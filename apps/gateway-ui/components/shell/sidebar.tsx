@@ -105,7 +105,7 @@ export function Sidebar({
   );
 }
 
-const REPOSITORY = 'https://github.com/lucasaarch/jian';
+const REPOSITORY = 'https://github.com/MrCharlor/jian';
 
 /** Stars in the way GitHub shows them: 1.2k past a thousand. */
 const starCount = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });

@@ -11,7 +11,7 @@ Security fixes are developed against the latest version of Jian. Older versions 
 
 ## Reporting a vulnerability
 
-Please report suspected vulnerabilities privately through [GitHub Security Advisories](https://github.com/lucasaarch/jian/security/advisories/new). If that channel is unavailable, contact [@lucasaarch](https://github.com/lucasaarch) privately on GitHub.
+Please report suspected vulnerabilities privately through [GitHub Security Advisories](https://github.com/MrCharlor/jian/security/advisories/new). If that channel is unavailable, contact [@MrCharlor](https://github.com/MrCharlor) privately on GitHub.
 
 **Do not open a public issue or include secrets, credentials, or personal data in a report.**
 

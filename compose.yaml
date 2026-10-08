@@ -5,7 +5,7 @@
 name: jian
 services:
   gateway:
-    image: ghcr.io/lucasaarch/jian-gateway:${JIAN_VERSION:-latest}
+    image: ghcr.io/mrcharlor/jian-gateway:${JIAN_VERSION:-latest}
     # To run your own build instead of the published image, uncomment this and use
     # `docker compose up -d --build`. The image line above stays, naming the local build.
     # build:

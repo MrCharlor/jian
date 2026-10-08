@@ -19,7 +19,7 @@ Harassment, discrimination, personal attacks, intimidation, unwelcome sexual att
 
 ## Enforcement
 
-Report unacceptable behavior privately to [@lucasaarch](https://github.com/lucasaarch). Do not report conduct concerns in a public issue. Reports will be reviewed and handled as fairly and confidentially as possible.
+Report unacceptable behavior privately to [@MrCharlor](https://github.com/MrCharlor). Do not report conduct concerns in a public issue. Reports will be reviewed and handled as fairly and confidentially as possible.
 
 Project maintainers may remove content, restrict participation, or take other action they consider appropriate to protect the community.
 

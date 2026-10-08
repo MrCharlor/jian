@@ -1,8 +1,8 @@
 import type { Repository } from '@jian/contracts';
 
-export const REPOSITORY_URL = 'https://github.com/lucasaarch/jian';
+export const REPOSITORY_URL = 'https://github.com/MrCharlor/jian';
 
-const API_URL = 'https://api.github.com/repos/lucasaarch/jian';
+const API_URL = 'https://api.github.com/repos/MrCharlor/jian';
 
 /** GitHub allows sixty unauthenticated reads an hour per address; one an hour is plenty. */
 const FRESH_MS = 60 * 60_000;

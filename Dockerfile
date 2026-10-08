@@ -90,7 +90,7 @@ ARG JIAN_REVISION=unknown
 # other two say which commit produced the bits. CI overrides them with the same values.
 LABEL org.opencontainers.image.title="Jian Gateway" \
       org.opencontainers.image.description="Self-hosted agent gateway" \
-      org.opencontainers.image.source="https://github.com/lucasaarch/jian" \
+      org.opencontainers.image.source="https://github.com/MrCharlor/jian" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.version="${JIAN_VERSION}" \
       org.opencontainers.image.revision="${JIAN_REVISION}"

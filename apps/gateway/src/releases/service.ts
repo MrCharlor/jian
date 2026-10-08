@@ -9,7 +9,7 @@ import { releaseReads } from '../storage/schema.js';
 const OWNER = 'owner-relaunch';
 
 const VERSION = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
-const RELEASES_API = 'https://api.github.com/repos/lucasaarch/jian/releases?per_page=100';
+const RELEASES_API = 'https://api.github.com/repos/MrCharlor/jian/releases?per_page=100';
 
 /**
  * Where this build's notes are: copied next to the compiled server by the build, or read from

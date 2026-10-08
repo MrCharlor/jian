@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/lucasaarch/jian/security/advisories/new
+    url: https://github.com/MrCharlor/jian/security/advisories/new
     about: Report security vulnerabilities privately. Do not open a public issue.
   - name: Questions and support
-    url: https://github.com/lucasaarch/jian/discussions
+    url: https://github.com/MrCharlor/jian/discussions
     about: Ask questions and get help from the community.

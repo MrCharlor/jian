@@ -1,11 +1,11 @@
 # Deployment
 
-The gateway runs three ways. The first uses a clone of the repository; the other two use the same published image, `ghcr.io/lucasaarch/jian-gateway`, with the database in your hands. Migrations run by themselves when the process starts: there is no separate migration step, and a new version applies what is missing as it comes up.
+The gateway runs three ways. The first uses a clone of the repository; the other two use the same published image, `ghcr.io/mrcharlor/jian-gateway`, with the database in your hands. Migrations run by themselves when the process starts: there is no separate migration step, and a new version applies what is missing as it comes up.
 
 The image is a multi-architecture index with `linux/amd64` and `linux/arm64`, built on native runners with a provenance attestation attached. To check it before running:
 
 ```bash
-gh attestation verify oci://ghcr.io/lucasaarch/jian-gateway:latest --repo lucasaarch/jian
+gh attestation verify oci://ghcr.io/mrcharlor/jian-gateway:latest --repo MrCharlor/jian
 ```
 
 ## Way 1 — clone and Compose
@@ -13,7 +13,7 @@ gh attestation verify oci://ghcr.io/lucasaarch/jian-gateway:latest --repo lucasa
 Brings the gateway and PostgreSQL up together. This is the path for a single machine.
 
 ```bash
-git clone https://github.com/lucasaarch/jian.git && cd jian
+git clone https://github.com/MrCharlor/jian.git && cd jian
 make setup
 make up
 ```
@@ -38,7 +38,7 @@ docker run -d --name jian --restart unless-stopped \
   -e JIAN_ACTIVE_KEY_ID=v1 \
   -e JIAN_MASTER_KEYS="$JIAN_MASTER_KEYS" \
   -v jian_home:/home/node \
-  ghcr.io/lucasaarch/jian-gateway:latest
+  ghcr.io/mrcharlor/jian-gateway:latest
 ```
 
 The image carries a health check against `/health`; `docker ps` shows its result. The process runs as the unprivileged `node` user, and the gateway itself writes nothing outside the database.
@@ -75,7 +75,7 @@ spec:
     spec:
       containers:
         - name: gateway
-          image: ghcr.io/lucasaarch/jian-gateway:0.1.0
+          image: ghcr.io/mrcharlor/jian-gateway:0.1.0
           envFrom:
             - secretRef: { name: jian }
           env:
@@ -176,11 +176,11 @@ Updating means changing the tag and starting again. The migration runs at startu
 echo 'JIAN_VERSION=1.3.0' >> .env && make up
 
 # Standalone container
-docker pull ghcr.io/lucasaarch/jian-gateway:1.3.0
-docker rm -f jian && docker run -d --name jian ... ghcr.io/lucasaarch/jian-gateway:1.3.0
+docker pull ghcr.io/mrcharlor/jian-gateway:1.3.0
+docker rm -f jian && docker run -d --name jian ... ghcr.io/mrcharlor/jian-gateway:1.3.0
 
 # Kubernetes
-kubectl set image deployment/jian gateway=ghcr.io/lucasaarch/jian-gateway:1.3.0
+kubectl set image deployment/jian gateway=ghcr.io/mrcharlor/jian-gateway:1.3.0
 ```
 
 Take a dump before updating: a migration changes the schema and does not undo itself.

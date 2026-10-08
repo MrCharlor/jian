@@ -3,7 +3,7 @@
 # `make` alone prints the list below, built from the `##` comment on each target, so the
 # list cannot drift from the targets it describes.
 
-IMAGE ?= ghcr.io/lucasaarch/jian-gateway
+IMAGE ?= ghcr.io/mrcharlor/jian-gateway
 # The version `make release` writes, so a local image and a published one agree.
 # The newest release tag; a checkout without tags builds as a developer's image.
 VERSION ?= $(or $(patsubst v%,%,$(shell git describe --tags --abbrev=0 2>/dev/null)),0.0.0-dev)

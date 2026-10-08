@@ -536,7 +536,7 @@ export const handlers = [
   // Most stories are about a screen, not about the update dialog opening over it.
   http.get('*/v1/releases', () => ok({ ...data.releases, unseen: [] })),
   http.post('*/v1/releases/seen', () => ok({ ...data.releases, unseen: [] })),
-  http.get('*/v1/repository', () => ok({ url: 'https://github.com/lucasaarch/jian', stars: 1284 })),
+  http.get('*/v1/repository', () => ok({ url: 'https://github.com/MrCharlor/jian', stars: 1284 })),
 
   http.post('*/v1/panel/session', () => new HttpResponse(null, { status: 204 })),
   http.delete('*/v1/panel/session', () => new HttpResponse(null, { status: 204 })),
