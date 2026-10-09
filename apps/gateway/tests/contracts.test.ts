@@ -204,9 +204,9 @@ describe('public API contracts', () => {
         headers: admin,
       });
 
-      // An ingress-only channel cannot answer, so it never records a delivery it did not make.
+      // An API caller is not answered; the one delivery is how the answer reaches the owner.
       expect(deliveries.statusCode).toBe(200);
-      expect(deliveries.json()).toEqual([]);
+      expect(deliveries.json()).toMatchObject([{ runId: runs[0]?.id, status: 'pending' }]);
 
       const wrongProtocol = await app.inject({
         method: 'POST',

@@ -7,6 +7,7 @@ import {
   type Group,
   type GroupTurn,
   type ingressResultSchema,
+  SILENCE,
 } from '@jian/contracts';
 import type { z } from 'zod';
 import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
@@ -23,7 +24,7 @@ import type { RunWriter } from '../runs/port.js';
 import { issueToken, verifyToken } from '../security/tokens.js';
 import type { Vault } from '../security/vault.js';
 import type { SessionWriter } from '../sessions/port.js';
-import { insertMessage } from '../sessions/repository.js';
+import { findGatewaySession, insertMessage } from '../sessions/repository.js';
 import type { Stickers } from '../stickers/service.js';
 import type { Queryable, Store } from '../storage/database.js';
 import {
@@ -1185,7 +1186,9 @@ export class Channels {
       { activity: 'channel', ...(group ? { group } : {}), ...(author ? { author } : {}) },
     );
 
-    if (this.registry.get(channel.type).send) {
+    // An API caller has nowhere to be answered; its answer is forwarded to the owner instead,
+    // through a delivery like any other so it leaves once, when the run ends.
+    if (this.registry.get(channel.type).send || channel.type === 'api') {
       await this.services.store.transaction(channel.profileId, async (tx) => {
         if (await findDelivery(tx, run.id)) {
           return;
@@ -1339,6 +1342,10 @@ export class Channels {
     for (const delivery of deliveries) {
       if (this.stopped) {
         return;
+      }
+
+      if (delivery.runId && (await this.forwarded(delivery))) {
+        continue;
       }
 
       let text = delivery.notice ?? '';
@@ -1546,6 +1553,95 @@ export class Channels {
         signal: this.abort.signal,
       })
       .catch(() => undefined);
+  }
+
+  /**
+   * The answer to an event that came in over the API, carried to the owner: to the contact they
+   * marked as speaking for them, on a channel that can send, or else to their conversation in
+   * the panel. True when this delivery was an API one and is settled, or is still waiting for
+   * its run; false hands it back to the ordinary dispatch.
+   */
+  private async forwarded(delivery: DeliveryRecord): Promise<boolean> {
+    const channel = await findChannel(this.services.store.db, delivery.channelId);
+
+    if (channel?.type !== 'api' || !delivery.runId) return false;
+
+    const run = await this.services.runs.run(delivery.profileId, delivery.runId);
+
+    if (run.status === 'queued' || run.status === 'running') return true;
+
+    const answer = (
+      run.output ?? (run.error ? `⚠️ I could not finish this.\n\n${run.error}` : '')
+    ).trim();
+    const now = new Date().toISOString();
+
+    await this.services.store.transaction(delivery.profileId, async (tx) => {
+      const current = assertFound(await findDelivery(tx, delivery.id), 'Delivery');
+
+      if (current.status !== 'pending') return;
+
+      await updateDelivery(tx, { ...current, status: 'sent', updatedAt: now });
+
+      if (!answer || answer.toLowerCase() === SILENCE) return;
+
+      const title = run.input.split('\n')[0]?.slice(0, 200) ?? '';
+      const text = `${title}\n\n${answer}`.slice(0, 8000);
+      const contacts = await listContacts(tx, delivery.profileId);
+      let owner: (typeof contacts)[number] | undefined;
+
+      for (const contact of contacts) {
+        if (!contact.owner || contact.status !== 'approved' || contact.scope !== 'direct') continue;
+        const home = await findChannel(tx, contact.channelId);
+
+        if (home && !home.revokedAt && this.registry.get(home.type).send) {
+          owner = contact;
+          break;
+        }
+      }
+
+      if (owner?.sessionId) {
+        await insertMessage(tx, {
+          id: randomUUID(),
+          profileId: delivery.profileId,
+          sessionId: owner.sessionId,
+          role: 'assistant',
+          content: text,
+          createdAt: now,
+        });
+        await insertDelivery(tx, {
+          id: randomUUID(),
+          profileId: delivery.profileId,
+          channelId: owner.channelId,
+          chatId: owner.chatId,
+          notice: text,
+          status: 'pending',
+          createdAt: now,
+          updatedAt: now,
+          remoteMessageIds: [],
+          saidCount: 0,
+        });
+
+        return;
+      }
+
+      const gateway = await findGatewaySession(tx, delivery.profileId);
+
+      if (!gateway) return;
+
+      await insertMessage(tx, {
+        id: randomUUID(),
+        profileId: delivery.profileId,
+        sessionId: gateway.id,
+        role: 'assistant',
+        content: text,
+        createdAt: now,
+      });
+      await recordEvent(tx, Date.now, delivery.profileId, 'session.message', {
+        sessionId: gateway.id,
+      });
+    });
+
+    return true;
   }
 
   private async claimDelivery(delivery: DeliveryRecord): Promise<boolean> {

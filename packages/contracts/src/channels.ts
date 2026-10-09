@@ -69,6 +69,20 @@ export const contactSchema = z.strictObject({
 
 export const contactOwnerSchema = z.strictObject({ owner: z.boolean() });
 
+/**
+ * A system that can only send a line of text, such as a board's automation, names itself here
+ * once; every event it sends is then one contact, approved once by the owner.
+ */
+export const textIngressQuerySchema = z.strictObject({
+  source: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9_-]{0,63}$/)
+    .default('webhook'),
+});
+
+/** What an agent answers when an event needs nothing from the owner: nothing is forwarded. */
+export const SILENCE = '[silêncio]';
+
 export const ingressSchema = z.strictObject({
   actorId: z.string().min(1).max(100),
   chatId: z.string().min(1).max(100),

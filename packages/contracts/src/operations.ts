@@ -17,6 +17,7 @@ import {
   ingressResultSchema,
   ingressSchema,
   telegramUpdateSchema,
+  textIngressQuerySchema,
 } from './channels.js';
 import {
   artifactPageSchema,
@@ -467,6 +468,17 @@ export const operations: Operation[] = [
     operationId: 'disconnectChannel',
     access: 'admin',
     response: channelConnectionSchema,
+    status: 202,
+  },
+  {
+    method: 'POST',
+    path: '/v1/ingress/:channelId/text',
+    operationId: 'receiveTextIngress',
+    access: 'webhook',
+    params: z.strictObject({ channelId: z.uuid() }),
+    query: textIngressQuerySchema,
+    body: z.string().trim().min(1).max(8000),
+    response: ingressResultSchema,
     status: 202,
   },
   {

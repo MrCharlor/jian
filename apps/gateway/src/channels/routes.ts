@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { GatewayError } from '../core/errors.js';
 import type { ChannelParams, ContactParams, ProfileParams, SessionParams } from '../http/params.js';
@@ -105,6 +106,31 @@ export function registerChannelRoutes(app: FastifyInstance, deps: ChannelRouteSe
       reply
         .code(202)
         .send(await linkedDevices().disconnect(request.params.profileId, request.params.channelId)),
+  );
+
+  // A sender that can only post a line of text: the same intake as JSON, with the source as
+  // the contact and the text and the minute as the request key, so a retried event is one turn.
+  app.post<{ Params: { channelId: string }; Querystring: { source?: string } }>(
+    '/v1/ingress/:channelId/text',
+    async (request, reply) => {
+      const text = String(request.body).trim();
+      const source = request.query.source ?? 'webhook';
+      const minute = Math.floor(Date.now() / 60_000);
+
+      return reply.code(202).send(
+        await channels().receive(request.params.channelId, {
+          type: 'api',
+          headers: request.headers,
+          payload: {
+            actorId: source,
+            chatId: source,
+            displayName: source,
+            text,
+            requestKey: createHash('sha256').update(`${minute}:${text}`).digest('hex').slice(0, 64),
+          },
+        }),
+      );
+    },
   );
 
   app.post<{ Params: { channelId: string } }>('/v1/ingress/:channelId', async (request, reply) =>
