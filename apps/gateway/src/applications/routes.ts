@@ -35,7 +35,7 @@ const PREVIEW_POLICY = [
   // Its own inline code, and the runtime and components this gateway serves at signed addresses.
   "script-src 'unsafe-inline' 'self'",
   "style-src 'unsafe-inline' 'self'",
-  'img-src data: blob:',
+  "img-src data: blob: 'self'",
   'font-src data:',
   'sandbox allow-scripts',
   "frame-ancestors 'self'",
@@ -52,8 +52,19 @@ export function registerApplicationRoutes(
 
   /** The preview with the runtime linked in front of it, for the files this design system has. */
   const withRuntime = async (slug: string, html: string, exp: number) => {
-    const present = new Set((await deps.applications.files(slug)).map((file) => file.path));
+    const files = await deps.applications.files(slug);
+    const present = new Set(files.map((file) => file.path));
+    // Images the design system carries (a photo, a logo), at signed addresses, by path.
+    const assets = Object.fromEntries(
+      files
+        .filter(
+          (file) =>
+            file.contentType.startsWith('image/') && file.path.startsWith('project/assets/'),
+        )
+        .map((file) => [file.path, address(slug, file.path, exp)]),
+    );
     const tags = [
+      `<script>window.DS_ASSETS=${JSON.stringify(assets).replace(/</g, '\\u003c')}</script>`,
       ...RUNTIME.styles
         .filter((path) => present.has(path))
         .map((path) => `<link rel="stylesheet" href="${address(slug, path, exp)}">`),
@@ -89,6 +100,18 @@ export function registerApplicationRoutes(
       !timingSafeEqual(expected, Buffer.from(sig))
     ) {
       throw new GatewayError(403, 'This preview address expired or is not valid');
+    }
+
+    if (path.startsWith('project/assets/') && !path.endsWith('.svg')) {
+      const image = await deps.applications.readImage(request.params.slug, { path });
+
+      return reply
+        .header('content-security-policy', PREVIEW_POLICY)
+        .header('x-content-type-options', 'nosniff')
+        .header('cross-origin-resource-policy', 'cross-origin')
+        .header('cache-control', 'private, max-age=300')
+        .type(image.contentType)
+        .send(image.data);
     }
 
     // A prototype's screen is served like a component preview, with the same runtime.

@@ -142,6 +142,19 @@ export class Applications {
     return { path, contentType: file.contentType, text: file.content };
   }
 
+  /** An image of the design system, such as a photo or a logo a screen shows. */
+  async readImage(slug: string, query: unknown) {
+    const { path } = applicationFileQuerySchema.parse(query);
+    const current = await this.get(slug);
+    const file = assertFound(await readFile(this.store.db, current.id, path), 'File');
+
+    if (!file.contentType.startsWith('image/') || file.encoding !== 'base64') {
+      throw new GatewayError(415, `${path} is not an image`);
+    }
+
+    return { contentType: file.contentType, data: Buffer.from(file.content, 'base64') };
+  }
+
   /** The owner's own edit of a text file, such as the PO preferences. */
   async writeText(slug: string, query: unknown, input: unknown) {
     const { path } = applicationFileQuerySchema.parse(query);

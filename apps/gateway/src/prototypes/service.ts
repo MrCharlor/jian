@@ -63,6 +63,7 @@ Você está numa pasta de trabalho do Jian. Faça **uma tela interativa** e grav
 - React e os componentes **já estarão carregados** quando a tela abrir: \`window.React\`, \`window.ReactDOM\` e \`window.VXCase\` (ou o namespace que o guia indicar), com o CSS do design system. **Não** inclua \`<script src>\` nem \`<link>\` para eles.
 - Todo o seu código vai num único \`<script>\` no fim do \`<body>\`, em JavaScript puro, sem JSX e sem build: use \`const h = React.createElement\`.
 - Nada de rede: sem fetch, sem CDN, sem imagens externas. Dados de exemplo ficam no próprio arquivo.
+- Imagens do design system (\`design-system/project/assets/\`): use \`window.DS_ASSETS['project/assets/<nome>']\` como \`src\`. Esse objeto também já estará carregado.
 - A tela funciona de verdade: filtros filtram, botões abrem o que abririam, confirmações aparecem. Use os dados de exemplo que as preferências do PO pedem.
 - Textos em português, como o guia manda. Nada de nome técnico na tela.
 

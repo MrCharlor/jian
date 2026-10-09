@@ -36,6 +36,20 @@ async function main() {
   const [command, slug, folder, ...rest] = process.argv.slice(2);
   const url = process.env.DATABASE_URL;
 
+  if (command === 'put' && slug && folder && rest[0] && url) {
+    // put <slug> <path in the design system> <local file>
+    const store = new PostgresStore(url);
+    try {
+      const done = await new Applications(store).put(slug, [
+        { path: folder, data: await readFile(rest[0]) },
+      ]);
+      console.log(`${done.name}: ${folder} saved, design system version ${done.version}.`);
+    } finally {
+      await store.close();
+    }
+    return;
+  }
+
   if (command !== 'import' || !slug || !folder || !url) {
     console.error(
       'Usage: DATABASE_URL=… node dist/applications/cli.js import <slug> <folder> [--name N] [--source URL]',
