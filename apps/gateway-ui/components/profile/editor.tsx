@@ -3,11 +3,24 @@
 import { Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { GatewayApi, Profile } from '../../lib/api';
+import type { AutonomyLevel, GatewayApi, Profile } from '../../lib/api';
 import { useAutosave } from '../../lib/autosave';
 import { useWorkspace } from '../../lib/workspace';
 import { Button, Confirm, Field, Modal, SectionHeading } from '../ui';
 import { AvatarField } from './avatar-field';
+
+/** What each level lets the agent do, as the owner reads it beside the choice. */
+const LEVELS: Array<{ value: AutonomyLevel; label: string }> = [
+  { value: 1, label: '1 · Proposes; you do it' },
+  { value: 2, label: '2 · Asks you first' },
+  { value: 3, label: '3 · Does it and reports' },
+];
+
+const asLevel = (value: FormDataEntryValue | string | null): AutonomyLevel => {
+  const level = Number(value);
+
+  return level === 1 || level === 3 ? level : 2;
+};
 
 const lines = (value: string) =>
   value
@@ -130,6 +143,10 @@ export function ProfileEditor({
     }
   };
   const form = useRef<HTMLFormElement>(null);
+  // Exact actions the owner singled out from the level of their kind; rows are edited in place.
+  const [overrides, setOverrides] = useState<Array<{ key: string; level: AutonomyLevel }>>(() =>
+    Object.entries(profile.actionPolicy.tools).map(([key, level]) => ({ key, level })),
+  );
   // Each save sends the version it read; the server's answer is the one the next save must send.
   const version = useRef(profile.version);
   const saved = useRef('');
@@ -166,16 +183,30 @@ export function ProfileEditor({
       webSearch: profile.allowWebSearch,
       learn: profile.learnFromWork,
       agents: profile.reachableByAgents,
+      autonomyMachine: String(profile.actionPolicy.machine),
+      autonomyService: String(profile.actionPolicy.service),
+      autonomyMessage: String(profile.actionPolicy.message),
     };
 
     for (const [name, value] of Object.entries(values)) {
       const field = element.elements.namedItem(name);
 
-      if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) continue;
+      if (
+        !(
+          field instanceof HTMLInputElement ||
+          field instanceof HTMLTextAreaElement ||
+          field instanceof HTMLSelectElement
+        )
+      )
+        continue;
       if (field === document.activeElement) continue;
       if (typeof value === 'boolean' && field instanceof HTMLInputElement) field.checked = value;
       else if (typeof value === 'string') field.value = value;
     }
+
+    setOverrides(
+      Object.entries(profile.actionPolicy.tools).map(([key, level]) => ({ key, level })),
+    );
   }, [profile.version]);
 
   const { schedule, flush } = useAutosave(async () => {
@@ -203,6 +234,20 @@ export function ProfileEditor({
       allowWebSearch: data.get('webSearch') === 'on',
       learnFromWork: data.get('learn') === 'on',
       reachableByAgents: data.get('agents') === 'on',
+      actionPolicy: {
+        machine: asLevel(data.get('autonomyMachine')),
+        service: asLevel(data.get('autonomyService')),
+        message: asLevel(data.get('autonomyMessage')),
+        tools: Object.fromEntries(
+          data
+            .getAll('overrideKey')
+            .map((key, index) => [
+              String(key).trim(),
+              asLevel(data.getAll('overrideLevel')[index] ?? null),
+            ])
+            .filter(([key]) => /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,239}$/.test(String(key))),
+        ),
+      },
     };
     const snapshot = JSON.stringify(patch);
 
@@ -351,6 +396,107 @@ export function ProfileEditor({
                 </small>
               </span>
             </label>
+          </div>
+          <div className="settings-fields autonomy-fields">
+            <h3>Autonomy</h3>
+            <p className="note">
+              How far the agent goes on its own, by where an action lands. Level 2 stops under
+              Approvals; raise a level once the agent has earned it.
+            </p>
+            <Field label="On this machine" hint="Commands, and files it writes or edits.">
+              <select name="autonomyMachine" defaultValue={String(profile.actionPolicy.machine)}>
+                {LEVELS.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="In connected services"
+              hint="Any MCP tool its server does not declare read-only."
+            >
+              <select name="autonomyService" defaultValue={String(profile.actionPolicy.service)}>
+                {LEVELS.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="To other people and agents"
+              hint="Messages, files it sends, questions to contacts."
+            >
+              <select name="autonomyMessage" defaultValue={String(profile.actionPolicy.message)}>
+                {LEVELS.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="Exact actions"
+              hint="The tool's own name, or server.tool for a connected server, with its own level."
+            >
+              <div className="override-rows">
+                {overrides.map((row, index) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: rows have no identity until a key is typed.
+                  <div className="override-row" key={index}>
+                    <input
+                      name="overrideKey"
+                      aria-label={`Action ${index + 1}`}
+                      placeholder="vx_work.vx_comment"
+                      value={row.key}
+                      maxLength={240}
+                      onChange={(event) =>
+                        setOverrides((current) =>
+                          current.map((item, at) =>
+                            at === index ? { ...item, key: event.target.value } : item,
+                          ),
+                        )
+                      }
+                    />
+                    <select
+                      name="overrideLevel"
+                      aria-label={`Level of action ${index + 1}`}
+                      value={row.level}
+                      onChange={(event) =>
+                        setOverrides((current) =>
+                          current.map((item, at) =>
+                            at === index ? { ...item, level: asLevel(event.target.value) } : item,
+                          ),
+                        )
+                      }
+                    >
+                      {LEVELS.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      variant="quiet"
+                      aria-label={`Remove action ${index + 1}`}
+                      onClick={() => {
+                        setOverrides((current) => current.filter((_, at) => at !== index));
+                        schedule(0);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="quiet"
+                  onClick={() => setOverrides((current) => [...current, { key: '', level: 2 }])}
+                >
+                  <Plus size={16} />
+                  Add an action
+                </Button>
+              </div>
+            </Field>
           </div>
         </div>
       </form>

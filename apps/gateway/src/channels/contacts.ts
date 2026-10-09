@@ -3,7 +3,7 @@ import type { contactSchema } from '@jian/contracts';
 import { and, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { type Clock, nowIso } from '../core/clock.js';
-import { assertFound } from '../core/errors.js';
+import { assertFound, GatewayError } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import type { ProfileReader } from '../profiles/port.js';
 import type { SessionWriter } from '../sessions/port.js';
@@ -123,6 +123,7 @@ export class Contacts {
         chatId: message.chatId,
         ...(name ? { displayName: name } : {}),
         status: 'pending',
+        owner: false,
         // Nothing is held for a room. Releasing it on approval would answer a message that
         // named nobody, which is exactly what a group with several agents must not do.
         ...(group ? {} : { message: message.text, requestKey: message.requestKey }),
@@ -222,6 +223,31 @@ export class Contacts {
       await recordEvent(tx, this.clock, profileId, 'contact.approved', this.view(contact));
 
       return contact;
+    });
+  }
+
+  /**
+   * Whether this contact's word is the owner's. Marking someone is the owner's own act in the
+   * panel: nothing a contact writes can earn it, and a group is never the owner.
+   */
+  async setOwner(profileId: string, id: string, owner: boolean): Promise<Contact> {
+    return this.services.store.transaction(profileId, async (tx) => {
+      const current = await this.read(profileId, id, tx);
+
+      if (current.scope === 'group' && owner) {
+        throw new GatewayError(409, 'A group cannot speak for the owner');
+      }
+
+      if (current.owner === owner) {
+        return this.view(current);
+      }
+
+      const contact: ContactRecord = { ...current, owner, updatedAt: nowIso(this.clock) };
+
+      await updateContact(tx, contact);
+      await recordEvent(tx, this.clock, profileId, 'contact.updated', this.view(contact));
+
+      return this.view(contact);
     });
   }
 

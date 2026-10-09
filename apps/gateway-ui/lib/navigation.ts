@@ -9,6 +9,7 @@ import {
   type LucideIcon,
   MessageSquare,
   Plug,
+  ShieldCheck,
   Smartphone,
   Sparkles,
 } from 'lucide-react';
@@ -33,6 +34,7 @@ export const navigation: NavigationItem[] = [
   { href: '/models', label: 'Model defaults', icon: Cpu, group: 'agent' },
   { href: '/channels', label: 'Channels', icon: Smartphone, group: 'agent' },
   { href: '/schedules', label: 'Schedules', icon: AlarmClock, group: 'agent' },
+  { href: '/approvals', label: 'Approvals', icon: ShieldCheck, group: 'agent' },
   { href: '/tasks', label: 'Work', icon: ListTodo, group: 'agent' },
   { href: '/memories', label: 'Memories', icon: BookOpen, group: 'agent' },
   { href: '/skills', label: 'Skills', icon: Sparkles, group: 'agent' },

@@ -45,6 +45,8 @@ A room appears in the same list, marked as one, and approval covers the whole ro
 
 Secrets have no screen of their own: a provider key is typed under **Providers**, an MCP server token next to its server, and a bot token next to its channel. The vault keeps encrypting them without showing anything in the panel, and no value is ever displayed again — to change one, send another; to remove one, remove the thing that uses it.
 
+**Approvals** lists what the agent prepared at level 2 and waits on, each with the exact call and a reason field, and below it what was already decided. Levels are set under **Identity › Autonomy**, by kind of action and for exact actions. In a chat the owner answers `ok 3` or `não 3: motivo`; a contact answers for the owner only once marked **Owner** under Channels.
+
 **Memories** is read-only: the screen lists what the agent kept, searches by key and by content, and deletes an entry. The agent is the one who writes, through its own tools.
 
 The activity calendar counts a day as it ends where the reader is: the browser's own zone travels with the request, because a calendar drawn in UTC puts an evening in Brazil on tomorrow's square.

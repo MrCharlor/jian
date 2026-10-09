@@ -696,3 +696,37 @@
     @apply border-accent bg-accent;
   }
 }
+
+.autonomy-fields h3 {
+  margin: 0;
+}
+
+.override-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.override-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.request-card pre.request-quote {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 16rem;
+  overflow: auto;
+  font-size: 0.85em;
+}
+
+.request-card > footer input {
+  flex: 1;
+  min-width: 0;
+}
+
+.request-list {
+  display: grid;
+  gap: 12px;
+}

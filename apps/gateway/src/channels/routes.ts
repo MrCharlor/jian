@@ -64,6 +64,12 @@ export function registerChannelRoutes(app: FastifyInstance, deps: ChannelRouteSe
       channels().approveContact(request.params.profileId, request.params.contactId),
   );
 
+  app.put<{ Params: ContactParams }>(
+    '/v1/profiles/:profileId/contacts/:contactId/owner',
+    async (request) =>
+      channels().setContactOwner(request.params.profileId, request.params.contactId, request.body),
+  );
+
   app.post<{ Params: ContactParams }>(
     '/v1/profiles/:profileId/contacts/:contactId/block',
     async (request) => channels().blockContact(request.params.profileId, request.params.contactId),

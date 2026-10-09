@@ -53,6 +53,14 @@ A call becomes an ordinary run in the profile being called: its request key, its
 
 A conversation between agents ends, because every round costs money. The depth budget travels with the chain: the run a call creates keeps in `call` what has been spent and the ordered list of profiles the conversation passed through, and the callee inherits that spend instead of starting from zero. Going past the limit is a clear error. Only the agent addressed answers — the reply goes back to the caller and to nobody else — and a profile that already spoke in the chain is not called again, so nothing reopens what it closed and no cycle forms.
 
+## Approvals
+
+How far an agent goes on its own is the owner's setting, not the judge's. Every action that lands outside the conversation — a command or a file on the machine, a write to a connected service, a message to someone — has a level in the profile's **action policy**: `1` the agent only proposes and the owner acts, `2` the agent prepares and waits, `3` the agent acts and reports. The level is read for the exact action first (`run_command`, or `server.tool` for a connected server, a name that outlives the hashed one the model calls) and for the kind of action otherwise. A profile starts at `2` for everything.
+
+At level 2 the call does not run. The gateway records an **approval**: a short number that counts up per profile, the tool, the exact input and a hash of it, and the run and session it came from. The tool answers the agent with that number, and the agent tells the owner and ends its turn. The owner answers in the panel, by API, or in a chat with `ok 3` or `não 3: motivo`; in a chat only a message from the owner counts — the gateway conversation, or a contact the owner marked as speaking for them — and the words never reach the model: the decision is recorded first, and what the agent reads is the decision and what to do with it. Approved, the agent calls the same tool with the same input, the hash matches, the approval is spent and the call runs once. A different input is a new request; an approval nobody spends expires with the request, after seven days.
+
+The judge keeps its place behind the policy: a level-3 action still passes through it, and an action the policy holds is never sent to it. Every request and decision is an event (`approval.requested`, `approval.decided`, `approval.used`), which is how the owner sees, action by action, how often they corrected the agent before raising a level.
+
 ## Product limits
 
 - No embeddings, semantic search or summarisation by a second model.

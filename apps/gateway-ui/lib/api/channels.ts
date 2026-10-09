@@ -50,6 +50,13 @@ export const channelCalls = (client: Client) => ({
         params: { path: { profileId, contactId } },
       }),
     ),
+  setContactOwner: (profileId: string, contactId: string, owner: boolean) =>
+    result(
+      client.PUT('/v1/profiles/{profileId}/contacts/{contactId}/owner', {
+        params: { path: { profileId, contactId } },
+        body: { owner },
+      }),
+    ),
   blockContact: (profileId: string, contactId: string) =>
     result(
       client.POST('/v1/profiles/{profileId}/contacts/{contactId}/block', {

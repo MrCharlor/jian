@@ -4,10 +4,12 @@ import {
   continuationSchema,
   type Message,
   type ModelSelection,
+  parseApprovalReply,
   type Run,
   submitSchema,
   TASK_SESSION_CHANNEL,
 } from '@jian/contracts';
+import { Approvals as ApprovalNotices, type Approvals } from '../approvals/service.js';
 import { type Clock, nowIso } from '../core/clock.js';
 import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
@@ -52,6 +54,7 @@ export class Runs {
     private readonly sessions: SessionReader,
     private readonly providers: ProviderSelection,
     private readonly clock: Clock = Date.now,
+    private readonly approvals?: Pick<Approvals, 'decide'>,
   ) {}
 
   /**
@@ -118,6 +121,32 @@ export class Runs {
       subagent,
     } = options;
     const parsed = submitSchema.parse(input);
+    // "ok 3" from the owner is a decision, not a message for the model to interpret. It is
+    // recorded first, and what the agent reads is the decision and what to do with it.
+    const reply =
+      options.ownerMessage && this.approvals && !parsed.mediaIds?.length
+        ? parseApprovalReply(parsed.text)
+        : undefined;
+
+    if (reply) {
+      const decided = await this.approvals
+        ?.decide(
+          profileId,
+          { number: reply.number },
+          reply.approve,
+          activity === 'channel' ? 'channel' : 'panel',
+          reply.reason,
+        )
+        .catch((error: unknown) => {
+          // No such request, or one already decided: the words go to the agent as they are,
+          // and it answers what it knows about that number.
+          if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+          throw error;
+        });
+
+      if (decided) parsed.text = ApprovalNotices.notice(decided);
+    }
+
     const modeChange =
       options.ownerMessage && !parsed.mediaIds?.length ? parsePonytailMode(parsed.text) : undefined;
     const cavemanChange =

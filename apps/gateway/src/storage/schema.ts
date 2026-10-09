@@ -1,4 +1,5 @@
 import type {
+  ActionPolicy,
   AgentCallOrigin,
   ContextPolicy,
   GroupTurn,
@@ -60,6 +61,10 @@ export const profiles = pgTable('profiles', {
   learnFromWork: boolean('learn_from_work').notNull().default(true),
   useStickers: boolean('use_stickers').notNull().default(false),
   reachableByAgents: boolean('reachable_by_agents').notNull().default(true),
+  actionPolicy: jsonb('action_policy')
+    .$type<ActionPolicy>()
+    .notNull()
+    .default({ machine: 2, service: 2, message: 2, tools: {} }),
   version: integer('version').notNull(),
   createdAt,
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -606,6 +611,8 @@ export const contacts = pgTable(
     actorId: text('actor_id').notNull(),
     title: text('title'),
     status: contactStatus('status').notNull(),
+    // Speaks for the owner: their reply in the chat decides what the agent waits on.
+    owner: boolean('owner').notNull().default(false),
     sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
     // The first message, kept until approval releases it exactly once.
     heldMessage: jsonb('held_message'),
@@ -858,4 +865,50 @@ export const stickers = pgTable(
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   },
   (table) => [uniqueIndex('stickers_hash').on(table.profileId, table.hash)],
+);
+
+export const approvalStatus = pgEnum('approval_status', [
+  'pending',
+  'approved',
+  'rejected',
+  'used',
+  'expired',
+]);
+
+/**
+ * An action the agent prepared and the owner has to decide on. `number` is what the owner
+ * answers to in a chat, so it is short and counts up per profile; `inputHash` is how the
+ * same call is recognised when the agent repeats it after approval.
+ */
+export const approvals = pgTable(
+  'approvals',
+  {
+    id: uuid('id').primaryKey(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => runs.id, { onDelete: 'cascade' }),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    number: integer('number').notNull(),
+    tool: text('tool').notNull(),
+    action: text('action').notNull(),
+    input: jsonb('input'),
+    inputHash: text('input_hash').notNull(),
+    summary: text('summary').notNull().default(''),
+    status: approvalStatus('status').notNull(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    decidedVia: text('decided_via').$type<'panel' | 'channel' | 'api'>(),
+    reason: text('reason'),
+    createdAt,
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('approvals_number').on(table.profileId, table.number),
+    index('approvals_pending').on(table.profileId, table.status, table.createdAt.desc()),
+    index('approvals_session').on(table.profileId, table.sessionId, table.createdAt.desc()),
+  ],
 );

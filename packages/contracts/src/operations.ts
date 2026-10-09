@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { approvalDecisionSchema, approvalRecordSchema } from './approvals.js';
 import {
   channelConnectionSchema,
   channelInputSchema,
   channelQrSchema,
   channelSchema,
+  contactOwnerSchema,
   contactSchema,
   deliverySchema,
   groupSchema,
@@ -361,6 +363,39 @@ export const operations: Operation[] = [
     operationId: 'approveContact',
     access: 'admin',
     response: contactSchema,
+  },
+  {
+    method: 'PUT',
+    path: `${profile}/contacts/:contactId/owner`,
+    operationId: 'setContactOwner',
+    access: 'admin',
+    body: contactOwnerSchema,
+    response: contactSchema,
+  },
+  {
+    method: 'GET',
+    path: `${profile}/approvals`,
+    operationId: 'listApprovals',
+    access: 'admin',
+    response: z.array(approvalRecordSchema),
+  },
+  {
+    method: 'POST',
+    path: `${profile}/approvals/:approvalId/approve`,
+    operationId: 'approveApproval',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid(), approvalId: z.uuid() }),
+    body: approvalDecisionSchema,
+    response: approvalRecordSchema,
+  },
+  {
+    method: 'POST',
+    path: `${profile}/approvals/:approvalId/reject`,
+    operationId: 'rejectApproval',
+    access: 'admin',
+    params: z.strictObject({ profileId: z.uuid(), approvalId: z.uuid() }),
+    body: approvalDecisionSchema,
+    response: approvalRecordSchema,
   },
   {
     method: 'POST',

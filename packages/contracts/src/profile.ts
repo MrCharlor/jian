@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { actionPolicySchema } from './approvals.js';
 import { MAX_MESSAGE_MEDIA } from './media.js';
 import {
   modelSelectionSchema,
@@ -250,6 +251,11 @@ export const profileSchema = z.strictObject({
    * see it or reach it, and it loses them too: the wall runs both ways.
    */
   reachableByAgents: z.boolean().default(true),
+  /**
+   * How far the agent goes on its own with each kind of action, and with each exact action the
+   * owner singled out. Everything starts at "ask first"; the owner lifts what it has earned.
+   */
+  actionPolicy: actionPolicySchema.default(() => actionPolicySchema.parse({})),
 });
 
 export const profilePatchSchema = profileSchema.partial().extend({

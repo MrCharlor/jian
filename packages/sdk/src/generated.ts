@@ -384,6 +384,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/profiles/{profileId}/contacts/{contactId}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Required permission: admin. */
+        put: operations["setContactOwner"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profiles/{profileId}/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profiles/{profileId}/approvals/{approvalId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["approveApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profiles/{profileId}/approvals/{approvalId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["rejectApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/profiles/{profileId}/contacts/{contactId}/block": {
         parameters: {
             query?: never;
@@ -5753,6 +5821,8 @@ export interface operations {
                         displayName?: string;
                         /** @enum {string} */
                         status: "pending" | "approved" | "blocked";
+                        /** @default false */
+                        owner: boolean;
                         /** Format: uuid */
                         sessionId?: string;
                         /** @description The message held until the owner decides. */
@@ -5904,6 +5974,8 @@ export interface operations {
                         displayName?: string;
                         /** @enum {string} */
                         status: "pending" | "approved" | "blocked";
+                        /** @default false */
+                        owner: boolean;
                         /** Format: uuid */
                         sessionId?: string;
                         /** @description The message held until the owner decides. */
@@ -5914,6 +5986,617 @@ export interface operations {
                         createdAt: string;
                         /** Format: date-time */
                         updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    setContactOwner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    owner: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        channelId: string;
+                        /** @enum {string} */
+                        type: "whatsapp" | "telegram" | "api";
+                        /**
+                         * @default direct
+                         * @enum {string}
+                         */
+                        scope: "direct" | "group";
+                        actorId: string;
+                        chatId: string;
+                        displayName?: string;
+                        /** @enum {string} */
+                        status: "pending" | "approved" | "blocked";
+                        /** @default false */
+                        owner: boolean;
+                        /** Format: uuid */
+                        sessionId?: string;
+                        /** @description The message held until the owner decides. */
+                        message?: string;
+                        /** @description The picture the contact or group uses on its channel, as a data URL. */
+                        avatar?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    listApprovals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        runId: string;
+                        /** Format: uuid */
+                        sessionId: string;
+                        number: number;
+                        tool: string;
+                        action: string;
+                        input: unknown;
+                        summary: string;
+                        /** @enum {string} */
+                        status: "pending" | "approved" | "rejected" | "used" | "expired";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        reason?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    approveApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        runId: string;
+                        /** Format: uuid */
+                        sessionId: string;
+                        number: number;
+                        tool: string;
+                        action: string;
+                        input: unknown;
+                        summary: string;
+                        /** @enum {string} */
+                        status: "pending" | "approved" | "rejected" | "used" | "expired";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        reason?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    rejectApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+                approvalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        runId: string;
+                        /** Format: uuid */
+                        sessionId: string;
+                        number: number;
+                        tool: string;
+                        action: string;
+                        input: unknown;
+                        summary: string;
+                        /** @enum {string} */
+                        status: "pending" | "approved" | "rejected" | "used" | "expired";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        reason?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        expiresAt: string;
                     };
                 };
             };
@@ -6055,6 +6738,8 @@ export interface operations {
                         displayName?: string;
                         /** @enum {string} */
                         status: "pending" | "approved" | "blocked";
+                        /** @default false */
+                        owner: boolean;
                         /** Format: uuid */
                         sessionId?: string;
                         /** @description The message held until the owner decides. */
@@ -9716,6 +10401,26 @@ export interface operations {
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
+                        /**
+                         * @default {
+                         *       "machine": 2,
+                         *       "service": 2,
+                         *       "message": 2,
+                         *       "tools": {}
+                         *     }
+                         */
+                        actionPolicy: {
+                            /** @default 2 */
+                            machine: 1 | 2 | 3;
+                            /** @default 2 */
+                            service: 1 | 2 | 3;
+                            /** @default 2 */
+                            message: 1 | 2 | 3;
+                            /** @default {} */
+                            tools: {
+                                [key: string]: 1 | 2 | 3;
+                            };
+                        };
                         /** Format: uuid */
                         id: string;
                         version: number;
@@ -9980,6 +10685,26 @@ export interface operations {
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
+                        /**
+                         * @default {
+                         *       "machine": 2,
+                         *       "service": 2,
+                         *       "message": 2,
+                         *       "tools": {}
+                         *     }
+                         */
+                        actionPolicy: {
+                            /** @default 2 */
+                            machine: 1 | 2 | 3;
+                            /** @default 2 */
+                            service: 1 | 2 | 3;
+                            /** @default 2 */
+                            message: 1 | 2 | 3;
+                            /** @default {} */
+                            tools: {
+                                [key: string]: 1 | 2 | 3;
+                            };
+                        };
                         /** Format: uuid */
                         id: string;
                         version: number;
@@ -10238,6 +10963,26 @@ export interface operations {
                     useStickers?: boolean;
                     /** @default true */
                     reachableByAgents?: boolean;
+                    /**
+                     * @default {
+                     *       "machine": 2,
+                     *       "service": 2,
+                     *       "message": 2,
+                     *       "tools": {}
+                     *     }
+                     */
+                    actionPolicy?: {
+                        /** @default 2 */
+                        machine?: 1 | 2 | 3;
+                        /** @default 2 */
+                        service?: 1 | 2 | 3;
+                        /** @default 2 */
+                        message?: 1 | 2 | 3;
+                        /** @default {} */
+                        tools?: {
+                            [key: string]: 1 | 2 | 3;
+                        };
+                    };
                 };
             };
         };
@@ -10386,6 +11131,26 @@ export interface operations {
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
+                        /**
+                         * @default {
+                         *       "machine": 2,
+                         *       "service": 2,
+                         *       "message": 2,
+                         *       "tools": {}
+                         *     }
+                         */
+                        actionPolicy: {
+                            /** @default 2 */
+                            machine: 1 | 2 | 3;
+                            /** @default 2 */
+                            service: 1 | 2 | 3;
+                            /** @default 2 */
+                            message: 1 | 2 | 3;
+                            /** @default {} */
+                            tools: {
+                                [key: string]: 1 | 2 | 3;
+                            };
+                        };
                         /** Format: uuid */
                         id: string;
                         version: number;
@@ -10652,6 +11417,26 @@ export interface operations {
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
+                        /**
+                         * @default {
+                         *       "machine": 2,
+                         *       "service": 2,
+                         *       "message": 2,
+                         *       "tools": {}
+                         *     }
+                         */
+                        actionPolicy: {
+                            /** @default 2 */
+                            machine: 1 | 2 | 3;
+                            /** @default 2 */
+                            service: 1 | 2 | 3;
+                            /** @default 2 */
+                            message: 1 | 2 | 3;
+                            /** @default {} */
+                            tools: {
+                                [key: string]: 1 | 2 | 3;
+                            };
+                        };
                         /** Format: uuid */
                         id: string;
                         version: number;
@@ -10997,6 +11782,26 @@ export interface operations {
                     learnFromWork?: boolean;
                     useStickers?: boolean;
                     reachableByAgents?: boolean;
+                    /**
+                     * @default {
+                     *       "machine": 2,
+                     *       "service": 2,
+                     *       "message": 2,
+                     *       "tools": {}
+                     *     }
+                     */
+                    actionPolicy?: {
+                        /** @default 2 */
+                        machine?: 1 | 2 | 3;
+                        /** @default 2 */
+                        service?: 1 | 2 | 3;
+                        /** @default 2 */
+                        message?: 1 | 2 | 3;
+                        /** @default {} */
+                        tools?: {
+                            [key: string]: 1 | 2 | 3;
+                        };
+                    };
                     expectedVersion: number;
                 };
             };
@@ -11146,6 +11951,26 @@ export interface operations {
                         useStickers: boolean;
                         /** @default true */
                         reachableByAgents: boolean;
+                        /**
+                         * @default {
+                         *       "machine": 2,
+                         *       "service": 2,
+                         *       "message": 2,
+                         *       "tools": {}
+                         *     }
+                         */
+                        actionPolicy: {
+                            /** @default 2 */
+                            machine: 1 | 2 | 3;
+                            /** @default 2 */
+                            service: 1 | 2 | 3;
+                            /** @default 2 */
+                            message: 1 | 2 | 3;
+                            /** @default {} */
+                            tools: {
+                                [key: string]: 1 | 2 | 3;
+                            };
+                        };
                         /** Format: uuid */
                         id: string;
                         version: number;
@@ -11542,6 +12367,26 @@ export interface operations {
                             useStickers: boolean;
                             /** @default true */
                             reachableByAgents: boolean;
+                            /**
+                             * @default {
+                             *       "machine": 2,
+                             *       "service": 2,
+                             *       "message": 2,
+                             *       "tools": {}
+                             *     }
+                             */
+                            actionPolicy: {
+                                /** @default 2 */
+                                machine: 1 | 2 | 3;
+                                /** @default 2 */
+                                service: 1 | 2 | 3;
+                                /** @default 2 */
+                                message: 1 | 2 | 3;
+                                /** @default {} */
+                                tools: {
+                                    [key: string]: 1 | 2 | 3;
+                                };
+                            };
                             /** Format: uuid */
                             id: string;
                             version: number;

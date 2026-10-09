@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import {
   channelInputSchema,
   type channelSchema,
+  contactOwnerSchema,
   type deliverySchema,
   type Group,
   type GroupTurn,
@@ -685,6 +686,12 @@ export class Channels {
 
   blockContact(profileId: string, contactId: string) {
     return this.people.block(profileId, contactId);
+  }
+
+  setContactOwner(profileId: string, contactId: string, input: unknown) {
+    const { owner } = contactOwnerSchema.parse(input);
+
+    return this.people.setOwner(profileId, contactId, owner);
   }
 
   async receive(id: string, request: ChannelRequest) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { ShieldOff, UserCheck, UserX } from 'lucide-react';
+import { Crown, ShieldOff, UserCheck, UserX } from 'lucide-react';
 import type { Channel, Contact } from '../../lib/api';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
@@ -117,6 +117,28 @@ export function Conversations({
         {contact.status === 'approved' ? (
           <>
             <Badge tone="good">Approved</Badge>
+            {contact.scope === 'direct' && (
+              <Button
+                variant={contact.owner ? 'secondary' : 'quiet'}
+                disabled={busy}
+                aria-pressed={contact.owner}
+                aria-label={
+                  contact.owner ? `${name} no longer speaks for you` : `${name} speaks for you`
+                }
+                title="An owner's reply in this chat decides what the agent is waiting on."
+                onClick={() =>
+                  void mutate(
+                    () => api.setContactOwner(profile.id, contact.id, !contact.owner),
+                    contact.owner
+                      ? `${name} no longer speaks for you.`
+                      : `${name} speaks for you: their "ok" decides approvals.`,
+                  )
+                }
+              >
+                <Crown size={16} />
+                {contact.owner ? 'Owner' : 'Make owner'}
+              </Button>
+            )}
             <Button
               variant="quiet"
               disabled={busy}

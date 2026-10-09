@@ -61,6 +61,22 @@ export const resourceCalls = (client: Client) => ({
         params: { path: { profileId }, query: { days } },
       }),
     ),
+  approvals: (profileId: string) =>
+    result(client.GET('/v1/profiles/{profileId}/approvals', { params: profile(profileId) })),
+  approve: (profileId: string, approvalId: string, reason?: string) =>
+    result(
+      client.POST('/v1/profiles/{profileId}/approvals/{approvalId}/approve', {
+        params: { path: { profileId, approvalId } },
+        body: reason ? { reason } : {},
+      }),
+    ),
+  reject: (profileId: string, approvalId: string, reason?: string) =>
+    result(
+      client.POST('/v1/profiles/{profileId}/approvals/{approvalId}/reject', {
+        params: { path: { profileId, approvalId } },
+        body: reason ? { reason } : {},
+      }),
+    ),
   schedules: (profileId: string) =>
     result(client.GET('/v1/profiles/{profileId}/schedules', { params: profile(profileId) })),
   createSchedule: (profileId: string, body: ScheduleInput) =>

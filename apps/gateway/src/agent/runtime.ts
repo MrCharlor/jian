@@ -12,6 +12,7 @@ import {
   tool,
 } from 'ai';
 import { z } from 'zod';
+import type { Approvals } from '../approvals/service.js';
 import { fitPrompt, promptTokens, tokenCounter } from '../context/budget.js';
 import { compactPrompt, needsCompaction } from '../context/compaction.js';
 import type { ContextSource } from '../context/port.js';
@@ -34,7 +35,14 @@ import { findSkill } from '../skills/builtin/index.js';
 import type { Stickers } from '../stickers/service.js';
 import type { WebSearch } from '../web/service.js';
 import { type CacheTtl, cacheable, cacheableInstructions, withOpenAiPromptCache } from './cache.js';
-import { ACTION_KINDS, actionGuard, guardTools, mcpActionKind } from './guard.js';
+import {
+  ACTION_KINDS,
+  actionGuard,
+  composeGuards,
+  guardTools,
+  mcpActionKind,
+  policyGuard,
+} from './guard.js';
 import { availableNote, connectMcpTools, unavailableNote } from './mcp.js';
 import { Narrator } from './narrator.js';
 import { ProgressReporter } from './progress.js';
@@ -63,6 +71,7 @@ export type { RuntimeOptions } from './types.js';
 /** The run services the runtime drives, plus what it hands to the tool set it builds. */
 export type RuntimeServices = ToolServices & {
   contexts: ContextSource;
+  approvals?: Pick<Approvals, 'gate'>;
   providers?: Pick<Providers, 'selectedModel'> & Partial<Pick<Providers, 'modelDefaults'>>;
   media?: Pick<Media, 'prepare' | 'tools'>;
   web?: Pick<WebSearch, 'tools'>;
@@ -321,14 +330,24 @@ export class AgentRuntime {
         : 'off';
 
       // One guard for every tool that acts beyond the conversation, the gateway's own and those
-      // of any MCP server alike, applied once the whole set is known.
+      // of any MCP server alike, applied once the whole set is known. The owner's policy is
+      // asked first; the judge only sees what the policy let through.
       const judge = this.services.decisions?.judge;
       const localHolds = new WeakSet<object>();
+      const actionOf = (name: string) => {
+        const entry = catalog.find((item) => item.name === name);
 
-      if (judge) {
+        return entry ? `${entry.server}.${entry.tool}` : name;
+      };
+      const owned = this.services.approvals
+        ? policyGuard(run.profile.actionPolicy, this.services.approvals, run, actionOf)
+        : undefined;
+      const judged = judge ? actionGuard(judge, run, context.messages) : undefined;
+
+      if (owned || judged) {
         guardTools(
           tools,
-          actionGuard(judge, run, context.messages),
+          composeGuards(owned, judged),
           (name, definition) =>
             mcpToolNames.includes(name) ? mcpActionKind(definition) : ACTION_KINDS[name],
           (result) => localHolds.add(result),

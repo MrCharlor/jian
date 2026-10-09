@@ -1,5 +1,6 @@
-import type { Run } from '@jian/contracts';
+import type { ActionPolicy, Run } from '@jian/contracts';
 import type { ToolSet } from 'ai';
+import { type Approvals, levelOf, proposeOnly } from '../approvals/service.js';
 import { type Judge, noul, type Question } from '../decisions/service.js';
 
 /** Returns why an action is held back, or nothing when it may run. */
@@ -170,6 +171,52 @@ export function actionGuard(
     return asked < ASKED_THRESHOLD
       ? `Held back: this action ${fired.join(', and ')}, and the request did not ask for exactly that. Tell whoever asked what it would do, and run it only after the owner asks for exactly that in this conversation.`
       : undefined;
+  };
+}
+
+/**
+ * The owner's own answer on how far the agent goes: it is asked before any judge. Level 3 lets
+ * the call through to the judge; level 1 holds it with no request, the owner acts instead;
+ * level 2 records a request, or spends the approval the owner already gave for this very call.
+ *
+ * `actionOf` names the call the way the owner configured it — the tool's own name, or
+ * `server.tool` for a connected server — so the level survives the hashed name the model sees.
+ */
+export function policyGuard(
+  policy: ActionPolicy,
+  approvals: Pick<Approvals, 'gate'>,
+  run: Pick<Run, 'id' | 'profileId' | 'sessionId'>,
+  actionOf: (tool: string) => string,
+  onRequest?: (number: number) => void,
+): Guard {
+  return async (tool, input, kind) => {
+    const action = actionOf(tool);
+    const level = levelOf(policy, action, kind);
+
+    if (level === 3) return undefined;
+    if (level === 1) return proposeOnly(action);
+
+    const summary = `${action} ${JSON.stringify(bounded(input))}`;
+    const gate = await approvals.gate(run, { tool, action, input, summary });
+
+    if (gate.proceed) return undefined;
+
+    onRequest?.(gate.approval.number);
+
+    return gate.held;
+  };
+}
+
+/** The first guard that holds decides; the next is asked only when the one before let it pass. */
+export function composeGuards(...guards: Array<Guard | undefined>): Guard {
+  return async (tool, input, kind) => {
+    for (const guard of guards) {
+      const held = await guard?.(tool, input, kind);
+
+      if (held) return held;
+    }
+
+    return undefined;
   };
 }
 

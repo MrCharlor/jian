@@ -51,6 +51,11 @@ export const contactSchema = z.strictObject({
   chatId: z.string().min(1).max(100),
   displayName: z.string().max(100).optional(),
   status: z.enum(['pending', 'approved', 'blocked']),
+  /**
+   * Whether this contact speaks for the owner. Only an owner's reply in a chat decides an
+   * approval the agent is waiting on; everyone else's "ok" is just a word in the conversation.
+   */
+  owner: z.boolean().default(false),
   sessionId: z.uuid().optional(),
   message: z.string().max(8000).optional().describe('The message held until the owner decides.'),
   avatar: z
@@ -61,6 +66,8 @@ export const contactSchema = z.strictObject({
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
+
+export const contactOwnerSchema = z.strictObject({ owner: z.boolean() });
 
 export const ingressSchema = z.strictObject({
   actorId: z.string().min(1).max(100),

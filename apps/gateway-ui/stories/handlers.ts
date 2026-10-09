@@ -344,6 +344,14 @@ export const handlers = [
   http.post('*/v1/profiles/:profileId/contacts/:contactId/:decision', ({ params }) =>
     ok(data.contacts.find((contact) => contact.id === params.contactId)),
   ),
+  http.put('*/v1/profiles/:profileId/contacts/:contactId/owner', ({ params }) =>
+    ok(data.contacts.find((contact) => contact.id === params.contactId)),
+  ),
+  http.get('*/v1/profiles/:profileId/approvals', () => ok([])),
+  http.post(
+    '*/v1/profiles/:profileId/approvals/:approvalId/:decision',
+    () => new HttpResponse(null, { status: 404 }),
+  ),
   http.get('*/v1/groups', () => ok(data.groups)),
   http.get('*/v1/profiles/:profileId/deliveries', ({ params }) =>
     ok(byProfile(data.deliveries, String(params.profileId))),

@@ -1,3 +1,4 @@
+import { Approvals } from './approvals/service.js';
 import { Contexts } from './context/service.js';
 import type { Clock } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
@@ -29,6 +30,7 @@ import { WebSearch } from './web/service.js';
 
 export type Services = {
   profiles: Profiles;
+  approvals: Approvals;
   providers: Providers;
   sessions: Sessions;
   memories: Memories;
@@ -76,7 +78,8 @@ export function buildServices({
   const providers = new Providers(store, profiles, gatewayVault, clock, catalog);
   const sessions = new Sessions(store, profiles, clock);
   const memories = new Memories(store, profiles, sessions, clock);
-  const runs = new Runs(store, profiles, sessions, providers, clock);
+  const approvals = new Approvals(store, profiles, clock);
+  const runs = new Runs(store, profiles, sessions, providers, clock, approvals);
   const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
@@ -95,6 +98,7 @@ export function buildServices({
 
   const services = {
     profiles,
+    approvals,
     providers,
     sessions,
     memories,
