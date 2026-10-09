@@ -23,6 +23,7 @@ export type Contact = JsonResponse<'listContacts', 200>[number];
 export type Group = JsonResponse<'listGroups', 200>[number];
 export type Memory = JsonResponse<'listMemories', 200>[number];
 export type Approval = JsonResponse<'listApprovals', 200>[number];
+export type QualityRow = JsonResponse<'getQuality', 200>[number];
 export type ActionPolicy = Profile['actionPolicy'];
 export type AutonomyLevel = ActionPolicy['machine'];
 export type ProfileStats = JsonResponse<'getProfileStats', 200>;

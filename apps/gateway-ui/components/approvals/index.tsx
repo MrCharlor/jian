@@ -43,6 +43,8 @@ export function Approvals({ profile, api, mutate, busy }: SectionProps) {
   const [list, setList] = useState<Approval[]>();
   const [error, setError] = useState('');
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  // The owner's own version of a request's input, as typed; absent means the agent's stands.
+  const [edits, setEdits] = useState<Record<string, string>>({});
 
   const load = useCallback(
     () =>
@@ -73,13 +75,27 @@ export function Approvals({ profile, api, mutate, busy }: SectionProps) {
 
   const decide = async (approval: Approval, approve: boolean) => {
     const reason = reasons[approval.id]?.trim() || undefined;
+    const typed = edits[approval.id];
+    let input: unknown;
+
+    if (approve && typed !== undefined && typed !== detail(approval)) {
+      try {
+        input = JSON.parse(typed);
+      } catch {
+        setError(`#${approval.number}: the edited input is not valid JSON.`);
+        return;
+      }
+    }
+
     const ok = await mutate(
       () =>
         approve
-          ? api.approve(profile.id, approval.id, reason)
+          ? api.approve(profile.id, approval.id, reason, input)
           : api.reject(profile.id, approval.id, reason),
       approve
-        ? `#${approval.number} approved. Tell the agent to go on, or wait for its next turn.`
+        ? input === undefined
+          ? `#${approval.number} approved. Tell the agent to go on, or wait for its next turn.`
+          : `#${approval.number} approved with your changes, kept as a correction.`
         : `#${approval.number} rejected.`,
     );
 
@@ -104,7 +120,20 @@ export function Approvals({ profile, api, mutate, busy }: SectionProps) {
         </div>
         <time dateTime={approval.createdAt}>{date(approval.createdAt)}</time>
       </header>
-      <pre className="request-quote">{detail(approval)}</pre>
+      {approval.status === 'pending' ? (
+        <textarea
+          className="request-quote request-edit"
+          aria-label={`Input of #${approval.number}, editable before approving`}
+          spellCheck={false}
+          rows={Math.min(14, detail(approval).split('\n').length + 1)}
+          value={edits[approval.id] ?? detail(approval)}
+          onChange={(event) =>
+            setEdits((current) => ({ ...current, [approval.id]: event.target.value }))
+          }
+        />
+      ) : (
+        <pre className="request-quote">{detail(approval)}</pre>
+      )}
       {approval.status === 'pending' && (
         <footer>
           <input

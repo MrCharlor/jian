@@ -20,6 +20,8 @@ export type SubmitOptions = {
   author?: { id: string; name?: string };
   workItemId?: string;
   subagent?: Subagent;
+  /** What started the run when nobody typed it: `schedule:<name>`. */
+  origin?: string;
   transaction?: Queryable;
 };
 

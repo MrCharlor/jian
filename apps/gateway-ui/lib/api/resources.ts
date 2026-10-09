@@ -63,13 +63,15 @@ export const resourceCalls = (client: Client) => ({
     ),
   approvals: (profileId: string) =>
     result(client.GET('/v1/profiles/{profileId}/approvals', { params: profile(profileId) })),
-  approve: (profileId: string, approvalId: string, reason?: string) =>
+  approve: (profileId: string, approvalId: string, reason?: string, input?: unknown) =>
     result(
       client.POST('/v1/profiles/{profileId}/approvals/{approvalId}/approve', {
         params: { path: { profileId, approvalId } },
-        body: reason ? { reason } : {},
+        body: { ...(reason ? { reason } : {}), ...(input !== undefined ? { input } : {}) },
       }),
     ),
+  quality: (profileId: string) =>
+    result(client.GET('/v1/profiles/{profileId}/quality', { params: profile(profileId) })),
   reject: (profileId: string, approvalId: string, reason?: string) =>
     result(
       client.POST('/v1/profiles/{profileId}/approvals/{approvalId}/reject', {

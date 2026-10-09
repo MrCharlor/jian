@@ -149,6 +149,8 @@ export const runRecordSchema = z.strictObject({
   commentary: z.array(z.string().max(4000)).max(20).optional(),
   /** Set when the agent that asked stopped waiting: where its late answer is to be carried. */
   relayTo: uuid.optional(),
+  /** What started the run when it was not a person: `schedule:<name>` for a schedule. */
+  origin: z.string().max(240).optional(),
 });
 
 /**

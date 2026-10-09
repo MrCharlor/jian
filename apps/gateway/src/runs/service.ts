@@ -5,6 +5,7 @@ import {
   type Message,
   type ModelSelection,
   parseApprovalReply,
+  parseCorrectionReply,
   type Run,
   submitSchema,
   TASK_SESSION_CHANNEL,
@@ -18,6 +19,7 @@ import type { ProfileReader } from '../profiles/port.js';
 import type { ModelFallback } from '../providers/fallback.js';
 import type { ProviderSelection } from '../providers/port.js';
 import { readModelDefaults, writeModelDefaults } from '../providers/repository.js';
+import type { Quality } from '../quality/service.js';
 import type { SessionReader } from '../sessions/port.js';
 import {
   insertMessage,
@@ -55,6 +57,7 @@ export class Runs {
     private readonly providers: ProviderSelection,
     private readonly clock: Clock = Date.now,
     private readonly approvals?: Pick<Approvals, 'decide'>,
+    private readonly quality?: Pick<Quality, 'redo'>,
   ) {}
 
   /**
@@ -119,6 +122,7 @@ export class Runs {
       author,
       workItemId,
       subagent,
+      origin,
     } = options;
     const parsed = submitSchema.parse(input);
     // "ok 3" from the owner is a decision, not a message for the model to interpret. It is
@@ -145,6 +149,27 @@ export class Runs {
         });
 
       if (decided) parsed.text = ApprovalNotices.notice(decided);
+    }
+
+    // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of
+    // the last answer here, which is how the owner sees how often this needed fixing.
+    const correction =
+      options.ownerMessage && this.quality && !reply
+        ? parseCorrectionReply(parsed.text)
+        : undefined;
+
+    if (correction && this.quality) {
+      const quality = this.quality;
+
+      await this.store.transaction(profileId, (tx) =>
+        quality.redo(
+          tx,
+          profileId,
+          sessionId,
+          correction,
+          activity === 'channel' ? 'channel' : 'panel',
+        ),
+      );
     }
 
     const modeChange =
@@ -275,6 +300,7 @@ export class Runs {
         ...(group ? { group } : {}),
         status: 'queued',
         ...(continuationOf ? { continuationOf } : {}),
+        ...(origin ? { origin } : {}),
         createdAt: nowIso(this.clock),
         updatedAt: nowIso(this.clock),
       };

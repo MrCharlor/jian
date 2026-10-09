@@ -173,6 +173,19 @@ export async function setApprovalStatus(
     .where(eq(approvals.id, id));
 }
 
+/** The owner's own version of the call: what runs once approved, under its own hash. */
+export async function setApprovalInput(
+  db: Queryable,
+  id: string,
+  input: unknown,
+  inputHash: string,
+): Promise<void> {
+  await db
+    .update(approvals)
+    .set({ input: input ?? null, inputHash })
+    .where(eq(approvals.id, id));
+}
+
 export async function countPending(db: Queryable, profileId: string): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)` })

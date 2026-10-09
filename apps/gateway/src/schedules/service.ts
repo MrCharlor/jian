@@ -28,8 +28,16 @@ import {
 import { assertCron, nextRun } from './timing.js';
 
 type RunSubmitter = {
-  submit(profileId: string, sessionId: string, input: unknown): Promise<Run>;
+  submit(
+    profileId: string,
+    sessionId: string,
+    input: unknown,
+    options?: { origin?: string },
+  ): Promise<Run>;
 };
+
+/** How a run started by a schedule names its automation, for the owner's measure of it. */
+export const scheduleOrigin = (schedule: Pick<Schedule, 'name'>) => `schedule:${schedule.name}`;
 
 /** The way a run reaches a person when its conversation is a chat on a channel. */
 type Deliveries = {
@@ -280,10 +288,12 @@ export class Schedules {
   }
 
   private async start(schedule: Schedule, requestKey: string) {
-    const run = await this.runs.submit(schedule.profileId, schedule.sessionId, {
-      text: scheduledText(schedule),
-      requestKey,
-    });
+    const run = await this.runs.submit(
+      schedule.profileId,
+      schedule.sessionId,
+      { text: scheduledText(schedule), requestKey },
+      { origin: scheduleOrigin(schedule) },
+    );
 
     await this.deliveries?.deliverRun(schedule.profileId, schedule.sessionId, run.id);
 

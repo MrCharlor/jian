@@ -63,6 +63,8 @@ export const approvalRecordSchema = z.strictObject({
   decidedAt: z.iso.datetime().optional(),
   decidedVia: approvalDecidedViaSchema.optional(),
   reason: z.string().max(2000).optional(),
+  /** Set on the decision itself when the owner approved a version of their own. */
+  edited: z.boolean().optional(),
   createdAt: z.iso.datetime(),
   expiresAt: z.iso.datetime(),
 });
@@ -71,7 +73,66 @@ export type Approval = z.infer<typeof approvalRecordSchema>;
 
 export const approvalDecisionSchema = z.strictObject({
   reason: z.string().trim().max(2000).optional(),
+  /**
+   * The call as the owner wants it, when it differs from what the agent proposed. Approving with
+   * an input runs that input instead, and the difference is kept as a correction.
+   */
+  input: z.unknown().optional(),
 });
+
+export const correctionKindSchema = z.enum(['rejected', 'edited', 'redone']);
+
+/**
+ * Something the owner changed in what an agent did or proposed: a refusal with its reason, a
+ * proposal edited before approving it, or a "corrige:" after an answer. It is the measure of
+ * whether an automation can be trusted with more, so it records which automation it judges.
+ */
+export const correctionRecordSchema = z.strictObject({
+  id: z.uuid(),
+  profileId: z.uuid(),
+  runId: z.uuid().optional(),
+  approvalId: z.uuid().optional(),
+  /** The schedule that started the run (`schedule:<name>`), or the exact action otherwise. */
+  automation: z.string().min(1).max(240),
+  kind: correctionKindSchema,
+  original: z.unknown().optional(),
+  corrected: z.unknown().optional(),
+  note: z.string().max(4000).optional(),
+  via: approvalDecidedViaSchema,
+  createdAt: z.iso.datetime(),
+});
+
+export type Correction = z.infer<typeof correctionRecordSchema>;
+
+/** Rounds without a correction an automation needs before it is shown as ready for level 3. */
+export const READY_AFTER = 10;
+
+/**
+ * One automation as the owner judges it: how often it ran, how often they had to correct it,
+ * and whether the last rounds went through untouched. `action` is set when the automation is a
+ * single action, the only kind a level can be raised for directly.
+ */
+export const qualityRowSchema = z.strictObject({
+  automation: z.string(),
+  action: z.string().optional(),
+  rounds30: z.number().int().nonnegative(),
+  corrections30: z.number().int().nonnegative(),
+  rounds: z.number().int().nonnegative(),
+  corrections: z.number().int().nonnegative(),
+  /** Rounds since the last correction, or since the first round when there was none. */
+  clean: z.number().int().nonnegative(),
+  ready: z.boolean(),
+  lastCorrection: correctionRecordSchema.optional(),
+});
+
+export type QualityRow = z.infer<typeof qualityRowSchema>;
+
+/** An owner's message that corrects the agent's last answer: "corrige: o card é o outro". */
+export const CORRECTION_REPLY = /^corrig(?:e|ir|a)\s*[:,-]\s*([\s\S]{1,4000})$/i;
+
+export function parseCorrectionReply(text: string): string | undefined {
+  return CORRECTION_REPLY.exec(text.trim())?.[1]?.trim() || undefined;
+}
 
 /**
  * An owner's answer typed in a conversation: `ok 3`, `não 3: motivo`, `no #3`. Read before the

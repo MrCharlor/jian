@@ -1,5 +1,6 @@
 import { LEARNING_SESSION_CHANNEL, type Profile, type Run, type Session } from '@jian/contracts';
 import { type Judge, noul } from '../decisions/service.js';
+import { listCorrections } from '../quality/repository.js';
 import { listRecentRuns } from '../runs/repository.js';
 import { findOwnSession } from '../sessions/repository.js';
 import type { Store } from '../storage/database.js';
@@ -85,8 +86,15 @@ export class Learning {
         item.status === 'completed' &&
         (!lastLook || item.createdAt > lastLook.createdAt),
     );
-    const reason =
-      work.tools.length >= MANY_TOOLS
+    // What the owner corrected since the last look is the strongest thing to learn from, and
+    // it is read as recorded, not guessed from the conversation.
+    const corrected = await listCorrections(this.services.store.db, run.profileId, {
+      ...(lastLook ? { since: new Date(lastLook.createdAt) } : {}),
+      limit: 20,
+    });
+    const reason = corrected.length
+      ? `${corrected.length === 1 ? 'a correction' : `${corrected.length} corrections`} from the owner`
+      : work.tools.length >= MANY_TOOLS
         ? `a turn with ${work.tools.length} tool calls`
         : failed.length
           ? `a turn that recovered from ${failed.length === 1 ? 'a failed tool' : `${failed.length} failed tools`}`
@@ -98,6 +106,26 @@ export class Learning {
 
     const periodic = work.tools.length < MANY_TOOLS && !failed.length;
     const yours = profile.skills.filter((skill) => skill.writtenBy === 'agent');
+    const fixes = corrected.length
+      ? [
+          'What the owner corrected, newest first:',
+          ...corrected.map((item) =>
+            [
+              `- ${item.kind} in ${item.automation}`,
+              item.note ? `  Owner said: ${quote(item.note, 300)}` : '',
+              item.original !== undefined
+                ? `  Yours: ${quote(JSON.stringify(item.original), 300)}`
+                : '',
+              item.corrected !== undefined
+                ? `  Theirs: ${quote(JSON.stringify(item.corrected), 300)}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          ),
+          '',
+        ]
+      : [];
     const material = periodic
       ? [
           'Recent turns, oldest first:',
@@ -119,7 +147,7 @@ export class Learning {
           `Answer: ${quote(work.answer)}`,
         ];
 
-    if (this.services.judge) {
+    if (this.services.judge && !corrected.length) {
       const answers = await this.services.judge(
         { work: material.join('\n') },
         {
@@ -149,6 +177,7 @@ export class Learning {
       'Most turns teach nothing new. Then change nothing. Never keep what is private to one conversation in a skill: skills are how you work everywhere.',
       'End with one or two lines for the owner: what you kept and why, or "Nothing to keep."',
       '',
+      ...fixes,
       ...material,
       '',
       yours.length

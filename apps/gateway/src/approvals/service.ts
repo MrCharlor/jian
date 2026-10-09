@@ -11,6 +11,7 @@ import { type Clock, nowIso } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import type { ProfileReader } from '../profiles/port.js';
+import type { Quality } from '../quality/service.js';
 import type { Queryable, Store } from '../storage/database.js';
 import {
   countPending,
@@ -22,6 +23,7 @@ import {
   insertApproval,
   listApprovals,
   nextApprovalNumber,
+  setApprovalInput,
   setApprovalStatus,
 } from './repository.js';
 
@@ -73,6 +75,7 @@ export class Approvals {
     private readonly store: Store,
     private readonly profiles: ProfileReader,
     private readonly clock: Clock = Date.now,
+    private readonly quality?: Pick<Quality, 'record'>,
   ) {}
 
   async list(profileId: string): Promise<Approval[]> {
@@ -145,9 +148,9 @@ export class Approvals {
   }
 
   async approve(profileId: string, id: string, input: unknown, via: DecidedVia = 'api') {
-    const { reason } = approvalDecisionSchema.parse(input ?? {});
+    const { reason, input: edited } = approvalDecisionSchema.parse(input ?? {});
 
-    return this.decide(profileId, { id }, true, via, reason);
+    return this.decide(profileId, { id }, true, via, reason, undefined, edited);
   }
 
   async reject(profileId: string, id: string, input: unknown, via: DecidedVia = 'api') {
@@ -167,6 +170,7 @@ export class Approvals {
     via: DecidedVia,
     reason?: string,
     tx?: Queryable,
+    edited?: unknown,
   ): Promise<Approval> {
     const apply = async (db: Queryable) => {
       await expireApprovals(db, profileId, new Date(this.clock()));
@@ -184,11 +188,30 @@ export class Approvals {
 
       const status = approve ? 'approved' : 'rejected';
       const at = new Date(this.clock());
+      // Only a real change counts: the panel sends the input back even when nobody touched it.
+      const changed =
+        approve && edited !== undefined && inputHash(edited) !== inputHash(current.input);
+
+      if (changed) await setApprovalInput(db, current.id, edited, inputHash(edited));
 
       await setApprovalStatus(db, current.id, status, { at, via, ...(reason ? { reason } : {}) });
 
+      if (!approve || changed) {
+        await this.quality?.record(db, profileId, {
+          kind: approve ? 'edited' : 'rejected',
+          via,
+          runId: current.runId,
+          approvalId: current.id,
+          action: current.action,
+          original: current.input,
+          ...(changed ? { corrected: edited } : {}),
+          ...(reason ? { note: reason } : {}),
+        });
+      }
+
       const decided: Approval = {
         ...current,
+        ...(changed ? { input: edited, edited: true } : {}),
         status,
         decidedAt: at.toISOString(),
         decidedVia: via,
@@ -210,6 +233,10 @@ export class Approvals {
   /** What the agent reads when the owner has answered: the decision, and what to do with it. */
   static notice(approval: Approval): string {
     const reason = approval.reason ? `: ${approval.reason}` : '';
+
+    if (approval.status === 'approved' && approval.edited) {
+      return `[Request #${approval.number} approved by the owner with changes${reason}] Run the held action now with the owner's version, not yours: call ${approval.tool} with exactly this input: ${JSON.stringify(approval.input)}. Then report what happened, and note how the owner changed it for next time.`;
+    }
 
     return approval.status === 'approved'
       ? `[Request #${approval.number} approved by the owner${reason}] Run the held action now, exactly as proposed: call ${approval.tool} again with the same input. Then report what happened.`

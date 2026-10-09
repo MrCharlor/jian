@@ -19,6 +19,7 @@ import { registerProfileRoutes } from './profiles/routes.js';
 import type { CodexLogin } from './providers/codex/login.js';
 import type { ProviderModels } from './providers/discovery.js';
 import { registerProviderRoutes } from './providers/routes.js';
+import { registerQualityRoutes } from './quality/routes.js';
 import { registerReleaseRoutes } from './releases/routes.js';
 import { registerRunRoutes } from './runs/routes.js';
 import { registerScheduleRoutes } from './schedules/routes.js';
@@ -121,6 +122,7 @@ export function createApp(
   registerStatsRoutes(app, options);
   registerScheduleRoutes(app, options);
   registerApprovalRoutes(app, options);
+  registerQualityRoutes(app, options);
   registerWorkRoutes(app, options);
   registerSettingsRoutes(app, options);
   registerMediaRoutes(app, options);

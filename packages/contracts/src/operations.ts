@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { approvalDecisionSchema, approvalRecordSchema } from './approvals.js';
+import {
+  approvalDecisionSchema,
+  approvalRecordSchema,
+  correctionRecordSchema,
+  qualityRowSchema,
+} from './approvals.js';
 import {
   channelConnectionSchema,
   channelInputSchema,
@@ -378,6 +383,20 @@ export const operations: Operation[] = [
     operationId: 'listApprovals',
     access: 'admin',
     response: z.array(approvalRecordSchema),
+  },
+  {
+    method: 'GET',
+    path: `${profile}/corrections`,
+    operationId: 'listCorrections',
+    access: 'admin',
+    response: z.array(correctionRecordSchema),
+  },
+  {
+    method: 'GET',
+    path: `${profile}/quality`,
+    operationId: 'getQuality',
+    access: 'admin',
+    response: z.array(qualityRowSchema),
   },
   {
     method: 'POST',

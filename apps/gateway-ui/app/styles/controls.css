@@ -730,3 +730,32 @@
   display: grid;
   gap: 12px;
 }
+
+textarea.request-edit {
+  width: 100%;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  resize: vertical;
+}
+
+.quality-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quality-table th,
+.quality-table td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.2));
+  vertical-align: top;
+}
+
+.quality-table td.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.quality-table small {
+  display: block;
+  opacity: 0.75;
+}

@@ -348,6 +348,7 @@ export const handlers = [
     ok(data.contacts.find((contact) => contact.id === params.contactId)),
   ),
   http.get('*/v1/profiles/:profileId/approvals', () => ok([])),
+  http.get('*/v1/profiles/:profileId/quality', () => ok([])),
   http.post(
     '*/v1/profiles/:profileId/approvals/:approvalId/:decision',
     () => new HttpResponse(null, { status: 404 }),

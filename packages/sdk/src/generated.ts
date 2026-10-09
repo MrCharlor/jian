@@ -418,6 +418,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/profiles/{profileId}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listCorrections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/profiles/{profileId}/quality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getQuality"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/profiles/{profileId}/approvals/{approvalId}/approve": {
         parameters: {
             query?: never;
@@ -5273,6 +5307,7 @@ export interface operations {
                         commentary?: string[];
                         /** Format: uuid */
                         relayTo?: string;
+                        origin?: string;
                     };
                 };
             };
@@ -6287,10 +6322,301 @@ export interface operations {
                         /** @enum {string} */
                         decidedVia?: "panel" | "channel" | "api";
                         reason?: string;
+                        edited?: boolean;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
                         expiresAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    listCorrections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        runId?: string;
+                        /** Format: uuid */
+                        approvalId?: string;
+                        automation: string;
+                        /** @enum {string} */
+                        kind: "rejected" | "edited" | "redone";
+                        original?: unknown;
+                        corrected?: unknown;
+                        note?: string;
+                        /** @enum {string} */
+                        via: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getQuality: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        automation: string;
+                        action?: string;
+                        rounds30: number;
+                        corrections30: number;
+                        rounds: number;
+                        corrections: number;
+                        clean: number;
+                        ready: boolean;
+                        lastCorrection?: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            profileId: string;
+                            /** Format: uuid */
+                            runId?: string;
+                            /** Format: uuid */
+                            approvalId?: string;
+                            automation: string;
+                            /** @enum {string} */
+                            kind: "rejected" | "edited" | "redone";
+                            original?: unknown;
+                            corrected?: unknown;
+                            note?: string;
+                            /** @enum {string} */
+                            via: "panel" | "channel" | "api";
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
                     }[];
                 };
             };
@@ -6409,6 +6735,7 @@ export interface operations {
             content: {
                 "application/json": {
                     reason?: string;
+                    input?: unknown;
                 };
             };
         };
@@ -6440,6 +6767,7 @@ export interface operations {
                         /** @enum {string} */
                         decidedVia?: "panel" | "channel" | "api";
                         reason?: string;
+                        edited?: boolean;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -6562,6 +6890,7 @@ export interface operations {
             content: {
                 "application/json": {
                     reason?: string;
+                    input?: unknown;
                 };
             };
         };
@@ -6593,6 +6922,7 @@ export interface operations {
                         /** @enum {string} */
                         decidedVia?: "panel" | "channel" | "api";
                         reason?: string;
+                        edited?: boolean;
                         /** Format: date-time */
                         createdAt: string;
                         /** Format: date-time */
@@ -13551,6 +13881,7 @@ export interface operations {
                         commentary?: string[];
                         /** Format: uuid */
                         relayTo?: string;
+                        origin?: string;
                     };
                 };
             };
@@ -15178,6 +15509,7 @@ export interface operations {
                         commentary?: string[];
                         /** Format: uuid */
                         relayTo?: string;
+                        origin?: string;
                     };
                 };
             };
@@ -16950,6 +17282,7 @@ export interface operations {
                         commentary?: string[];
                         /** Format: uuid */
                         relayTo?: string;
+                        origin?: string;
                     }[];
                 };
             };
@@ -17183,6 +17516,7 @@ export interface operations {
                         commentary?: string[];
                         /** Format: uuid */
                         relayTo?: string;
+                        origin?: string;
                     };
                 };
             };
@@ -17416,6 +17750,7 @@ export interface operations {
                         commentary?: string[];
                         /** Format: uuid */
                         relayTo?: string;
+                        origin?: string;
                     };
                 };
             };

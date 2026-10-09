@@ -11,6 +11,7 @@ import { Profiles } from './profiles/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
 import { Providers } from './providers/service.js';
 import { SubscriptionUsageReader } from './providers/subscription-usage.js';
+import { Quality } from './quality/service.js';
 import { RepositoryStars } from './releases/repository.js';
 import { ReleaseNotes } from './releases/service.js';
 import { RunLifecycle } from './runs/lifecycle.js';
@@ -31,6 +32,7 @@ import { WebSearch } from './web/service.js';
 export type Services = {
   profiles: Profiles;
   approvals: Approvals;
+  quality: Quality;
   providers: Providers;
   sessions: Sessions;
   memories: Memories;
@@ -78,8 +80,9 @@ export function buildServices({
   const providers = new Providers(store, profiles, gatewayVault, clock, catalog);
   const sessions = new Sessions(store, profiles, clock);
   const memories = new Memories(store, profiles, sessions, clock);
-  const approvals = new Approvals(store, profiles, clock);
-  const runs = new Runs(store, profiles, sessions, providers, clock, approvals);
+  const quality = new Quality(store, profiles, clock);
+  const approvals = new Approvals(store, profiles, clock, quality);
+  const runs = new Runs(store, profiles, sessions, providers, clock, approvals, quality);
   const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
@@ -99,6 +102,7 @@ export function buildServices({
   const services = {
     profiles,
     approvals,
+    quality,
     providers,
     sessions,
     memories,

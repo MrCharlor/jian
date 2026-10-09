@@ -231,6 +231,8 @@ export const runs = pgTable(
     // Set when the agent that asked stopped waiting: the answer is carried into that session
     // as a turn of its own instead of being lost with the caller's run.
     relayTo: uuid('relay_to').references(() => sessions.id, { onDelete: 'set null' }),
+    // What started the run when nobody typed it: `schedule:<name>`. Absent for a person.
+    origin: text('origin'),
     // What the person said while this run was already going. Read and cleared between steps.
     steer: text('steer'),
     leaseOwner: text('lease_owner'),
@@ -246,6 +248,9 @@ export const runs = pgTable(
     index('runs_running').on(table.status).where(sql`${table.status} = 'running'`),
     index('runs_queued').on(table.status).where(sql`${table.status} = 'queued'`),
     index('runs_session').on(table.profileId, table.sessionId, table.createdAt.desc()),
+    index('runs_origin')
+      .on(table.profileId, table.origin, table.createdAt.desc())
+      .where(sql`${table.origin} IS NOT NULL`),
     index('runs_work_item')
       .on(table.profileId, table.workItemId, table.createdAt)
       .where(sql`${table.workItemId} IS NOT NULL`),
@@ -910,5 +915,35 @@ export const approvals = pgTable(
     uniqueIndex('approvals_number').on(table.profileId, table.number),
     index('approvals_pending').on(table.profileId, table.status, table.createdAt.desc()),
     index('approvals_session').on(table.profileId, table.sessionId, table.createdAt.desc()),
+  ],
+);
+
+export const correctionKind = pgEnum('correction_kind', ['rejected', 'edited', 'redone']);
+
+/**
+ * What the owner changed in an agent's work. `automation` is fixed when the row is written —
+ * the schedule that started the run, or the exact action — so the measure does not move when
+ * a schedule is renamed or a run is pruned.
+ */
+export const corrections = pgTable(
+  'corrections',
+  {
+    id: uuid('id').primaryKey(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    runId: uuid('run_id').references(() => runs.id, { onDelete: 'set null' }),
+    approvalId: uuid('approval_id').references(() => approvals.id, { onDelete: 'set null' }),
+    automation: text('automation').notNull(),
+    kind: correctionKind('kind').notNull(),
+    original: jsonb('original'),
+    corrected: jsonb('corrected'),
+    note: text('note'),
+    via: text('via').$type<'panel' | 'channel' | 'api'>().notNull(),
+    createdAt,
+  },
+  (table) => [
+    index('corrections_automation').on(table.profileId, table.automation, table.createdAt.desc()),
+    index('corrections_recent').on(table.profileId, table.createdAt.desc()),
   ],
 );
