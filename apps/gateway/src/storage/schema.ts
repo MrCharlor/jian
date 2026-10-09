@@ -981,3 +981,60 @@ export const applicationFiles = pgTable(
   },
   (table) => [primaryKey({ columns: [table.applicationId, table.path] })],
 );
+
+/** A screen drawn for an application from a request; its versions are below. */
+export const prototypes = pgTable(
+  'prototypes',
+  {
+    id: uuid('id').primaryKey(),
+    applicationId: uuid('application_id')
+      .notNull()
+      .references(() => applications.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    requestUrl: text('request_url'),
+    brief: text('brief').notNull(),
+    createdBy: text('created_by').notNull(),
+    // Whose quality the rounds count in, and, for an agent, where it is told the screen is ready.
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    approvedVersion: integer('approved_version'),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('prototypes_application').on(table.applicationId, table.updatedAt.desc())],
+);
+
+export const prototypeVersions = pgTable(
+  'prototype_versions',
+  {
+    prototypeId: uuid('prototype_id')
+      .notNull()
+      .references(() => prototypes.id, { onDelete: 'cascade' }),
+    number: integer('number').notNull(),
+    status: text('status').notNull(),
+    comments: text('comments'),
+    html: text('html'),
+    error: text('error'),
+    durationMs: integer('duration_ms'),
+    createdAt,
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.prototypeId, table.number] }),
+    index('prototype_versions_waiting').on(table.status, table.createdAt),
+  ],
+);
+
+export const prototypePrints = pgTable(
+  'prototype_prints',
+  {
+    prototypeId: uuid('prototype_id')
+      .notNull()
+      .references(() => prototypes.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    contentType: text('content_type').notNull(),
+    content: text('content').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.prototypeId, table.name] })],
+);

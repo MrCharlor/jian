@@ -17,6 +17,7 @@ import { registerGatewayUi } from './http/ui.js';
 import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
 import { registerProfileRoutes } from './profiles/routes.js';
+import { registerPrototypeRoutes } from './prototypes/routes.js';
 import type { CodexLogin } from './providers/codex/login.js';
 import type { ProviderModels } from './providers/discovery.js';
 import { registerProviderRoutes } from './providers/routes.js';
@@ -124,6 +125,7 @@ export function createApp(
   registerScheduleRoutes(app, options);
   registerApprovalRoutes(app, options);
   registerApplicationRoutes(app, options);
+  registerPrototypeRoutes(app, options);
   registerQualityRoutes(app, options);
   registerWorkRoutes(app, options);
   registerSettingsRoutes(app, options);

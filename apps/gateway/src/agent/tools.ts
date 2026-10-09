@@ -21,6 +21,7 @@ import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
 import type { PeerAgents } from '../peers/port.js';
 import type { ProfileAdmin } from '../profiles/port.js';
+import type { Prototypes } from '../prototypes/service.js';
 import type { RunExecution, RunReader } from '../runs/port.js';
 import type { Schedules } from '../schedules/service.js';
 import type { SessionNamer, SessionReader, SessionSummarizer } from '../sessions/port.js';
@@ -92,6 +93,7 @@ export type ToolServices = {
   work?: Pick<Work, 'list' | 'createWithExecutor' | 'update' | 'spawn' | 'executions'>;
   sshKeys: Pick<SshKeys, 'list' | 'create' | 'remove'>;
   applications?: Pick<Applications, 'list' | 'brief' | 'readForAgent'>;
+  prototypes?: Pick<Prototypes, 'create' | 'get' | 'redo'>;
 };
 
 export function profileTools(
@@ -244,6 +246,7 @@ export function profileTools(
     }),
 
     ...(services.applications ? designTools(services.applications) : {}),
+    ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
 
     ...(services.schedules
       ? scheduleTools(services.schedules, run, () =>
@@ -602,7 +605,14 @@ export const TOOL_GROUPS = {
   design: {
     summary:
       'read the design system of an application the owner designs for — its guide, the owner’s preferences, tokens and components — before drawing or describing any screen of it',
-    tools: ['list_applications', 'read_design_system', 'read_design_file'],
+    tools: [
+      'list_applications',
+      'read_design_system',
+      'read_design_file',
+      'request_prototype',
+      'read_prototype',
+      'redo_prototype',
+    ],
   },
   schedules: {
     summary:
@@ -740,6 +750,46 @@ export function deferTools(tools: ToolSet, loaded: Set<string>): { gated: Set<st
  * instruction as a new turn in its conversation at the time; in a chat, the answer goes out
  * on the channel. Times are read in the owner's zone unless one is named.
  */
+/** Screens drawn by Claude Code from a design system; the agent asks and reads, the owner approves. */
+function prototypeTools(prototypes: Pick<Prototypes, 'create' | 'get' | 'redo'>, run: Run) {
+  return {
+    request_prototype: tool({
+      description:
+        'Ask for an interactive screen of an application, drawn by Claude Code with its real components and the owner’s preferences. It takes minutes; you are told here when it is ready. Give the request link from the board so the chain Pauta → Tela → Demanda holds.',
+      inputSchema: z.object({
+        application: z.string().min(1).max(48),
+        title: z.string().min(1).max(160),
+        brief: z
+          .string()
+          .min(1)
+          .max(20_000)
+          .describe(
+            'What the screen has to do, every filter, column and action, in the owner’s words.',
+          ),
+        requestUrl: z.string().url().optional(),
+      }),
+      execute: async (input) =>
+        prototypes.create(input, {
+          kind: 'agent',
+          profileId: run.profileId,
+          sessionId: run.sessionId,
+        }),
+    }),
+    read_prototype: tool({
+      description:
+        'Read a prototype: its request, its versions with their status and the owner’s comments, and which one is approved.',
+      inputSchema: z.object({ id: z.string().uuid() }),
+      execute: async ({ id }) => prototypes.get(id),
+    }),
+    redo_prototype: tool({
+      description:
+        'Ask for a new version of a prototype from the owner’s comments, passed on as they wrote them. Only when the owner commented; never on your own judgement.',
+      inputSchema: z.object({ id: z.string().uuid(), comments: z.string().min(1).max(20_000) }),
+      execute: async ({ id, comments }) => prototypes.redo(id, { comments }, 'api'),
+    }),
+  };
+}
+
 /** The owner's applications and their design systems, read-only for every agent. */
 function designTools(applications: Pick<Applications, 'list' | 'brief' | 'readForAgent'>) {
   return {

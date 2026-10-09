@@ -1,7 +1,13 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { applicationFileQuerySchema, applicationPreviewQuerySchema } from '@jian/contracts';
+import {
+  applicationFileQuerySchema,
+  applicationPreviewQuerySchema,
+  PROTOTYPE_PATH,
+  prototypeVersionPath,
+} from '@jian/contracts';
 import type { FastifyInstance } from 'fastify';
 import { GatewayError } from '../core/errors.js';
+import type { Prototypes } from '../prototypes/service.js';
 import type { Applications } from './service.js';
 
 type SlugParams = { slug: string };
@@ -37,7 +43,7 @@ const PREVIEW_POLICY = [
 
 export function registerApplicationRoutes(
   app: FastifyInstance,
-  deps: { applications: Applications; token: string },
+  deps: { applications: Applications; prototypes?: Prototypes; token: string },
 ) {
   const sign = (slug: string, path: string, exp: number) =>
     createHmac('sha256', deps.token).update(`preview\n${slug}\n${path}\n${exp}`).digest('hex');
@@ -85,7 +91,15 @@ export function registerApplicationRoutes(
       throw new GatewayError(403, 'This preview address expired or is not valid');
     }
 
-    const file = await deps.applications.readText(request.params.slug, { path });
+    // A prototype's screen is served like a component preview, with the same runtime.
+    const drawn = PROTOTYPE_PATH.exec(path);
+    const file = drawn
+      ? {
+          contentType: 'text/html',
+          text: (await assertPrototypes(deps.prototypes).html(drawn[1] ?? '', Number(drawn[2])))
+            .html,
+        }
+      : await deps.applications.readText(request.params.slug, { path });
     const html = file.contentType === 'text/html';
     const type = html
       ? 'text/html; charset=utf-8'
@@ -104,6 +118,20 @@ export function registerApplicationRoutes(
         .send(html ? await withRuntime(request.params.slug, file.text, exp) : file.text)
     );
   });
+
+  app.post<{ Params: { prototypeId: string; number: string } }>(
+    '/v1/prototypes/:prototypeId/versions/:number/preview',
+    async (request) => {
+      const number = Number(request.params.number);
+      const { slug } = await assertPrototypes(deps.prototypes).html(
+        request.params.prototypeId,
+        number,
+      );
+      const exp = Math.floor(Date.now() / 1000) + PREVIEW_SECONDS;
+
+      return { url: address(slug, prototypeVersionPath(request.params.prototypeId, number), exp) };
+    },
+  );
 
   app.get('/v1/applications', async () => deps.applications.list());
 
@@ -134,4 +162,10 @@ export function registerApplicationRoutes(
   app.put<{ Params: SlugParams }>('/v1/applications/:slug/file', async (request) =>
     deps.applications.writeText(request.params.slug, request.query, request.body),
   );
+}
+
+function assertPrototypes(prototypes: Prototypes | undefined): Prototypes {
+  if (!prototypes) throw new GatewayError(503, 'Prototypes are not available on this gateway');
+
+  return prototypes;
 }

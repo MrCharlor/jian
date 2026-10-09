@@ -1,7 +1,14 @@
 import type { Correction } from '@jian/contracts';
 import { and, desc, eq, gte, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { Queryable } from '../storage/database.js';
-import { approvals, corrections, runs } from '../storage/schema.js';
+import {
+  applications,
+  approvals,
+  corrections,
+  prototypes,
+  prototypeVersions,
+  runs,
+} from '../storage/schema.js';
 
 type Row = typeof corrections.$inferSelect;
 
@@ -87,7 +94,18 @@ export async function listRounds(db: Queryable, profileId: string): Promise<Roun
     .orderBy(desc(approvals.createdAt))
     .limit(5000);
 
+  // Each screen a prototype generation delivered is one round of `prototipo:<app>`.
+  const drawn = await db
+    .select({ slug: applications.slug, at: prototypeVersions.createdAt })
+    .from(prototypeVersions)
+    .innerJoin(prototypes, eq(prototypes.id, prototypeVersions.prototypeId))
+    .innerJoin(applications, eq(applications.id, prototypes.applicationId))
+    .where(and(eq(prototypes.profileId, profileId), eq(prototypeVersions.status, 'ready')))
+    .orderBy(desc(prototypeVersions.createdAt))
+    .limit(5000);
+
   return [
+    ...drawn.map((row) => ({ automation: `prototipo:${row.slug}`, at: row.at })),
     ...scheduled.map((row) => ({ automation: String(row.origin), at: row.at })),
     ...decided.map((row) => ({ automation: row.action, action: row.action, at: row.at })),
   ];

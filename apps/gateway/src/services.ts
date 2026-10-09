@@ -9,6 +9,7 @@ import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
 import { Peers } from './peers/service.js';
 import { Profiles } from './profiles/service.js';
+import { Prototypes } from './prototypes/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
 import { Providers } from './providers/service.js';
 import { SubscriptionUsageReader } from './providers/subscription-usage.js';
@@ -34,6 +35,7 @@ export type Services = {
   profiles: Profiles;
   approvals: Approvals;
   applications: Applications;
+  prototypes: Prototypes;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -86,6 +88,11 @@ export function buildServices({
   const approvals = new Approvals(store, profiles, clock, quality);
   const runs = new Runs(store, profiles, sessions, providers, clock, approvals, quality);
   approvals.useRuns(runs);
+  const applications = new Applications(store, clock);
+  const prototypes = new Prototypes(store, applications, quality);
+  prototypes.useNotifier((profileId, sessionId, text, requestKey) =>
+    runs.submit(profileId, sessionId, { text, requestKey }),
+  );
   const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
@@ -105,7 +112,8 @@ export function buildServices({
   const services = {
     profiles,
     approvals,
-    applications: new Applications(store, clock),
+    applications,
+    prototypes,
     quality,
     providers,
     sessions,

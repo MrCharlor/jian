@@ -8,6 +8,7 @@ import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
 import { Badge, Button, Empty, Field, Modal, ResourceRow, SectionHeading } from '../ui';
 import { Markdown } from '../ui/markdown';
+import { Prototypes } from './prototypes';
 
 const PREFERENCES = 'project/preferencias-do-po.md';
 const README = 'project/README.md';
@@ -20,17 +21,18 @@ const platforms: Record<Application['platform'], string> = {
   other: 'Outra',
 };
 
-type Tab = 'guide' | 'preferences' | 'components' | 'tokens';
+type Tab = 'guide' | 'prototypes' | 'preferences' | 'components' | 'tokens';
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'guide', label: 'Guia' },
   { id: 'preferences', label: 'Preferências do PO' },
   { id: 'components', label: 'Componentes' },
   { id: 'tokens', label: 'Tokens' },
+  { id: 'prototypes', label: 'Protótipos' },
 ];
 
 /** The products the owner designs for; a new one is a form, never code. */
-export function Applications({ api, mutate, busy }: SectionProps) {
+export function Applications({ api, mutate, busy, profile }: SectionProps) {
   const [list, setList] = useState<Application[]>();
   const [error, setError] = useState('');
   // Kept in the address, so a refresh of the workspace or a reload lands on the same screen.
@@ -62,7 +64,14 @@ export function Applications({ api, mutate, busy }: SectionProps) {
   const current = list?.find((item) => item.slug === open);
 
   if (current) {
-    return <ApplicationDetail application={current} api={api} back={() => setOpen(undefined)} />;
+    return (
+      <ApplicationDetail
+        application={current}
+        api={api}
+        profileId={profile.id}
+        back={() => setOpen(undefined)}
+      />
+    );
   }
 
   return (
@@ -216,10 +225,12 @@ function NewApplication({
 function ApplicationDetail({
   application,
   api,
+  profileId,
   back,
 }: {
   application: Application;
   api: SectionProps['api'];
+  profileId: string;
   back: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('guide');
@@ -400,6 +411,10 @@ function ApplicationDetail({
 
       {tab === 'tokens' && (
         <pre className="application-tokens">{texts[TOKENS] || 'Sem tokens ainda.'}</pre>
+      )}
+
+      {tab === 'prototypes' && (
+        <Prototypes application={application} api={api} profileId={profileId} />
       )}
     </>
   );

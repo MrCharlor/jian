@@ -1,6 +1,6 @@
 import { type Client, profile } from './params';
 import { result } from './result';
-import type { NewApplication, ScheduleInput, SchedulePatch } from './types';
+import type { NewApplication, NewPrototype, ScheduleInput, SchedulePatch } from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
 export const resourceCalls = (client: Client) => ({
@@ -80,6 +80,29 @@ export const resourceCalls = (client: Client) => ({
     result(
       client.POST('/v1/applications/{slug}/preview', {
         params: { path: { slug }, query: { path } },
+      }),
+    ),
+  prototypes: (application: string) =>
+    result(client.GET('/v1/prototypes', { params: { query: { application } } })),
+  createPrototype: (body: NewPrototype, profileId: string) =>
+    result(client.POST('/v1/prototypes', { params: { query: { profileId } }, body })),
+  redoPrototype: (prototypeId: string, comments: string) =>
+    result(
+      client.POST('/v1/prototypes/{prototypeId}/redo', {
+        params: { path: { prototypeId } },
+        body: { comments },
+      }),
+    ),
+  approvePrototype: (prototypeId: string, number: number) =>
+    result(
+      client.POST('/v1/prototypes/{prototypeId}/versions/{number}/approve', {
+        params: { path: { prototypeId, number } },
+      }),
+    ),
+  prototypePreview: (prototypeId: string, number: number) =>
+    result(
+      client.POST('/v1/prototypes/{prototypeId}/versions/{number}/preview', {
+        params: { path: { prototypeId, number } },
       }),
     ),
   approvals: (profileId: string) =>

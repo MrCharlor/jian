@@ -246,8 +246,12 @@ try {
       void services.schedules
         .fireDue()
         .catch(() => console.error('jian: schedules could not be started; will retry'));
+      void services.prototypes
+        .drain()
+        .catch(() => console.error('jian: a prototype could not be made; will retry'));
     }, SCHEDULE_TICK_MS);
     scheduleTimer.unref();
+    await services.prototypes.recover();
   }
 
   if (app) {

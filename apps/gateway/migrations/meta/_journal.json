@@ -351,6 +351,13 @@
       "when": 1791686068516,
       "tag": "0049_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791772468516,
+      "tag": "0050_prototypes",
+      "breakpoints": true
     }
   ]
 }
