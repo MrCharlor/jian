@@ -1106,3 +1106,41 @@ export const decisions = pgTable(
   },
   (table) => [index('decisions_pauta').on(table.pautaId, table.number)],
 );
+
+/** The owner's criteria for ordering the board, one text for the whole installation. */
+export const priorityCriteria = pgTable('priority_criteria', {
+  id: text('id').primaryKey(),
+  text: text('text').notNull().default(''),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+type PriorityCardRow = { workId: string; title: string; reason?: string; raise: boolean };
+
+/** An agent's proposed order for a board column, and what the owner applied of it. */
+export const priorityProposals = pgTable(
+  'priority_proposals',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    state: text('state').notNull(),
+    workspaceId: text('workspace_id').notNull(),
+    boardId: text('board_id').notNull(),
+    statusId: text('status_id').notNull(),
+    sourceStatusId: text('source_status_id'),
+    server: text('server'),
+    summary: text('summary').notNull(),
+    cards: jsonb('cards').$type<PriorityCardRow[]>().notNull(),
+    current: jsonb('current').$type<Array<{ workId: string; title: string }>>().notNull(),
+    applied: jsonb('applied').$type<Array<{ workId: string; title: string }>>(),
+    adjusted: boolean('adjusted'),
+    error: text('error'),
+    note: text('note'),
+    proposedBy: text('proposed_by'),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    decidedVia: text('decided_via'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [index('priority_proposals_recent').on(table.createdAt.desc())],
+);

@@ -264,6 +264,7 @@ export const ACTION_KINDS: Partial<Record<string, ActionKind>> = {
   send_session_message: 'message',
   message_contact: 'message',
   ask_agent: 'message',
+  apply_priorities: 'service',
 };
 
 /**

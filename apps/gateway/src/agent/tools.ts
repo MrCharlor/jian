@@ -6,6 +6,7 @@ import {
   memorySchema,
   pautaInputSchema,
   pautaPatchSchema,
+  priorityProposalInputSchema,
   type Run,
   spawnSubagentSchema,
   workInputSchema,
@@ -24,6 +25,7 @@ import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
 import type { Pautas } from '../pautas/service.js';
 import type { PeerAgents } from '../peers/port.js';
+import type { Priorities } from '../priorities/service.js';
 import type { ProfileAdmin } from '../profiles/port.js';
 import type { Prototypes } from '../prototypes/service.js';
 import type { RunExecution, RunReader } from '../runs/port.js';
@@ -99,6 +101,7 @@ export type ToolServices = {
   applications?: Pick<Applications, 'list' | 'brief' | 'readForAgent'>;
   prototypes?: Pick<Prototypes, 'create' | 'get' | 'redo'>;
   pautas?: Pick<Pautas, 'list' | 'get' | 'create' | 'update' | 'propose'>;
+  priorities?: Pick<Priorities, 'criteria' | 'list' | 'propose' | 'apply'>;
 };
 
 export function profileTools(
@@ -253,6 +256,7 @@ export function profileTools(
     ...(services.applications ? designTools(services.applications) : {}),
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
+    ...(services.priorities ? priorityTools(services.priorities, run) : {}),
 
     ...(services.schedules
       ? scheduleTools(services.schedules, run, () =>
@@ -613,6 +617,11 @@ export const TOOL_GROUPS = {
       'read and keep the owner’s product topics (pautas): their screens, board cards, state and next steps, and propose a decision for the owner to take',
     tools: ['list_pautas', 'read_pauta', 'create_pauta', 'update_pauta', 'propose_decision'],
   },
+  priorities: {
+    summary:
+      'read the owner’s prioritization criteria and past adjustments, propose the order of the column the team pulls from, and apply an order',
+    tools: ['read_priorities', 'propose_priorities', 'apply_priorities'],
+  },
   design: {
     summary:
       'read the design system of an application the owner designs for — its guide, the owner’s preferences, tokens and components — before drawing or describing any screen of it',
@@ -812,6 +821,51 @@ function pautaTools(
           sessionId: run.sessionId,
           name: run.profile.name,
         }),
+    }),
+  };
+}
+
+/** The order of the column the team pulls from: proposed by the agent, applied as the owner allows. */
+function priorityTools(
+  priorities: Pick<Priorities, 'criteria' | 'list' | 'propose' | 'apply'>,
+  run: Run,
+) {
+  return {
+    read_priorities: tool({
+      description:
+        'Read the owner’s criteria for ordering the board and the last proposals: what was applied, what the owner adjusted (proposed order against applied order) and what was discarded and why. Read it before proposing.',
+      inputSchema: z.object({}),
+      execute: async () => ({
+        criteria: (await priorities.criteria()).text,
+        proposals: (await priorities.list()).slice(0, 6).map((item) => ({
+          number: item.number,
+          state: item.state,
+          createdAt: item.createdAt,
+          summary: item.summary,
+          proposed: item.cards.map((card) => card.title),
+          ...(item.applied ? { applied: item.applied.map((card) => card.title) } : {}),
+          ...(item.adjusted !== undefined ? { adjusted: item.adjusted } : {}),
+          ...(item.note ? { note: item.note } : {}),
+          ...(item.error ? { error: item.error } : {}),
+        })),
+      }),
+    }),
+    propose_priorities: tool({
+      description:
+        'Propose the order of a board column, top first, with a reason per card; mark raise for a card of the source column that should come up into it. The column is read when you propose; a card of it you leave out goes last. The owner sees today’s order beside yours, adjusts and applies it. Nothing moves on the board yet.',
+      inputSchema: priorityProposalInputSchema,
+      execute: async (input) =>
+        priorities.propose(input, {
+          profileId: run.profileId,
+          sessionId: run.sessionId,
+          name: run.profile.name,
+        }),
+    }),
+    apply_priorities: tool({
+      description:
+        'Reorder the board as an open proposal says, by its number: only that column, only the cards out of place. Use it when the owner told you to apply it.',
+      inputSchema: z.object({ number: z.number().int().positive() }),
+      execute: async ({ number }) => priorities.apply({ number }, {}, 'agent'),
     }),
   };
 }

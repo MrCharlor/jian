@@ -94,6 +94,24 @@ export const resourceCalls = (client: Client) => ({
   discardDecision: (decisionId: string) =>
     result(client.POST('/v1/decisions/{decisionId}/discard', { params: { path: { decisionId } } })),
   board: () => result(client.GET('/v1/board')),
+  priorityCriteria: () => result(client.GET('/v1/priorities/criteria')),
+  setPriorityCriteria: (text: string) =>
+    result(client.PUT('/v1/priorities/criteria', { body: { text } })),
+  priorityProposals: () => result(client.GET('/v1/priorities')),
+  applyPriorities: (proposalId: string, order: string[]) =>
+    result(
+      client.POST('/v1/priorities/{proposalId}/apply', {
+        params: { path: { proposalId } },
+        body: { order },
+      }),
+    ),
+  discardPriorities: (proposalId: string, note?: string) =>
+    result(
+      client.POST('/v1/priorities/{proposalId}/discard', {
+        params: { path: { proposalId } },
+        body: note ? { note } : {},
+      }),
+    ),
   prototypes: (application: string) =>
     result(client.GET('/v1/prototypes', { params: { query: { application } } })),
   createPrototype: (body: NewPrototype, profileId: string) =>

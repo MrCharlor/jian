@@ -9,6 +9,8 @@ import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
 import { Pautas } from './pautas/service.js';
 import { Peers } from './peers/service.js';
+import { Priorities } from './priorities/service.js';
+import { workBoardOpener } from './priorities/work-board.js';
 import { Profiles } from './profiles/service.js';
 import { Prototypes } from './prototypes/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
@@ -38,6 +40,7 @@ export type Services = {
   applications: Applications;
   prototypes: Prototypes;
   pautas: Pautas;
+  priorities: Priorities;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -103,6 +106,18 @@ export function buildServices({
       runs.submit(profileId, sessionId, { text, requestKey }),
   });
   runs.useDecisions(pautas);
+  const priorities = new Priorities(
+    store,
+    workBoardOpener(profiles, vault, fetcher ?? createSafeFetch().fetch),
+    quality,
+    clock,
+  );
+  priorities.useAgents({
+    remember: (profileId, key, content) =>
+      memories.remember(profileId, { key, content, expectedVersion: 0 }),
+    notify: (profileId, sessionId, text, requestKey) =>
+      runs.submit(profileId, sessionId, { text, requestKey }),
+  });
   const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
@@ -125,6 +140,7 @@ export function buildServices({
     applications,
     prototypes,
     pautas,
+    priorities,
     quality,
     providers,
     sessions,

@@ -1000,3 +1000,69 @@ textarea.request-edit {
     grid-template-columns: repeat(5, minmax(220px, 80vw));
   }
 }
+
+.priority-criteria textarea {
+  width: 100%;
+}
+
+.priority-compare {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(260px, 2fr);
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.priority-compare > div {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.priority-compare h4 {
+  margin: 0 0 8px;
+}
+
+.priority-order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.priority-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  align-items: start;
+  padding: 8px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+  border-radius: 8px;
+  background: var(--surface, transparent);
+  cursor: grab;
+}
+
+.priority-item.dragging {
+  opacity: 0.5;
+}
+
+.priority-item > b {
+  text-align: right;
+}
+
+.priority-item small {
+  display: block;
+  opacity: 0.75;
+}
+
+.priority-item nav {
+  display: flex;
+  gap: 2px;
+}
+
+@media (max-width: 720px) {
+  .priority-compare {
+    grid-template-columns: 1fr;
+  }
+}

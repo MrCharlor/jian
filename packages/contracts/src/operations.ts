@@ -63,6 +63,13 @@ import {
   pautaRecordSchema,
 } from './pautas.js';
 import {
+  priorityApplySchema,
+  priorityCriteriaInputSchema,
+  priorityCriteriaSchema,
+  priorityDiscardSchema,
+  priorityProposalSchema,
+} from './priorities.js';
+import {
   builtinSkillSchema,
   mcpImportResultSchema,
   mcpImportSchema,
@@ -560,6 +567,46 @@ export const operations: Operation[] = [
     operationId: 'getAgentBoard',
     access: 'admin',
     response: z.array(boardCardSchema),
+  },
+  {
+    method: 'GET',
+    path: '/v1/priorities/criteria',
+    operationId: 'getPriorityCriteria',
+    access: 'admin',
+    response: priorityCriteriaSchema,
+  },
+  {
+    method: 'PUT',
+    path: '/v1/priorities/criteria',
+    operationId: 'setPriorityCriteria',
+    access: 'admin',
+    body: priorityCriteriaInputSchema,
+    response: priorityCriteriaSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/priorities',
+    operationId: 'listPriorityProposals',
+    access: 'admin',
+    response: z.array(priorityProposalSchema),
+  },
+  {
+    method: 'POST',
+    path: '/v1/priorities/:proposalId/apply',
+    operationId: 'applyPriorityProposal',
+    access: 'admin',
+    params: z.strictObject({ proposalId: z.uuid() }),
+    body: priorityApplySchema,
+    response: priorityProposalSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/priorities/:proposalId/discard',
+    operationId: 'discardPriorityProposal',
+    access: 'admin',
+    params: z.strictObject({ proposalId: z.uuid() }),
+    body: priorityDiscardSchema,
+    response: priorityProposalSchema,
   },
   {
     method: 'GET',

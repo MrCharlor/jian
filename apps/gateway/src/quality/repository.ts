@@ -5,6 +5,7 @@ import {
   applications,
   approvals,
   corrections,
+  priorityProposals,
   prototypes,
   prototypeVersions,
   runs,
@@ -104,7 +105,22 @@ export async function listRounds(db: Queryable, profileId: string): Promise<Roun
     .orderBy(desc(prototypeVersions.createdAt))
     .limit(5000);
 
+  // Each order the owner applied or discarded is one round of the prioritization.
+  const ordered = await db
+    .select({ at: priorityProposals.decidedAt })
+    .from(priorityProposals)
+    .where(
+      and(
+        eq(priorityProposals.profileId, profileId),
+        inArray(priorityProposals.state, ['aplicada', 'descartada']),
+        isNotNull(priorityProposals.decidedAt),
+      ),
+    )
+    .orderBy(desc(priorityProposals.decidedAt))
+    .limit(5000);
+
   return [
+    ...ordered.map((row) => ({ automation: 'priorizacao', at: row.at as Date })),
     ...drawn.map((row) => ({ automation: `prototipo:${row.slug}`, at: row.at })),
     ...scheduled.map((row) => ({ automation: String(row.origin), at: row.at })),
     ...decided.map((row) => ({ automation: row.action, action: row.action, at: row.at })),
