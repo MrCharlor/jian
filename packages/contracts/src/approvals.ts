@@ -20,13 +20,13 @@ export const actionKeySchema = z.string().regex(/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,2
 
 /**
  * What the agent may do by itself, by where the action lands and then by exact action. A
- * profile starts at level 2 for everything that acts outside the conversation: the owner sees
- * every change before it happens, and lifts the level where trust was earned.
+ * profile starts at level 3, acting as it always did; the owner lowers a kind or an exact
+ * action to 2 to see each change before it happens, or to 1 to keep the deed for themselves.
  */
 export const actionPolicySchema = z.strictObject({
-  machine: autonomyLevelSchema.default(2),
-  service: autonomyLevelSchema.default(2),
-  message: autonomyLevelSchema.default(2),
+  machine: autonomyLevelSchema.default(3),
+  service: autonomyLevelSchema.default(3),
+  message: autonomyLevelSchema.default(3),
   tools: z.record(actionKeySchema, autonomyLevelSchema).default({}),
 });
 

@@ -18,13 +18,12 @@ const call = async (definition: unknown, input: unknown) =>
     messages: [],
   });
 
-/** A profile, a conversation and one queued run in it: what a tool call happens inside of. */
-async function fixture(policy?: Record<string, unknown>) {
+const askFirst = { machine: 2, service: 2, message: 2, tools: {} };
+
+/** A profile that asks first, a conversation and one queued run: what a tool call happens inside of. */
+async function fixture(policy: Record<string, unknown> = askFirst) {
   const services = await testServices();
-  const profile = await services.profiles.createProfile({
-    ...input,
-    ...(policy ? { actionPolicy: policy } : {}),
-  });
+  const profile = await services.profiles.createProfile({ ...input, actionPolicy: policy });
   const session = await services.sessions.createSession(profile.id, { title: 'Board' });
   const run = await services.runs.submit(profile.id, session.id, {
     text: 'Comment on the card.',

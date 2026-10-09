@@ -10403,18 +10403,18 @@ export interface operations {
                         reachableByAgents: boolean;
                         /**
                          * @default {
-                         *       "machine": 2,
-                         *       "service": 2,
-                         *       "message": 2,
+                         *       "machine": 3,
+                         *       "service": 3,
+                         *       "message": 3,
                          *       "tools": {}
                          *     }
                          */
                         actionPolicy: {
-                            /** @default 2 */
+                            /** @default 3 */
                             machine: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             service: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             message: 1 | 2 | 3;
                             /** @default {} */
                             tools: {
@@ -10687,18 +10687,18 @@ export interface operations {
                         reachableByAgents: boolean;
                         /**
                          * @default {
-                         *       "machine": 2,
-                         *       "service": 2,
-                         *       "message": 2,
+                         *       "machine": 3,
+                         *       "service": 3,
+                         *       "message": 3,
                          *       "tools": {}
                          *     }
                          */
                         actionPolicy: {
-                            /** @default 2 */
+                            /** @default 3 */
                             machine: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             service: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             message: 1 | 2 | 3;
                             /** @default {} */
                             tools: {
@@ -10965,18 +10965,18 @@ export interface operations {
                     reachableByAgents?: boolean;
                     /**
                      * @default {
-                     *       "machine": 2,
-                     *       "service": 2,
-                     *       "message": 2,
+                     *       "machine": 3,
+                     *       "service": 3,
+                     *       "message": 3,
                      *       "tools": {}
                      *     }
                      */
                     actionPolicy?: {
-                        /** @default 2 */
+                        /** @default 3 */
                         machine?: 1 | 2 | 3;
-                        /** @default 2 */
+                        /** @default 3 */
                         service?: 1 | 2 | 3;
-                        /** @default 2 */
+                        /** @default 3 */
                         message?: 1 | 2 | 3;
                         /** @default {} */
                         tools?: {
@@ -11133,18 +11133,18 @@ export interface operations {
                         reachableByAgents: boolean;
                         /**
                          * @default {
-                         *       "machine": 2,
-                         *       "service": 2,
-                         *       "message": 2,
+                         *       "machine": 3,
+                         *       "service": 3,
+                         *       "message": 3,
                          *       "tools": {}
                          *     }
                          */
                         actionPolicy: {
-                            /** @default 2 */
+                            /** @default 3 */
                             machine: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             service: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             message: 1 | 2 | 3;
                             /** @default {} */
                             tools: {
@@ -11419,18 +11419,18 @@ export interface operations {
                         reachableByAgents: boolean;
                         /**
                          * @default {
-                         *       "machine": 2,
-                         *       "service": 2,
-                         *       "message": 2,
+                         *       "machine": 3,
+                         *       "service": 3,
+                         *       "message": 3,
                          *       "tools": {}
                          *     }
                          */
                         actionPolicy: {
-                            /** @default 2 */
+                            /** @default 3 */
                             machine: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             service: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             message: 1 | 2 | 3;
                             /** @default {} */
                             tools: {
@@ -11784,18 +11784,18 @@ export interface operations {
                     reachableByAgents?: boolean;
                     /**
                      * @default {
-                     *       "machine": 2,
-                     *       "service": 2,
-                     *       "message": 2,
+                     *       "machine": 3,
+                     *       "service": 3,
+                     *       "message": 3,
                      *       "tools": {}
                      *     }
                      */
                     actionPolicy?: {
-                        /** @default 2 */
+                        /** @default 3 */
                         machine?: 1 | 2 | 3;
-                        /** @default 2 */
+                        /** @default 3 */
                         service?: 1 | 2 | 3;
-                        /** @default 2 */
+                        /** @default 3 */
                         message?: 1 | 2 | 3;
                         /** @default {} */
                         tools?: {
@@ -11953,18 +11953,18 @@ export interface operations {
                         reachableByAgents: boolean;
                         /**
                          * @default {
-                         *       "machine": 2,
-                         *       "service": 2,
-                         *       "message": 2,
+                         *       "machine": 3,
+                         *       "service": 3,
+                         *       "message": 3,
                          *       "tools": {}
                          *     }
                          */
                         actionPolicy: {
-                            /** @default 2 */
+                            /** @default 3 */
                             machine: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             service: 1 | 2 | 3;
-                            /** @default 2 */
+                            /** @default 3 */
                             message: 1 | 2 | 3;
                             /** @default {} */
                             tools: {
@@ -12369,18 +12369,18 @@ export interface operations {
                             reachableByAgents: boolean;
                             /**
                              * @default {
-                             *       "machine": 2,
-                             *       "service": 2,
-                             *       "message": 2,
+                             *       "machine": 3,
+                             *       "service": 3,
+                             *       "message": 3,
                              *       "tools": {}
                              *     }
                              */
                             actionPolicy: {
-                                /** @default 2 */
+                                /** @default 3 */
                                 machine: 1 | 2 | 3;
-                                /** @default 2 */
+                                /** @default 3 */
                                 service: 1 | 2 | 3;
-                                /** @default 2 */
+                                /** @default 3 */
                                 message: 1 | 2 | 3;
                                 /** @default {} */
                                 tools: {

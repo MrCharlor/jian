@@ -401,7 +401,7 @@ export function ProfileEditor({
             <h3>Autonomy</h3>
             <p className="note">
               How far the agent goes on its own, by where an action lands. Level 2 stops under
-              Approvals; raise a level once the agent has earned it.
+              Approvals; lower a level until the agent has earned it.
             </p>
             <Field label="On this machine" hint="Commands, and files it writes or edits.">
               <select name="autonomyMachine" defaultValue={String(profile.actionPolicy.machine)}>

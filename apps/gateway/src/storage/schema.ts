@@ -64,7 +64,7 @@ export const profiles = pgTable('profiles', {
   actionPolicy: jsonb('action_policy')
     .$type<ActionPolicy>()
     .notNull()
-    .default({ machine: 2, service: 2, message: 2, tools: {} }),
+    .default({ machine: 3, service: 3, message: 3, tools: {} }),
   version: integer('version').notNull(),
   createdAt,
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

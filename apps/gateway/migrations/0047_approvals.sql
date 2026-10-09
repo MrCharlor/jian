@@ -1,4 +1,4 @@
-ALTER TABLE profiles ADD COLUMN action_policy jsonb NOT NULL DEFAULT '{"machine":2,"service":2,"message":2,"tools":{}}'::jsonb;
+ALTER TABLE profiles ADD COLUMN action_policy jsonb NOT NULL DEFAULT '{"machine":3,"service":3,"message":3,"tools":{}}'::jsonb;
 --> statement-breakpoint
 ALTER TABLE contacts ADD COLUMN owner boolean NOT NULL DEFAULT false;
 --> statement-breakpoint

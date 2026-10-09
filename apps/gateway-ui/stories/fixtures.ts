@@ -130,7 +130,7 @@ const profileBase = {
   learnFromWork: true,
   useStickers: true,
   reachableByAgents: true,
-  actionPolicy: { machine: 2, service: 2, message: 2, tools: {} } as Profile['actionPolicy'],
+  actionPolicy: { machine: 3, service: 3, message: 3, tools: {} } as Profile['actionPolicy'],
   version: 3,
   createdAt: at(60 * 24 * 30),
   updatedAt: at(60 * 3),
@@ -174,7 +174,7 @@ export const profiles: Profile[] = [
     learnFromWork: true,
     useStickers: true,
     reachableByAgents: true,
-    actionPolicy: { machine: 2, service: 2, message: 2, tools: {} } as Profile['actionPolicy'],
+    actionPolicy: { machine: 3, service: 3, message: 3, tools: {} } as Profile['actionPolicy'],
   },
   {
     ...profileBase,
