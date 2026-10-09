@@ -47,6 +47,8 @@ Secrets have no screen of their own: a provider key is typed under **Providers**
 
 **Approvals** lists what the agent prepared at level 2 and waits on, each with the exact call and a reason field, and below it what was already decided. Levels are set under **Identity › Autonomy**, by kind of action and for exact actions. In a chat the owner answers `ok 3` or `não 3: motivo`; a contact answers for the owner only once marked **Owner** under Channels.
 
+**Quality** shows, per automation, rounds and corrections over thirty days, the last correction, and how many clean rounds in a row; an action with ten offers **Raise to level 3**. On **Approvals** a pending request's input is editable: approving an edited one runs the owner's version and records the difference as a correction.
+
 **Memories** is read-only: the screen lists what the agent kept, searches by key and by content, and deletes an entry. The agent is the one who writes, through its own tools.
 
 The activity calendar counts a day as it ends where the reader is: the browser's own zone travels with the request, because a calendar drawn in UTC puts an evening in Brazil on tomorrow's square.

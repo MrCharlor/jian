@@ -61,6 +61,12 @@ At level 2 the call does not run. The gateway records an **approval**: a short n
 
 The judge keeps its place behind the policy: a level-3 action still passes through it, and an action the policy holds is never sent to it. Every request and decision is an event (`approval.requested`, `approval.decided`, `approval.used`), which is how the owner sees, action by action, how often they corrected the agent before raising a level.
 
+## Corrections and quality
+
+What the owner changes in an agent's work is kept as a **correction**: a refusal with its reason, a request approved with an input of the owner's own (the edited call runs instead, under its own hash), or a message from the owner starting with `corrige:` about the last answer in that conversation, which still reaches the agent as written. Each correction names the automation it judges: the schedule that started the run (`schedule:<name>`, which every scheduled run now carries as its `origin`), or the exact action otherwise, so renaming a schedule or pruning a run does not move the measure.
+
+The **quality** report counts, per automation, the rounds it ran (each scheduled run, each decided request outside a schedule) and the corrections it took, in the last thirty days and in all, and how many rounds passed untouched since the last correction. Ten in a row marks an action ready for level 3; raising it is still the owner's click. The look back that keeps skills and memories reads these corrections first, instead of guessing them from the conversation.
+
 ## Product limits
 
 - No embeddings, semantic search or summarisation by a second model.
