@@ -1,6 +1,7 @@
 'use client';
 
 import { AppWindow, ArrowLeft, Plus, Save } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Application, ApplicationFile } from '../../lib/api';
 import { date } from '../../lib/format';
@@ -32,7 +33,12 @@ const tabs: Array<{ id: Tab; label: string }> = [
 export function Applications({ api, mutate, busy }: SectionProps) {
   const [list, setList] = useState<Application[]>();
   const [error, setError] = useState('');
-  const [open, setOpen] = useState<string>();
+  // Kept in the address, so a refresh of the workspace or a reload lands on the same screen.
+  const router = useRouter();
+  const query = useSearchParams();
+  const open = query.get('app') ?? undefined;
+  const setOpen = (slug: string | undefined) =>
+    router.replace(slug ? `/applications/?app=${encodeURIComponent(slug)}` : '/applications/');
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(

@@ -1,8 +1,17 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Applications } from '../../../components/applications/index';
 import { useSection } from '../../../lib/workspace';
 
-export default function Page() {
+function Screen() {
   return <Applications {...useSection()} />;
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <Screen />
+    </Suspense>
+  );
 }
