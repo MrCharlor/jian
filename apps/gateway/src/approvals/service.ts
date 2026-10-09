@@ -78,6 +78,33 @@ export class Approvals {
     private readonly quality?: Pick<Quality, 'record'>,
   ) {}
 
+  private runs?: {
+    submit(profileId: string, sessionId: string, input: unknown): Promise<unknown>;
+  };
+
+  /**
+   * Set after construction: the runs service reads approvals, so it is built after this one.
+   * Without it a decision taken in the panel waits for the agent's next turn to be read.
+   */
+  useRuns(runs: NonNullable<Approvals['runs']>) {
+    this.runs = runs;
+  }
+
+  /**
+   * A decision taken outside the conversation is carried into it, so the agent goes on with
+   * the owner's answer — and, when the owner edited the call, with their version of it.
+   */
+  private async resume(decided: Approval) {
+    await this.runs
+      ?.submit(decided.profileId, decided.sessionId, {
+        text: Approvals.notice(decided),
+        requestKey: `approval:${decided.id}`,
+      })
+      .catch(() => {});
+
+    return decided;
+  }
+
   async list(profileId: string): Promise<Approval[]> {
     await this.profiles.profile(profileId);
 
@@ -150,13 +177,13 @@ export class Approvals {
   async approve(profileId: string, id: string, input: unknown, via: DecidedVia = 'api') {
     const { reason, input: edited } = approvalDecisionSchema.parse(input ?? {});
 
-    return this.decide(profileId, { id }, true, via, reason, undefined, edited);
+    return this.resume(await this.decide(profileId, { id }, true, via, reason, undefined, edited));
   }
 
   async reject(profileId: string, id: string, input: unknown, via: DecidedVia = 'api') {
     const { reason } = approvalDecisionSchema.parse(input ?? {});
 
-    return this.decide(profileId, { id }, false, via, reason);
+    return this.resume(await this.decide(profileId, { id }, false, via, reason));
   }
 
   /**

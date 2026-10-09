@@ -83,6 +83,7 @@ export function buildServices({
   const quality = new Quality(store, profiles, clock);
   const approvals = new Approvals(store, profiles, clock, quality);
   const runs = new Runs(store, profiles, sessions, providers, clock, approvals, quality);
+  approvals.useRuns(runs);
   const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,

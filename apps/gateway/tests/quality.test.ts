@@ -70,6 +70,8 @@ describe('corrections', () => {
     const { run, tools } = await startRun();
 
     await call(tools.comment, { body: 'Aprovado' });
+    // The agent ended its turn waiting for the answer.
+    await services.runs.cancel(profile.id, run.id);
     const [request] = await services.approvals.list(profile.id);
     const decided = await services.approvals.approve(
       profile.id,
@@ -80,6 +82,12 @@ describe('corrections', () => {
 
     expect(decided).toMatchObject({ status: 'approved', edited: true });
     expect(Approvals.notice(decided)).toContain('"body":"Aprovado em produção"');
+
+    // Decided in the panel, the answer is carried into the conversation as the next turn.
+    const turns = await services.runs.activities(profile.id);
+    expect(turns.find((item) => item.requestKey === `approval:${request?.id}`)?.input).toContain(
+      'with changes',
+    );
 
     // The agent's version is no longer approved; the owner's is, once.
     expect(await call(tools.comment, { body: 'Aprovado' })).toMatchObject({
