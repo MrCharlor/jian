@@ -5,6 +5,7 @@ export * from './coordination.js';
 export * from './decisions.js';
 export * from './media.js';
 export * from './operations.js';
+export * from './pautas.js';
 export * from './peers.js';
 export * from './profile.js';
 export * from './prototypes.js';

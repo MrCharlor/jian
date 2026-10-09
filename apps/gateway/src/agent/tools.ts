@@ -1,8 +1,11 @@
 import {
   agentCallSchema,
+  decisionInputSchema,
   decisionUseSchema,
   memoryKeySchema,
   memorySchema,
+  pautaInputSchema,
+  pautaPatchSchema,
   type Run,
   spawnSubagentSchema,
   workInputSchema,
@@ -19,6 +22,7 @@ import type { Decisions, Question } from '../decisions/service.js';
 import type { Outreach } from '../errands/port.js';
 import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
+import type { Pautas } from '../pautas/service.js';
 import type { PeerAgents } from '../peers/port.js';
 import type { ProfileAdmin } from '../profiles/port.js';
 import type { Prototypes } from '../prototypes/service.js';
@@ -94,6 +98,7 @@ export type ToolServices = {
   sshKeys: Pick<SshKeys, 'list' | 'create' | 'remove'>;
   applications?: Pick<Applications, 'list' | 'brief' | 'readForAgent'>;
   prototypes?: Pick<Prototypes, 'create' | 'get' | 'redo'>;
+  pautas?: Pick<Pautas, 'list' | 'get' | 'create' | 'update' | 'propose'>;
 };
 
 export function profileTools(
@@ -247,6 +252,7 @@ export function profileTools(
 
     ...(services.applications ? designTools(services.applications) : {}),
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
+    ...(services.pautas ? pautaTools(services.pautas, run) : {}),
 
     ...(services.schedules
       ? scheduleTools(services.schedules, run, () =>
@@ -602,6 +608,11 @@ export const TOOL_GROUPS = {
       'read your own full activity, tokens and estimated cost by day, model, channel, tool and individual run',
     tools: ['read_activity_stats', 'read_usage_runs'],
   },
+  pautas: {
+    summary:
+      'read and keep the owner’s product topics (pautas): their screens, board cards, state and next steps, and propose a decision for the owner to take',
+    tools: ['list_pautas', 'read_pauta', 'create_pauta', 'update_pauta', 'propose_decision'],
+  },
   design: {
     summary:
       'read the design system of an application the owner designs for — its guide, the owner’s preferences, tokens and components — before drawing or describing any screen of it',
@@ -750,6 +761,61 @@ export function deferTools(tools: ToolSet, loaded: Set<string>): { gated: Set<st
  * instruction as a new turn in its conversation at the time; in a chat, the answer goes out
  * on the channel. Times are read in the owner's zone unless one is named.
  */
+/** The owner's topics: kept by the agents, decided by the owner. */
+function pautaTools(
+  pautas: Pick<Pautas, 'list' | 'get' | 'create' | 'update' | 'propose'>,
+  run: Run,
+) {
+  return {
+    list_pautas: tool({
+      description:
+        'List the owner’s product topics (pautas) with their state, priority, application and who each waits on.',
+      inputSchema: z.object({}),
+      execute: async () =>
+        (await pautas.list()).map(
+          ({ id, title, state, priority, application, waitingOn, updatedAt }) => ({
+            id,
+            title,
+            state,
+            priority,
+            application,
+            waitingOn,
+            updatedAt,
+          }),
+        ),
+    }),
+    read_pauta: tool({
+      description:
+        'Read one topic whole: context, screens, the board cards it depends on with their last column, prototypes and every decision taken or pending. Read it before working on the topic.',
+      inputSchema: z.object({ id: z.string().uuid() }),
+      execute: async ({ id }) => pautas.get(id),
+    }),
+    create_pauta: tool({
+      description:
+        'Open a topic for something the owner asked to carry. Every task you take for it should point to it (pautaId in create_task).',
+      inputSchema: pautaInputSchema,
+      execute: async (input) => pautas.create(input),
+    }),
+    update_pauta: tool({
+      description:
+        'Change a topic: state, priority, screens, next steps, who it waits on, or the board cards it depends on with the column you just read. Links you send replace the list; send them all.',
+      inputSchema: z.object({ id: z.string().uuid(), patch: pautaPatchSchema }),
+      execute: async ({ id, patch }) => pautas.update(id, patch),
+    }),
+    propose_decision: tool({
+      description:
+        'Ask the owner to decide something about a topic: the question, 2 to 4 options, the strongest counterpoint, and your recommendation. You never decide; the owner answers "decisão N: opção, porque …" and you are told.',
+      inputSchema: z.object({ pautaId: z.string().uuid(), decision: decisionInputSchema }),
+      execute: async ({ pautaId, decision }) =>
+        pautas.propose(pautaId, decision, {
+          profileId: run.profileId,
+          sessionId: run.sessionId,
+          name: run.profile.name,
+        }),
+    }),
+  };
+}
+
 /** Screens drawn by Claude Code from a design system; the agent asks and reads, the owner approves. */
 function prototypeTools(prototypes: Pick<Prototypes, 'create' | 'get' | 'redo'>, run: Run) {
   return {

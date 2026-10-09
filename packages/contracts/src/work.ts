@@ -42,6 +42,8 @@ export const workInputSchema = z.strictObject({
   description: z.string().trim().min(1).max(4000),
   mediaIds: z.array(z.uuid()).max(4).optional(),
   repositories: z.array(z.string().trim().min(1).max(4096)).max(4).optional(),
+  /** The owner's topic this task serves, so the shared board says what it is for. */
+  pautaId: z.uuid().optional(),
 });
 
 export const workPatchSchema = z
@@ -60,6 +62,7 @@ export const workItemSchema = workInputSchema.extend({
   id: z.uuid(),
   profileId: z.uuid(),
   sourceSessionId: z.uuid().nullable(),
+  pautaId: z.uuid().nullable().optional(),
   status: workStatusSchema,
   note: z.string(),
   version: z.number().int().positive(),

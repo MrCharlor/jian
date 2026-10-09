@@ -524,6 +524,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pautas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listPautas"];
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["createPauta"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pautas/{pautaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getPauta"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Required permission: admin. */
+        patch: operations["updatePauta"];
+        trace?: never;
+    };
+    "/v1/pautas/{pautaId}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["proposeDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/decisions/{decisionId}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["decideDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/decisions/{decisionId}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["discardDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getAgentBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/prototypes": {
         parameters: {
             query?: never;
@@ -2049,6 +2153,8 @@ export interface operations {
                         description: string;
                         mediaIds: string[];
                         repositories: string[];
+                        /** Format: uuid */
+                        pautaId?: string | null;
                         /** Format: uuid */
                         id: string;
                         /** Format: uuid */
@@ -7989,6 +8095,1387 @@ export interface operations {
             };
         };
     };
+    listPautas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        application?: string;
+                        /** @enum {string} */
+                        state: "descoberta" | "pronta-para-epico" | "em-execucao" | "em-teste" | "em-producao" | "pausada" | "concluida" | "descartada";
+                        /** @enum {string} */
+                        priority: "alta" | "media" | "baixa" | "a-definir";
+                        context: string;
+                        screens: {
+                            route?: string;
+                            name: string;
+                        }[];
+                        links: {
+                            /** @enum {string} */
+                            kind: "pedido" | "epico" | "task";
+                            workId: string;
+                            title?: string;
+                            column?: string;
+                            previousColumn?: string;
+                            /** Format: date-time */
+                            readAt?: string;
+                        }[];
+                        nextSteps: string;
+                        waitingOn: string;
+                        decisions: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            /** Format: uuid */
+                            pautaId: string;
+                            question: string;
+                            options: string[];
+                            counterpoint: string;
+                            recommendation: string;
+                            /** @enum {string} */
+                            state: "proposta" | "decidida" | "descartada";
+                            choice?: string;
+                            reason?: string;
+                            /** @enum {string} */
+                            decidedVia?: "panel" | "channel" | "api";
+                            /** Format: date-time */
+                            decidedAt?: string;
+                            replaces?: number;
+                            proposedBy?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        prototypes: {
+                            /** Format: uuid */
+                            id: string;
+                            title: string;
+                            approvedVersion?: number;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    createPauta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                    application?: string;
+                    /**
+                     * @default descoberta
+                     * @enum {string}
+                     */
+                    state?: "descoberta" | "pronta-para-epico" | "em-execucao" | "em-teste" | "em-producao" | "pausada" | "concluida" | "descartada";
+                    /**
+                     * @default a-definir
+                     * @enum {string}
+                     */
+                    priority?: "alta" | "media" | "baixa" | "a-definir";
+                    /** @default  */
+                    context?: string;
+                    /** @default [] */
+                    screens?: {
+                        route?: string;
+                        name: string;
+                    }[];
+                    /** @default [] */
+                    links?: {
+                        /** @enum {string} */
+                        kind: "pedido" | "epico" | "task";
+                        workId: string;
+                        title?: string;
+                        column?: string;
+                        previousColumn?: string;
+                        /** Format: date-time */
+                        readAt?: string;
+                    }[];
+                    /** @default  */
+                    nextSteps?: string;
+                    /** @default  */
+                    waitingOn?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        application?: string;
+                        /** @enum {string} */
+                        state: "descoberta" | "pronta-para-epico" | "em-execucao" | "em-teste" | "em-producao" | "pausada" | "concluida" | "descartada";
+                        /** @enum {string} */
+                        priority: "alta" | "media" | "baixa" | "a-definir";
+                        context: string;
+                        screens: {
+                            route?: string;
+                            name: string;
+                        }[];
+                        links: {
+                            /** @enum {string} */
+                            kind: "pedido" | "epico" | "task";
+                            workId: string;
+                            title?: string;
+                            column?: string;
+                            previousColumn?: string;
+                            /** Format: date-time */
+                            readAt?: string;
+                        }[];
+                        nextSteps: string;
+                        waitingOn: string;
+                        decisions: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            /** Format: uuid */
+                            pautaId: string;
+                            question: string;
+                            options: string[];
+                            counterpoint: string;
+                            recommendation: string;
+                            /** @enum {string} */
+                            state: "proposta" | "decidida" | "descartada";
+                            choice?: string;
+                            reason?: string;
+                            /** @enum {string} */
+                            decidedVia?: "panel" | "channel" | "api";
+                            /** Format: date-time */
+                            decidedAt?: string;
+                            replaces?: number;
+                            proposedBy?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        prototypes: {
+                            /** Format: uuid */
+                            id: string;
+                            title: string;
+                            approvedVersion?: number;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getPauta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pautaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        application?: string;
+                        /** @enum {string} */
+                        state: "descoberta" | "pronta-para-epico" | "em-execucao" | "em-teste" | "em-producao" | "pausada" | "concluida" | "descartada";
+                        /** @enum {string} */
+                        priority: "alta" | "media" | "baixa" | "a-definir";
+                        context: string;
+                        screens: {
+                            route?: string;
+                            name: string;
+                        }[];
+                        links: {
+                            /** @enum {string} */
+                            kind: "pedido" | "epico" | "task";
+                            workId: string;
+                            title?: string;
+                            column?: string;
+                            previousColumn?: string;
+                            /** Format: date-time */
+                            readAt?: string;
+                        }[];
+                        nextSteps: string;
+                        waitingOn: string;
+                        decisions: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            /** Format: uuid */
+                            pautaId: string;
+                            question: string;
+                            options: string[];
+                            counterpoint: string;
+                            recommendation: string;
+                            /** @enum {string} */
+                            state: "proposta" | "decidida" | "descartada";
+                            choice?: string;
+                            reason?: string;
+                            /** @enum {string} */
+                            decidedVia?: "panel" | "channel" | "api";
+                            /** Format: date-time */
+                            decidedAt?: string;
+                            replaces?: number;
+                            proposedBy?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        prototypes: {
+                            /** Format: uuid */
+                            id: string;
+                            title: string;
+                            approvedVersion?: number;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updatePauta: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pautaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title?: string;
+                    application?: string;
+                    /**
+                     * @default descoberta
+                     * @enum {string}
+                     */
+                    state?: "descoberta" | "pronta-para-epico" | "em-execucao" | "em-teste" | "em-producao" | "pausada" | "concluida" | "descartada";
+                    /**
+                     * @default a-definir
+                     * @enum {string}
+                     */
+                    priority?: "alta" | "media" | "baixa" | "a-definir";
+                    /** @default  */
+                    context?: string;
+                    /** @default [] */
+                    screens?: {
+                        route?: string;
+                        name: string;
+                    }[];
+                    /** @default [] */
+                    links?: {
+                        /** @enum {string} */
+                        kind: "pedido" | "epico" | "task";
+                        workId: string;
+                        title?: string;
+                        column?: string;
+                        previousColumn?: string;
+                        /** Format: date-time */
+                        readAt?: string;
+                    }[];
+                    /** @default  */
+                    nextSteps?: string;
+                    /** @default  */
+                    waitingOn?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        application?: string;
+                        /** @enum {string} */
+                        state: "descoberta" | "pronta-para-epico" | "em-execucao" | "em-teste" | "em-producao" | "pausada" | "concluida" | "descartada";
+                        /** @enum {string} */
+                        priority: "alta" | "media" | "baixa" | "a-definir";
+                        context: string;
+                        screens: {
+                            route?: string;
+                            name: string;
+                        }[];
+                        links: {
+                            /** @enum {string} */
+                            kind: "pedido" | "epico" | "task";
+                            workId: string;
+                            title?: string;
+                            column?: string;
+                            previousColumn?: string;
+                            /** Format: date-time */
+                            readAt?: string;
+                        }[];
+                        nextSteps: string;
+                        waitingOn: string;
+                        decisions: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            /** Format: uuid */
+                            pautaId: string;
+                            question: string;
+                            options: string[];
+                            counterpoint: string;
+                            recommendation: string;
+                            /** @enum {string} */
+                            state: "proposta" | "decidida" | "descartada";
+                            choice?: string;
+                            reason?: string;
+                            /** @enum {string} */
+                            decidedVia?: "panel" | "channel" | "api";
+                            /** Format: date-time */
+                            decidedAt?: string;
+                            replaces?: number;
+                            proposedBy?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        prototypes: {
+                            /** Format: uuid */
+                            id: string;
+                            title: string;
+                            approvedVersion?: number;
+                        }[];
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    proposeDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pautaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    question: string;
+                    options: string[];
+                    counterpoint: string;
+                    recommendation: string;
+                    replaces?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        question: string;
+                        options: string[];
+                        counterpoint: string;
+                        recommendation: string;
+                        /** @enum {string} */
+                        state: "proposta" | "decidida" | "descartada";
+                        choice?: string;
+                        reason?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        replaces?: number;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    decideDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                decisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    choice: string;
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        question: string;
+                        options: string[];
+                        counterpoint: string;
+                        recommendation: string;
+                        /** @enum {string} */
+                        state: "proposta" | "decidida" | "descartada";
+                        choice?: string;
+                        reason?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        replaces?: number;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    discardDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                decisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        question: string;
+                        options: string[];
+                        counterpoint: string;
+                        recommendation: string;
+                        /** @enum {string} */
+                        state: "proposta" | "decidida" | "descartada";
+                        choice?: string;
+                        reason?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        replaces?: number;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getAgentBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        title: string;
+                        /** @enum {string} */
+                        status: "todo" | "in_progress" | "review" | "blocked" | "done";
+                        /** Format: uuid */
+                        profileId: string;
+                        agent: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pauta?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        /** Format: date-time */
+                        statusSince: string;
+                        workedMs?: number;
+                        byStatus: {
+                            [key: string]: number;
+                        };
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
     listPrototypes: {
         parameters: {
             query?: {
@@ -8017,6 +9504,8 @@ export interface operations {
                         /** @enum {string} */
                         createdBy: "owner" | "agent";
                         approvedVersion?: number;
+                        /** Format: uuid */
+                        pautaId?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -8161,6 +9650,8 @@ export interface operations {
                         contentType: "image/png" | "image/jpeg" | "image/webp";
                         data: string;
                     }[];
+                    /** Format: uuid */
+                    pautaId?: string;
                 };
             };
         };
@@ -8182,6 +9673,8 @@ export interface operations {
                         /** @enum {string} */
                         createdBy: "owner" | "agent";
                         approvedVersion?: number;
+                        /** Format: uuid */
+                        pautaId?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -8330,6 +9823,8 @@ export interface operations {
                         /** @enum {string} */
                         createdBy: "owner" | "agent";
                         approvedVersion?: number;
+                        /** Format: uuid */
+                        pautaId?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -8484,6 +9979,8 @@ export interface operations {
                         /** @enum {string} */
                         createdBy: "owner" | "agent";
                         approvedVersion?: number;
+                        /** Format: uuid */
+                        pautaId?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -8633,6 +10130,8 @@ export interface operations {
                         /** @enum {string} */
                         createdBy: "owner" | "agent";
                         approvedVersion?: number;
+                        /** Format: uuid */
+                        pautaId?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */

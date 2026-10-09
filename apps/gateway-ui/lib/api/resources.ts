@@ -1,6 +1,6 @@
 import { type Client, profile } from './params';
 import { result } from './result';
-import type { NewApplication, NewPrototype, ScheduleInput, SchedulePatch } from './types';
+import type { NewApplication, NewPauta, NewPrototype, ScheduleInput, SchedulePatch } from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
 export const resourceCalls = (client: Client) => ({
@@ -82,6 +82,18 @@ export const resourceCalls = (client: Client) => ({
         params: { path: { slug }, query: { path } },
       }),
     ),
+  pautas: () => result(client.GET('/v1/pautas')),
+  createPauta: (body: NewPauta) => result(client.POST('/v1/pautas', { body })),
+  decide: (decisionId: string, choice: string, reason?: string) =>
+    result(
+      client.POST('/v1/decisions/{decisionId}/decide', {
+        params: { path: { decisionId } },
+        body: { choice, ...(reason ? { reason } : {}) },
+      }),
+    ),
+  discardDecision: (decisionId: string) =>
+    result(client.POST('/v1/decisions/{decisionId}/discard', { params: { path: { decisionId } } })),
+  board: () => result(client.GET('/v1/board')),
   prototypes: (application: string) =>
     result(client.GET('/v1/prototypes', { params: { query: { application } } })),
   createPrototype: (body: NewPrototype, profileId: string) =>

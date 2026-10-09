@@ -341,6 +341,8 @@ export const workItems = pgTable(
       .notNull()
       .default('todo'),
     note: text('note').notNull().default(''),
+    // The owner's topic this task serves, for the shared board.
+    pautaId: uuid('pauta_id'),
     version: integer('version').notNull().default(1),
     updatedBy: text('updated_by').$type<'agent' | 'owner'>().notNull(),
     createdAt,
@@ -998,6 +1000,8 @@ export const prototypes = pgTable(
     profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
     sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
     approvedVersion: integer('approved_version'),
+    // The topic this screen answers; set by whoever asked, when they knew it.
+    pautaId: uuid('pauta_id'),
     createdAt,
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1037,4 +1041,68 @@ export const prototypePrints = pgTable(
     content: text('content').notNull(),
   },
   (table) => [primaryKey({ columns: [table.prototypeId, table.name] })],
+);
+
+/** A topic the owner carries, above the cards it produces on the board. */
+export const pautas = pgTable(
+  'pautas',
+  {
+    id: uuid('id').primaryKey(),
+    title: text('title').notNull(),
+    applicationId: uuid('application_id').references(() => applications.id, {
+      onDelete: 'set null',
+    }),
+    state: text('state').notNull(),
+    priority: text('priority').notNull(),
+    context: text('context').notNull().default(''),
+    screens: jsonb('screens')
+      .$type<Array<{ route?: string; name: string }>>()
+      .notNull()
+      .default([]),
+    links: jsonb('links')
+      .$type<
+        Array<{
+          kind: 'pedido' | 'epico' | 'task';
+          workId: string;
+          title?: string;
+          column?: string;
+          previousColumn?: string;
+          readAt?: string;
+        }>
+      >()
+      .notNull()
+      .default([]),
+    nextSteps: text('next_steps').notNull().default(''),
+    waitingOn: text('waiting_on').notNull().default(''),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('pautas_recent').on(table.updatedAt.desc())],
+);
+
+/** What the owner decided, or was asked to decide. A decided row never changes. */
+export const decisions = pgTable(
+  'decisions',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    pautaId: uuid('pauta_id')
+      .notNull()
+      .references(() => pautas.id, { onDelete: 'cascade' }),
+    question: text('question').notNull(),
+    options: jsonb('options').$type<string[]>().notNull(),
+    counterpoint: text('counterpoint').notNull(),
+    recommendation: text('recommendation').notNull(),
+    state: text('state').notNull(),
+    choice: text('choice'),
+    reason: text('reason'),
+    decidedVia: text('decided_via'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    replaces: integer('replaces'),
+    proposedBy: text('proposed_by'),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    createdAt,
+  },
+  (table) => [index('decisions_pauta').on(table.pautaId, table.number)],
 );

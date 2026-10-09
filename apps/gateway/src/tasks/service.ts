@@ -322,6 +322,7 @@ export class Work {
           description: data.description,
           mediaIds,
           repositories: data.repositories ?? [],
+          pautaId: data.pautaId ?? null,
           updatedBy: 'agent',
           createdAt: now,
           updatedAt: now,

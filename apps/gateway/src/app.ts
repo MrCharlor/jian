@@ -16,6 +16,7 @@ import { configureSecurity } from './http/security.js';
 import { registerGatewayUi } from './http/ui.js';
 import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
+import { registerPautaRoutes } from './pautas/routes.js';
 import { registerProfileRoutes } from './profiles/routes.js';
 import { registerPrototypeRoutes } from './prototypes/routes.js';
 import type { CodexLogin } from './providers/codex/login.js';
@@ -126,6 +127,7 @@ export function createApp(
   registerApprovalRoutes(app, options);
   registerApplicationRoutes(app, options);
   registerPrototypeRoutes(app, options);
+  registerPautaRoutes(app, options);
   registerQualityRoutes(app, options);
   registerWorkRoutes(app, options);
   registerSettingsRoutes(app, options);

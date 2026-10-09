@@ -117,6 +117,7 @@ export class Prototypes {
       prints: prints.map((print) => print.name),
       createdBy: prototype.createdBy as Prototype['createdBy'],
       ...(prototype.approvedVersion ? { approvedVersion: prototype.approvedVersion } : {}),
+      ...(prototype.pautaId ? { pautaId: prototype.pautaId } : {}),
       versions: versions.map(toVersion),
       createdAt: prototype.createdAt.toISOString(),
       updatedAt: prototype.updatedAt.toISOString(),
@@ -158,6 +159,7 @@ export class Prototypes {
         title: data.title,
         requestUrl: data.requestUrl ?? null,
         brief: data.brief,
+        pautaId: data.pautaId ?? null,
         createdBy: by.kind,
         // The agent that asked, or the one open in the panel: whose quality the rounds count in.
         profileId: by.profileId ?? null,

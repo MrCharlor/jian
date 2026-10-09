@@ -19,6 +19,8 @@ export const prototypeInputSchema = z.strictObject({
   /** What the screen has to do, in the owner's words. */
   brief: z.string().trim().min(1).max(20_000),
   prints: z.array(prototypePrintSchema).max(6).default([]),
+  /** The topic this screen answers. */
+  pautaId: z.uuid().optional(),
 });
 
 export const prototypeRedoSchema = z.strictObject({
@@ -45,6 +47,7 @@ export const prototypeRecordSchema = z.strictObject({
   prints: z.array(z.string()),
   createdBy: z.enum(['owner', 'agent']),
   approvedVersion: z.number().int().positive().optional(),
+  pautaId: z.uuid().optional(),
   versions: z.array(prototypeVersionSchema),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

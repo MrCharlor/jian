@@ -6,6 +6,7 @@ import {
   type ModelSelection,
   parseApprovalReply,
   parseCorrectionReply,
+  parseDecisionReply,
   type Run,
   submitSchema,
   TASK_SESSION_CHANNEL,
@@ -15,6 +16,7 @@ import { type Clock, nowIso } from '../core/clock.js';
 import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import { bindMedia, mediaMarker } from '../media/repository.js';
+import { Pautas as DecisionNotices } from '../pautas/service.js';
 import type { ProfileReader } from '../profiles/port.js';
 import type { ModelFallback } from '../providers/fallback.js';
 import type { ProviderSelection } from '../providers/port.js';
@@ -108,6 +110,13 @@ export class Runs {
     return run;
   }
 
+  private decisions?: Pick<DecisionNotices, 'decide'>;
+
+  /** Wired after construction: the topics service is built after this one. */
+  useDecisions(decisions: Pick<DecisionNotices, 'decide'>) {
+    this.decisions = decisions;
+  }
+
   /** Where a late answer goes when the agent that asked has already stopped waiting. */
   async relayTo(profileId: string, runId: string, sessionId: string | null) {
     await this.store.transaction(profileId, (tx) => setRelayTo(tx, runId, sessionId));
@@ -149,6 +158,27 @@ export class Runs {
         });
 
       if (decided) parsed.text = ApprovalNotices.notice(decided);
+    }
+
+    // "decisão 4: B, porque …" is the owner deciding; the agent reads the decision recorded.
+    const decided =
+      options.ownerMessage && this.decisions && !reply
+        ? parseDecisionReply(parsed.text)
+        : undefined;
+
+    if (decided && this.decisions) {
+      const decision = await this.decisions
+        .decide(
+          { number: decided.number },
+          { choice: decided.choice, ...(decided.reason ? { reason: decided.reason } : {}) },
+          activity === 'channel' ? 'channel' : 'panel',
+        )
+        .catch((error: unknown) => {
+          if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+          throw error;
+        });
+
+      if (decision) parsed.text = DecisionNotices.notice(decision);
     }
 
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of

@@ -350,6 +350,8 @@ export const handlers = [
   http.get('*/v1/profiles/:profileId/approvals', () => ok([])),
   http.get('*/v1/profiles/:profileId/quality', () => ok([])),
   http.get('*/v1/applications', () => ok([])),
+  http.get('*/v1/pautas', () => ok([])),
+  http.get('*/v1/board', () => ok([])),
   http.post(
     '*/v1/profiles/:profileId/approvals/:approvalId/:decision',
     () => new HttpResponse(null, { status: 404 }),

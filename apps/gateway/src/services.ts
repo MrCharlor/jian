@@ -7,6 +7,7 @@ import { Errands } from './errands/service.js';
 import { Learning } from './learning/service.js';
 import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
+import { Pautas } from './pautas/service.js';
 import { Peers } from './peers/service.js';
 import { Profiles } from './profiles/service.js';
 import { Prototypes } from './prototypes/service.js';
@@ -36,6 +37,7 @@ export type Services = {
   approvals: Approvals;
   applications: Applications;
   prototypes: Prototypes;
+  pautas: Pautas;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -93,6 +95,14 @@ export function buildServices({
   prototypes.useNotifier((profileId, sessionId, text, requestKey) =>
     runs.submit(profileId, sessionId, { text, requestKey }),
   );
+  const pautas = new Pautas(store, clock);
+  pautas.useAgents({
+    remember: (profileId, key, content) =>
+      memories.remember(profileId, { key, content, expectedVersion: 0 }),
+    notify: (profileId, sessionId, text, requestKey) =>
+      runs.submit(profileId, sessionId, { text, requestKey }),
+  });
+  runs.useDecisions(pautas);
   const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
@@ -114,6 +124,7 @@ export function buildServices({
     approvals,
     applications,
     prototypes,
+    pautas,
     quality,
     providers,
     sessions,

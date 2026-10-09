@@ -2,6 +2,8 @@ import {
   AlarmClock,
   AppWindow,
   BookOpen,
+  ClipboardList,
+  Columns3,
   Cpu,
   Fingerprint,
   Gauge,
@@ -29,6 +31,8 @@ export type NavigationItem = {
  */
 export const navigation: NavigationItem[] = [
   { href: '/providers', label: 'Providers', icon: Plug, group: 'global' },
+  { href: '/pautas', label: 'Pautas', icon: ClipboardList, group: 'global' },
+  { href: '/board', label: 'Quadro', icon: Columns3, group: 'global' },
   { href: '/applications', label: 'Aplicações', icon: AppWindow, group: 'global' },
   { href: '/', label: 'Overview', icon: LayoutDashboard, group: 'agent' },
   { href: '/identity', label: 'Identity', icon: Fingerprint, group: 'agent' },
