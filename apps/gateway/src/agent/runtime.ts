@@ -349,7 +349,9 @@ export class AgentRuntime {
           tools,
           composeGuards(owned, judged),
           (name, definition) =>
-            mcpToolNames.includes(name) ? mcpActionKind(definition) : ACTION_KINDS[name],
+            mcpToolNames.includes(name)
+              ? mcpActionKind(definition, catalog.find((item) => item.name === name)?.tool)
+              : ACTION_KINDS[name],
           (result) => localHolds.add(result),
         );
       }

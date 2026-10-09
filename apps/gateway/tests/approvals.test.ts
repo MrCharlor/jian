@@ -2,7 +2,7 @@ import { parseApprovalReply } from '@jian/contracts';
 import { type ToolSet, tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { composeGuards, guardTools, policyGuard } from '../src/agent/guard.js';
+import { composeGuards, guardTools, mcpActionKind, policyGuard } from '../src/agent/guard.js';
 import { Approvals, canonical, inputHash, levelOf } from '../src/approvals/service.js';
 import { testServices } from './helpers/services.js';
 
@@ -66,6 +66,19 @@ describe('the owner reply', () => {
 });
 
 describe('the policy guard', () => {
+  it('reads an unannotated server tool as a lookup by its name, and believes an annotation over it', () => {
+    expect(mcpActionKind({}, 'vx_list_activities')).toBeUndefined();
+    expect(mcpActionKind({}, 'get_activity')).toBeUndefined();
+    expect(mcpActionKind({}, 'vx_comment')).toBe('service');
+    expect(mcpActionKind({}, 'vx_getaway_move')).toBe('service');
+    expect(
+      mcpActionKind({ metadata: { annotations: { readOnlyHint: false } } }, 'list_things'),
+    ).toBe('service');
+    expect(mcpActionKind({ metadata: { annotations: { readOnlyHint: true } } }, 'erase')).toBe(
+      undefined,
+    );
+  });
+
   it('holds a level-2 call with a numbered request, and lets it run once approved', async () => {
     const { services, profile, session, run } = await fixture();
     const ran: unknown[] = [];

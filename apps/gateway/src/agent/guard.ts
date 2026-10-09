@@ -267,13 +267,25 @@ export const ACTION_KINDS: Partial<Record<string, ActionKind>> = {
 };
 
 /**
+ * A name that says the tool only looks: `list_cards`, `get_activity`, `search`. Read when a
+ * server annotates nothing, so a lookup is not held for approval the way a write is. A server
+ * that does annotate is believed over its names.
+ */
+const READ_NAME =
+  /^(?:[a-z0-9]+_)?(?:list|get|read|search|find|count|show|describe|fetch|unread|query|lookup)(?:$|[_-])/i;
+
+/**
  * An MCP tool acts on a service the owner connected, whatever that service is. One that its
  * server declares read-only is not judged: it changes nothing, and asking would slow every
- * lookup. The declaration is the server's word, and the server is one the owner chose.
+ * lookup. The declaration is the server's word, and the server is one the owner chose. A
+ * server that declares nothing at all is read by the tool's own name.
  */
-export function mcpActionKind(tool: unknown): ActionKind | undefined {
+export function mcpActionKind(tool: unknown, name?: string): ActionKind | undefined {
   const annotations = (tool as { metadata?: { annotations?: { readOnlyHint?: unknown } } })
     ?.metadata?.annotations;
 
-  return annotations?.readOnlyHint === true ? undefined : 'service';
+  if (annotations?.readOnlyHint === true) return undefined;
+  if (annotations === undefined && name && READ_NAME.test(name)) return undefined;
+
+  return 'service';
 }
