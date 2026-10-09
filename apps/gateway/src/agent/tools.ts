@@ -11,6 +11,7 @@ import {
 import { type ToolSet, tool } from 'ai';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import type { Applications } from '../applications/service.js';
 import { Coordination } from '../coordination/service.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
@@ -90,6 +91,7 @@ export type ToolServices = {
   stats?: Pick<Stats, 'stats' | 'usageRuns'>;
   work?: Pick<Work, 'list' | 'createWithExecutor' | 'update' | 'spawn' | 'executions'>;
   sshKeys: Pick<SshKeys, 'list' | 'create' | 'remove'>;
+  applications?: Pick<Applications, 'list' | 'brief' | 'readForAgent'>;
 };
 
 export function profileTools(
@@ -240,6 +242,8 @@ export function profileTools(
         return services.memories.remember(run.profileId, input, run.sessionId);
       },
     }),
+
+    ...(services.applications ? designTools(services.applications) : {}),
 
     ...(services.schedules
       ? scheduleTools(services.schedules, run, () =>
@@ -595,6 +599,11 @@ export const TOOL_GROUPS = {
       'read your own full activity, tokens and estimated cost by day, model, channel, tool and individual run',
     tools: ['read_activity_stats', 'read_usage_runs'],
   },
+  design: {
+    summary:
+      'read the design system of an application the owner designs for — its guide, the owner’s preferences, tokens and components — before drawing or describing any screen of it',
+    tools: ['list_applications', 'read_design_system', 'read_design_file'],
+  },
   schedules: {
     summary:
       'do something later or on a repetition — reminders, daily summaries, recurring checks — and list, change, pause (switch off without deleting), resume or delete them',
@@ -731,6 +740,41 @@ export function deferTools(tools: ToolSet, loaded: Set<string>): { gated: Set<st
  * instruction as a new turn in its conversation at the time; in a chat, the answer goes out
  * on the channel. Times are read in the owner's zone unless one is named.
  */
+/** The owner's applications and their design systems, read-only for every agent. */
+function designTools(applications: Pick<Applications, 'list' | 'brief' | 'readForAgent'>) {
+  return {
+    list_applications: tool({
+      description:
+        'List the applications the owner designs for (the ERP, the managers app…): slug, name, platform, and how many design-system files each has.',
+      inputSchema: z.object({}),
+      execute: async () =>
+        (await applications.list()).map(({ slug, name, platform, url, files, version }) => ({
+          slug,
+          name,
+          platform,
+          url,
+          files,
+          version,
+        })),
+    }),
+    read_design_system: tool({
+      description:
+        'Read an application’s design system before you draw, prototype or describe any of its screens: the owner’s preferences (they win), the guide, the tokens and the list of components. Follow it; never design from memory.',
+      inputSchema: z.object({ slug: z.string().min(1).max(48) }),
+      execute: async ({ slug }) => applications.brief(slug),
+    }),
+    read_design_file: tool({
+      description:
+        'Read one text file of an application’s design system, such as a component’s notes (project/components/<Name>/README.md) or its types (project/components/<Name>/<Name>.d.ts).',
+      inputSchema: z.object({
+        slug: z.string().min(1).max(48),
+        path: z.string().min(1).max(300),
+      }),
+      execute: async ({ slug, path }) => applications.readForAgent(slug, path),
+    }),
+  };
+}
+
 function scheduleTools(
   schedules: NonNullable<ToolServices['schedules']>,
   run: Run,

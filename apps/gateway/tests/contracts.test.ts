@@ -82,13 +82,15 @@ describe('public API contracts', () => {
         ]);
       }
 
-      // Liveness, the sign-in that verifies the token itself, and the OAuth redirect — which
-      // a browser cannot give a header and which proves itself with a state this gateway wrote.
+      // Liveness, the sign-in that verifies the token itself, the OAuth redirect, and a
+      // component preview — a frame cannot give a header either, so it carries a signature
+      // this gateway wrote, which expires.
       expect(
         operations
           .filter((operation) => operation.access === 'public')
-          .map((operation) => operation.operationId),
-      ).toEqual(['health', 'startPanelSession', 'completeMcpLogin']);
+          .map((operation) => operation.operationId)
+          .sort(),
+      ).toEqual(['completeMcpLogin', 'health', 'showApplicationPreview', 'startPanelSession']);
     } finally {
       await app.close();
     }

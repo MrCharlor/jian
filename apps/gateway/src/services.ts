@@ -1,3 +1,4 @@
+import { Applications } from './applications/service.js';
 import { Approvals } from './approvals/service.js';
 import { Contexts } from './context/service.js';
 import type { Clock } from './core/clock.js';
@@ -32,6 +33,7 @@ import { WebSearch } from './web/service.js';
 export type Services = {
   profiles: Profiles;
   approvals: Approvals;
+  applications: Applications;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -103,6 +105,7 @@ export function buildServices({
   const services = {
     profiles,
     approvals,
+    applications: new Applications(store, clock),
     quality,
     providers,
     sessions,

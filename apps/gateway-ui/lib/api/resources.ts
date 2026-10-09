@@ -1,6 +1,6 @@
 import { type Client, profile } from './params';
 import { result } from './result';
-import type { ScheduleInput, SchedulePatch } from './types';
+import type { NewApplication, ScheduleInput, SchedulePatch } from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
 export const resourceCalls = (client: Client) => ({
@@ -59,6 +59,27 @@ export const resourceCalls = (client: Client) => ({
     result(
       client.GET('/v1/profiles/{profileId}/stats', {
         params: { path: { profileId }, query: { days } },
+      }),
+    ),
+  applications: () => result(client.GET('/v1/applications')),
+  createApplication: (body: NewApplication) => result(client.POST('/v1/applications', { body })),
+  applicationFiles: (slug: string) =>
+    result(client.GET('/v1/applications/{slug}/files', { params: { path: { slug } } })),
+  applicationFile: (slug: string, path: string) =>
+    result(
+      client.GET('/v1/applications/{slug}/file', { params: { path: { slug }, query: { path } } }),
+    ),
+  writeApplicationFile: (slug: string, path: string, text: string) =>
+    result(
+      client.PUT('/v1/applications/{slug}/file', {
+        params: { path: { slug }, query: { path } },
+        body: { text },
+      }),
+    ),
+  applicationPreview: (slug: string, path: string) =>
+    result(
+      client.POST('/v1/applications/{slug}/preview', {
+        params: { path: { slug }, query: { path } },
       }),
     ),
   approvals: (profileId: string) =>

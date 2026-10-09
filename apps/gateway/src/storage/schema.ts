@@ -947,3 +947,37 @@ export const corrections = pgTable(
     index('corrections_recent').on(table.profileId, table.createdAt.desc()),
   ],
 );
+
+/**
+ * A product the owner designs for, with its design system kept as files. It belongs to the
+ * installation, like a provider: every agent reads it, only the owner changes it.
+ */
+export const applications = pgTable('applications', {
+  id: uuid('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  url: text('url'),
+  audience: text('audience'),
+  platform: text('platform').notNull().default('web'),
+  source: text('source'),
+  version: integer('version').notNull().default(0),
+  createdAt,
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One file of an application's design system. Text is kept as written, the rest as base64. */
+export const applicationFiles = pgTable(
+  'application_files',
+  {
+    applicationId: uuid('application_id')
+      .notNull()
+      .references(() => applications.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    contentType: text('content_type').notNull(),
+    encoding: text('encoding').$type<'utf8' | 'base64'>().notNull(),
+    content: text('content').notNull(),
+    bytes: integer('bytes').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.applicationId, table.path] })],
+);

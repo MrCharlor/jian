@@ -2,6 +2,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { operationSchema, operations } from '@jian/contracts';
 import Fastify, { LogController } from 'fastify';
+import { registerApplicationRoutes } from './applications/routes.js';
 import { registerApprovalRoutes } from './approvals/routes.js';
 import { registerChannelRoutes } from './channels/routes.js';
 import type { Channels } from './channels/service.js';
@@ -122,6 +123,7 @@ export function createApp(
   registerStatsRoutes(app, options);
   registerScheduleRoutes(app, options);
   registerApprovalRoutes(app, options);
+  registerApplicationRoutes(app, options);
   registerQualityRoutes(app, options);
   registerWorkRoutes(app, options);
   registerSettingsRoutes(app, options);
