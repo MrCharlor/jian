@@ -127,6 +127,8 @@ describe('component previews', () => {
       const page = await app.inject({ method: 'GET', url });
       expect(page.statusCode).toBe(200);
       expect(page.body).toContain('<p>Botão</p>');
+      // The runtime the preview expects is linked in front of it, at signed addresses too.
+      expect(page.body).not.toContain('bundle.js');
       expect(page.headers['content-security-policy']).toContain('sandbox allow-scripts');
 
       const forged = await app.inject({

@@ -10,14 +10,25 @@ type SlugParams = { slug: string };
 const PREVIEW_SECONDS = 600;
 
 /**
+ * What a Claude Design preview expects to find already loaded: React on `window`, then the
+ * components bundle that puts the namespace on `window`, and its stylesheet. The design-system
+ * viewer loads them around the preview; here they are linked in front of the preview's code.
+ */
+const RUNTIME = {
+  styles: ['project/components/bundle.css'],
+  scripts: ['project/components/lib/react.js', 'project/components/bundle.js'],
+};
+
+/**
  * A preview runs the component's own scripts, so it is served apart from the panel: an opaque
  * sandboxed origin with no cookie and no reach into the API, under a policy that lets only its
  * own inline code run.
  */
 const PREVIEW_POLICY = [
   "default-src 'none'",
-  "script-src 'unsafe-inline'",
-  "style-src 'unsafe-inline'",
+  // Its own inline code, and the runtime and components this gateway serves at signed addresses.
+  "script-src 'unsafe-inline' 'self'",
+  "style-src 'unsafe-inline' 'self'",
   'img-src data: blob:',
   'font-src data:',
   'sandbox allow-scripts',
@@ -30,6 +41,27 @@ export function registerApplicationRoutes(
 ) {
   const sign = (slug: string, path: string, exp: number) =>
     createHmac('sha256', deps.token).update(`preview\n${slug}\n${path}\n${exp}`).digest('hex');
+  const address = (slug: string, path: string, exp: number) =>
+    `/v1/design/${slug}?${new URLSearchParams({ path, exp: String(exp), sig: sign(slug, path, exp) })}`;
+
+  /** The preview with the runtime linked in front of it, for the files this design system has. */
+  const withRuntime = async (slug: string, html: string, exp: number) => {
+    const present = new Set((await deps.applications.files(slug)).map((file) => file.path));
+    const tags = [
+      ...RUNTIME.styles
+        .filter((path) => present.has(path))
+        .map((path) => `<link rel="stylesheet" href="${address(slug, path, exp)}">`),
+      ...RUNTIME.scripts
+        .filter((path) => present.has(path))
+        .map((path) => `<script src="${address(slug, path, exp)}"></script>`),
+    ].join('');
+
+    if (!tags) return html;
+
+    return /<head[^>]*>/i.test(html)
+      ? html.replace(/<head[^>]*>/i, (head) => `${head}${tags}`)
+      : `${tags}${html}`;
+  };
 
   app.post<{ Params: SlugParams }>('/v1/applications/:slug/preview', async (request) => {
     const { path } = applicationFileQuerySchema.parse(request.query);
@@ -37,13 +69,8 @@ export function registerApplicationRoutes(
     await deps.applications.readText(request.params.slug, { path });
 
     const exp = Math.floor(Date.now() / 1000) + PREVIEW_SECONDS;
-    const query = new URLSearchParams({
-      path,
-      exp: String(exp),
-      sig: sign(request.params.slug, path, exp),
-    });
 
-    return { url: `/v1/design/${request.params.slug}?${query}` };
+    return { url: address(request.params.slug, path, exp) };
   });
 
   app.get<{ Params: SlugParams }>('/v1/design/:slug', async (request, reply) => {
@@ -59,15 +86,23 @@ export function registerApplicationRoutes(
     }
 
     const file = await deps.applications.readText(request.params.slug, { path });
+    const html = file.contentType === 'text/html';
+    const type = html
+      ? 'text/html; charset=utf-8'
+      : ['text/css', 'text/javascript'].includes(file.contentType)
+        ? `${file.contentType}; charset=utf-8`
+        : 'text/plain; charset=utf-8';
 
-    return reply
-      .header('content-security-policy', PREVIEW_POLICY)
-      .header('x-content-type-options', 'nosniff')
-      .header('cache-control', 'private, max-age=300')
-      .type(
-        file.contentType === 'text/html' ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8',
-      )
-      .send(file.text);
+    return (
+      reply
+        .header('content-security-policy', PREVIEW_POLICY)
+        .header('x-content-type-options', 'nosniff')
+        // A sandboxed preview is an opaque origin; it may still load the runtime from here.
+        .header('cross-origin-resource-policy', 'cross-origin')
+        .header('cache-control', 'private, max-age=300')
+        .type(type)
+        .send(html ? await withRuntime(request.params.slug, file.text, exp) : file.text)
+    );
   });
 
   app.get('/v1/applications', async () => deps.applications.list());
