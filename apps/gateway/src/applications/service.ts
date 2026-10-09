@@ -240,7 +240,13 @@ export class Applications {
       `Platform: ${current.platform} · design system version ${current.version}`,
       '',
       preferences ? `## Owner preferences (these win over the guide)\n\n${preferences}` : '',
-      readme ? `## Guide\n\n${readme}` : '## Guide\n\nNo guide yet.',
+      // The guide is long; its outline tells the agent which parts to read for this screen.
+      readme
+        ? `## Guide (read it whole with read_design_file: project/README.md)\n\n${readme
+            .split('\n')
+            .filter((line) => /^#{1,3} /.test(line))
+            .join('\n')}`
+        : '## Guide\n\nNo guide yet.',
       tokens ? `## Tokens\n\n\`\`\`json\n${tokens}\n\`\`\`` : '',
       components.length
         ? `## Components (read one with read_design_file: project/components/<Name>/README.md or <Name>.d.ts)\n\n${index.join('\n')}`

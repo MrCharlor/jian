@@ -72,7 +72,8 @@ describe('applications', () => {
 
     expect(brief).toContain('Owner preferences');
     expect(brief).toContain('- Dados em toda tela.');
-    expect(brief).toContain('Tela desktop em pt-BR.');
+    expect(brief).toContain('# ERP');
+    expect(brief).not.toContain('Tela desktop em pt-BR.');
     expect(brief).toContain('"primary":"#0d6efd"');
     expect(brief).toContain('- Button: Botão em pílula, 36px de altura.');
     expect(brief.indexOf('Owner preferences')).toBeLessThan(brief.indexOf('## Guide'));
