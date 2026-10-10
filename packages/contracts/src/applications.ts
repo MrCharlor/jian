@@ -9,6 +9,11 @@ export const applicationSlugSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,47}$
 
 export const applicationPlatformSchema = z.enum(['web', 'mobile', 'desktop', 'other']);
 
+export const applicationDesignModelSchema = z
+  .string()
+  .regex(/^claude-[a-z0-9.-]+$/)
+  .max(64);
+
 export const applicationInputSchema = z.strictObject({
   slug: applicationSlugSchema,
   name: z.string().trim().min(1).max(100),
@@ -22,6 +27,8 @@ export const applicationInputSchema = z.strictObject({
    * in the cloud, instead of on this machine.
    */
   designUrl: z.url().max(500).optional(),
+  /** The model that draws this application's prototypes; without one, the gateway's default. */
+  designModel: applicationDesignModelSchema.optional(),
 });
 
 export const applicationPatchSchema = applicationInputSchema.omit({ slug: true }).partial();
@@ -35,6 +42,7 @@ export const applicationRecordSchema = z.strictObject({
   platform: applicationPlatformSchema,
   source: z.string().optional(),
   designUrl: z.string().optional(),
+  designModel: z.string().optional(),
   /** Bumps whenever a file of the design system changes. */
   version: z.number().int().nonnegative(),
   files: z.number().int().nonnegative(),

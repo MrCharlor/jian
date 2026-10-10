@@ -963,6 +963,7 @@ export const applications = pgTable('applications', {
   platform: text('platform').notNull().default('web'),
   source: text('source'),
   designUrl: text('design_url'),
+  designModel: text('design_model'),
   version: integer('version').notNull().default(0),
   createdAt,
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

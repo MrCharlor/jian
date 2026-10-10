@@ -15,6 +15,7 @@ export function toApplication(row: Row, files: number): Application {
     platform: row.platform as Application['platform'],
     ...(row.source ? { source: row.source } : {}),
     ...(row.designUrl ? { designUrl: row.designUrl } : {}),
+    ...(row.designModel ? { designModel: row.designModel } : {}),
     version: row.version,
     files,
     createdAt: row.createdAt.toISOString(),

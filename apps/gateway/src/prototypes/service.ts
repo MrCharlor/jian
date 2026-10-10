@@ -327,7 +327,7 @@ export class Prototypes {
       .join('\n');
   }
 
-  private async makeInCloud(id: string, number: number, designSystem: string) {
+  private async makeInCloud(id: string, number: number, designSystem: string, model?: string) {
     const designer = assertFound(this.designer, 'Cloud designer');
     const folder = join(this.root, id, `v${number}`);
 
@@ -352,6 +352,7 @@ export class Prototypes {
       folder,
       signal: this.abort.signal,
       ...(source ? { source } : {}),
+      ...(model ? { model } : {}),
     });
 
     if (!outcome.ok) throw new Error(outcome.error);
@@ -366,13 +367,13 @@ export class Prototypes {
     try {
       const row = assertFound(await findPrototypeRow(this.store.db, id), 'Prototype');
       const [app] = await this.store.db
-        .select({ designUrl: applications.designUrl })
+        .select({ designUrl: applications.designUrl, designModel: applications.designModel })
         .from(applications)
         .where(eq(applications.id, row.prototype.applicationId))
         .limit(1);
 
       if (app?.designUrl && this.designer) {
-        await this.makeInCloud(id, number, app.designUrl);
+        await this.makeInCloud(id, number, app.designUrl, app.designModel ?? undefined);
 
         const finished = new Date(this.clock());
 

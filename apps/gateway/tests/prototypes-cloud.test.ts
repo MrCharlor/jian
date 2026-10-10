@@ -220,6 +220,26 @@ describe('the routine that draws', () => {
     expect(asked[0]).toEqual(['Read', 'RemoteTrigger', 'ToolSearch']);
   });
 
+  it('draws with the application model, or the routine default', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'jian-routine-'));
+    const draw = claudeRoutine({
+      routineId: 'trig_01x',
+      environmentId: 'env_01y',
+      run: async () => ({ code: 0, output: `SESSION cse_01abc\nATENA_RESULT ${CANVAS}` }),
+      pause: async () => {},
+    });
+    const signal = new AbortController().signal;
+    const model = async () =>
+      JSON.parse(await readFile(join(folder, 'rotina.json'), 'utf8')).job_config.ccr.session_context
+        .model;
+
+    await draw({ prompt: 'x', folder, signal, model: 'claude-opus-5-5' });
+    expect(await model()).toBe('claude-opus-5-5');
+
+    await draw({ prompt: 'x', folder, signal });
+    expect(await model()).toBe('claude-sonnet-5-5');
+  });
+
   it('opens the prints repository only when there is one', () => {
     expect(routineBody('x', 'env_01y', 'm').job_config.ccr.session_context.sources).toEqual([]);
     expect(

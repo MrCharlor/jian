@@ -87,6 +87,7 @@ export class Applications {
         platform: data.platform,
         source: data.source ?? null,
         designUrl: data.designUrl ?? null,
+        designModel: data.designModel ?? null,
         version: 0,
         createdAt: now,
         updatedAt: now,
@@ -112,6 +113,7 @@ export class Applications {
       ...(data.platform !== undefined ? { platform: data.platform } : {}),
       ...(data.source !== undefined ? { source: data.source } : {}),
       ...(data.designUrl !== undefined ? { designUrl: data.designUrl } : {}),
+      ...(data.designModel !== undefined ? { designModel: data.designModel } : {}),
       updatedAt: new Date(this.clock()),
     });
 

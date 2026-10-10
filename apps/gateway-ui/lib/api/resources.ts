@@ -1,6 +1,7 @@
 import { type Client, profile } from './params';
 import { result } from './result';
 import type {
+  ApplicationPatch,
   EpicDraftPatch,
   NewApplication,
   NewPauta,
@@ -73,6 +74,8 @@ export const resourceCalls = (client: Client) => ({
     ),
   applications: () => result(client.GET('/v1/applications')),
   createApplication: (body: NewApplication) => result(client.POST('/v1/applications', { body })),
+  updateApplication: (slug: string, body: ApplicationPatch) =>
+    result(client.PATCH('/v1/applications/{slug}', { params: { path: { slug } }, body })),
   applicationFiles: (slug: string) =>
     result(client.GET('/v1/applications/{slug}/files', { params: { path: { slug } } })),
   applicationFile: (slug: string, path: string) =>

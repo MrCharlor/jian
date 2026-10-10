@@ -11464,6 +11464,9 @@
                       "designUrl": {
                         "type": "string"
                       },
+                      "designModel": {
+                        "type": "string"
+                      },
                       "version": {
                         "type": "integer",
                         "minimum": 0,
@@ -11726,6 +11729,11 @@
                     "type": "string",
                     "maxLength": 500,
                     "format": "uri"
+                  },
+                  "designModel": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^claude-[a-z0-9.-]+$"
                   }
                 },
                 "required": [
@@ -11776,6 +11784,9 @@
                       "type": "string"
                     },
                     "designUrl": {
+                      "type": "string"
+                    },
+                    "designModel": {
                       "type": "string"
                     },
                     "version": {
@@ -12049,6 +12060,9 @@
                     "designUrl": {
                       "type": "string"
                     },
+                    "designModel": {
+                      "type": "string"
+                    },
                     "version": {
                       "type": "integer",
                       "minimum": 0,
@@ -12316,6 +12330,11 @@
                     "type": "string",
                     "maxLength": 500,
                     "format": "uri"
+                  },
+                  "designModel": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^claude-[a-z0-9.-]+$"
                   }
                 },
                 "additionalProperties": false
@@ -12362,6 +12381,9 @@
                       "type": "string"
                     },
                     "designUrl": {
+                      "type": "string"
+                    },
+                    "designModel": {
                       "type": "string"
                     },
                     "version": {
@@ -12631,6 +12653,9 @@
                       "type": "string"
                     },
                     "designUrl": {
+                      "type": "string"
+                    },
+                    "designModel": {
                       "type": "string"
                     },
                     "version": {

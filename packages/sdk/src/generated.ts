@@ -7596,6 +7596,7 @@ export interface operations {
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
                         designUrl?: string;
+                        designModel?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -7729,6 +7730,7 @@ export interface operations {
                     source?: string;
                     /** Format: uri */
                     designUrl?: string;
+                    designModel?: string;
                 };
             };
         };
@@ -7750,6 +7752,7 @@ export interface operations {
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
                         designUrl?: string;
+                        designModel?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -7888,6 +7891,7 @@ export interface operations {
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
                         designUrl?: string;
+                        designModel?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -8026,6 +8030,7 @@ export interface operations {
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
                         designUrl?: string;
+                        designModel?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -8160,6 +8165,7 @@ export interface operations {
                     source?: string;
                     /** Format: uri */
                     designUrl?: string;
+                    designModel?: string;
                 };
             };
         };
@@ -8181,6 +8187,7 @@ export interface operations {
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
                         designUrl?: string;
+                        designModel?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */

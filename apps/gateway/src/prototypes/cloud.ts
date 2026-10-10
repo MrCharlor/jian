@@ -15,6 +15,8 @@ export type CloudDesigner = (job: {
   signal: AbortSignal;
   /** A GitHub repository the session opens as its source: where the prints are. */
   source?: string;
+  /** The application's own model; the routine's default otherwise. */
+  model?: string;
 }) => Promise<{ ok: true; url: string; summary: string } | { ok: false; error: string }>;
 
 /** The line the cloud session starts its answer with, so the link survives a cut log. */
@@ -159,11 +161,16 @@ export function claudeRoutine(options: {
   const pause = options.pause ?? wait;
   const limit = options.limitMs ?? 25 * 60_000;
 
-  return async ({ prompt, folder, signal, source }) => {
+  return async ({ prompt, folder, signal, source, model }) => {
     await writeFile(
       join(folder, 'rotina.json'),
       JSON.stringify(
-        routineBody(prompt, options.environmentId, options.model ?? 'claude-sonnet-5-5', source),
+        routineBody(
+          prompt,
+          options.environmentId,
+          model ?? options.model ?? 'claude-sonnet-5-5',
+          source,
+        ),
       ),
     );
 

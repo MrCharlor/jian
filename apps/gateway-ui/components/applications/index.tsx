@@ -14,6 +14,14 @@ const PREFERENCES = 'project/preferencias-do-po.md';
 const README = 'project/README.md';
 const TOKENS = 'project/tokens.json';
 
+/** Who draws the prototypes of an application in Claude Design; the stronger, the more quota. */
+const DEFAULT_MODEL = 'claude-sonnet-5-5';
+const DESIGN_MODELS = [
+  { id: 'claude-sonnet-5-5', label: 'Sonnet 5.5 (padrão)' },
+  { id: 'claude-opus-5-5', label: 'Opus 5.5 (mais forte, gasta mais cota)' },
+  { id: 'claude-fable-5-1', label: 'Fable 5.1' },
+];
+
 const platforms: Record<Application['platform'], string> = {
   web: 'Web',
   mobile: 'Celular',
@@ -241,6 +249,20 @@ function ApplicationDetail({
   const [notice, setNotice] = useState('');
   const [component, setComponent] = useState<string>();
   const [preview, setPreview] = useState<string>();
+  const [model, setModel] = useState(application.designModel ?? '');
+  const [modelNotice, setModelNotice] = useState('');
+
+  const saveModel = async (next: string) => {
+    setModel(next);
+    setModelNotice('');
+
+    try {
+      await api.updateApplication(application.slug, { designModel: next || DEFAULT_MODEL });
+      setModelNotice('Modelo salvo. Vale a partir do próximo protótipo.');
+    } catch (failure) {
+      setModelNotice(failure instanceof Error ? failure.message : 'Não foi possível salvar.');
+    }
+  };
 
   const read = useCallback(
     async (path: string) => {
@@ -345,6 +367,22 @@ function ApplicationDetail({
 
       {tab === 'preferences' && (
         <div className="settings-fields">
+          <Field
+            label="Modelo do protótipo"
+            hint="Quem desenha as telas desta aplicação no Claude Design."
+          >
+            <select
+              value={model || DEFAULT_MODEL}
+              onChange={(event) => void saveModel(event.target.value)}
+            >
+              {DESIGN_MODELS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {modelNotice && <p className="note">{modelNotice}</p>}
           <p className="note">
             Regras suas, que valem por cima do guia. Uma por linha, com a data. Os agentes leem isto
             primeiro.

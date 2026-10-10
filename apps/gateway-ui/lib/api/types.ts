@@ -26,6 +26,7 @@ export type Approval = JsonResponse<'listApprovals', 200>[number];
 export type Application = JsonResponse<'listApplications', 200>[number];
 export type ApplicationFile = JsonResponse<'listApplicationFiles', 200>[number];
 export type NewApplication = RequestBody<'createApplication'>;
+export type ApplicationPatch = RequestBody<'updateApplication'>;
 export type Prototype = JsonResponse<'listPrototypes', 200>[number];
 export type Pauta = JsonResponse<'listPautas', 200>[number];
 export type NewPauta = RequestBody<'createPauta'>;
