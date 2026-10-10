@@ -204,3 +204,13 @@ describe('validations', () => {
     expect(told[0]).not.toContain('return-8');
   });
 });
+
+describe('two looks at once', () => {
+  it('open a check only once', async () => {
+    const { validations } = await fixture();
+
+    await Promise.all([validations.scan(), validations.scan()]);
+
+    expect(await validations.list()).toHaveLength(1);
+  });
+});

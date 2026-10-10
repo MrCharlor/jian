@@ -75,6 +75,7 @@ const fieldText = (value: unknown) =>
 export class Validations {
   private notify?: (text: string) => Promise<unknown>;
   private lastScan = 0;
+  private scanning?: Promise<{ prepared: number[]; reviewed: number }>;
 
   constructor(
     private readonly store: Store,
@@ -169,7 +170,16 @@ export class Validations {
   }
 
   /** Finds epics waiting for the owner and return cards to check; tells the owner once. */
-  async scan(): Promise<{ prepared: number[]; reviewed: number }> {
+  scan(): Promise<{ prepared: number[]; reviewed: number }> {
+    // The hourly look and a look the owner asked for share one run, so nothing opens twice.
+    this.scanning ??= this.look().finally(() => {
+      this.scanning = undefined;
+    });
+
+    return this.scanning;
+  }
+
+  private async look(): Promise<{ prepared: number[]; reviewed: number }> {
     const client = await this.client();
     const epics = (await client.call(
       'GET',
