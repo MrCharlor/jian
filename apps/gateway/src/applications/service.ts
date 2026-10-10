@@ -86,6 +86,7 @@ export class Applications {
         audience: data.audience ?? null,
         platform: data.platform,
         source: data.source ?? null,
+        designUrl: data.designUrl ?? null,
         version: 0,
         createdAt: now,
         updatedAt: now,
@@ -110,6 +111,7 @@ export class Applications {
       ...(data.audience !== undefined ? { audience: data.audience } : {}),
       ...(data.platform !== undefined ? { platform: data.platform } : {}),
       ...(data.source !== undefined ? { source: data.source } : {}),
+      ...(data.designUrl !== undefined ? { designUrl: data.designUrl } : {}),
       updatedAt: new Date(this.clock()),
     });
 

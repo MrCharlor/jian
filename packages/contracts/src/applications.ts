@@ -17,6 +17,11 @@ export const applicationInputSchema = z.strictObject({
   platform: applicationPlatformSchema.default('web'),
   /** Where the design system came from, such as the Claude Design artifact it was copied from. */
   source: z.string().trim().max(500).optional(),
+  /**
+   * The owner's own copy of the design system in Claude Design. Set, prototypes are drawn there,
+   * in the cloud, instead of on this machine.
+   */
+  designUrl: z.url().max(500).optional(),
 });
 
 export const applicationPatchSchema = applicationInputSchema.omit({ slug: true }).partial();
@@ -29,6 +34,7 @@ export const applicationRecordSchema = z.strictObject({
   audience: z.string().optional(),
   platform: applicationPlatformSchema,
   source: z.string().optional(),
+  designUrl: z.string().optional(),
   /** Bumps whenever a file of the design system changes. */
   version: z.number().int().nonnegative(),
   files: z.number().int().nonnegative(),

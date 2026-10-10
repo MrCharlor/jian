@@ -48,6 +48,8 @@ export const prototypeRecordSchema = z.strictObject({
   createdBy: z.enum(['owner', 'agent']),
   approvedVersion: z.number().int().positive().optional(),
   pautaId: z.uuid().optional(),
+  /** The canvas in Claude Design the screen lives in, when it was drawn there. */
+  designUrl: z.string().optional(),
   versions: z.array(prototypeVersionSchema),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

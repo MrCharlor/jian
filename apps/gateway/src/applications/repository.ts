@@ -14,6 +14,7 @@ export function toApplication(row: Row, files: number): Application {
     ...(row.audience ? { audience: row.audience } : {}),
     platform: row.platform as Application['platform'],
     ...(row.source ? { source: row.source } : {}),
+    ...(row.designUrl ? { designUrl: row.designUrl } : {}),
     version: row.version,
     files,
     createdAt: row.createdAt.toISOString(),

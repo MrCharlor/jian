@@ -12,6 +12,7 @@ import { WhatsAppChannel } from './channels/whatsapp/adapter.js';
 import { WhatsAppConnections } from './channels/whatsapp/connections.js';
 import { createWhatsAppDeviceFactory } from './channels/whatsapp/driver.js';
 import { Coordination } from './coordination/service.js';
+import { claudeRoutine } from './prototypes/cloud.js';
 import { ModelCatalog } from './providers/catalog-source.js';
 import { CodexLogin } from './providers/codex/login.js';
 import { ProviderModels } from './providers/discovery.js';
@@ -62,6 +63,15 @@ const config = z
     JIAN_PUBLIC_URL: z.url().optional(),
     JIAN_DRAW_URL: z.url().optional(),
     JIAN_DRAW_INTERNAL_URL: z.url().optional(),
+    // The Claude Code routine that draws prototypes in Claude Design, and where it runs.
+    JIAN_DESIGN_ROUTINE_ID: z
+      .string()
+      .regex(/^trig_\w+$/)
+      .optional(),
+    JIAN_DESIGN_ENVIRONMENT_ID: z
+      .string()
+      .regex(/^env_\w+$/)
+      .optional(),
   })
   .safeParse(process.env);
 
@@ -133,6 +143,14 @@ const services = {
   }),
   store,
 };
+if (config.data.JIAN_DESIGN_ROUTINE_ID && config.data.JIAN_DESIGN_ENVIRONMENT_ID) {
+  services.prototypes.useDesigner(
+    claudeRoutine({
+      routineId: config.data.JIAN_DESIGN_ROUTINE_ID,
+      environmentId: config.data.JIAN_DESIGN_ENVIRONMENT_ID,
+    }),
+  );
+}
 const codexLogin = new CodexLogin(services, gatewayVault);
 services.media.useCodexLogin(codexLogin);
 services.subscriptionUsage.useCodexLogin(codexLogin);

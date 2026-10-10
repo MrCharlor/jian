@@ -962,6 +962,7 @@ export const applications = pgTable('applications', {
   audience: text('audience'),
   platform: text('platform').notNull().default('web'),
   source: text('source'),
+  designUrl: text('design_url'),
   version: integer('version').notNull().default(0),
   createdAt,
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -1002,6 +1003,7 @@ export const prototypes = pgTable(
     approvedVersion: integer('approved_version'),
     // The topic this screen answers; set by whoever asked, when they knew it.
     pautaId: uuid('pauta_id'),
+    designUrl: text('design_url'),
     createdAt,
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

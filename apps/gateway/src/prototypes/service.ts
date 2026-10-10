@@ -10,6 +10,7 @@ import { assertFound, GatewayError } from '../core/errors.js';
 import type { Quality } from '../quality/service.js';
 import type { Store } from '../storage/database.js';
 import { applicationFiles, applications } from '../storage/schema.js';
+import { type CloudDesigner, RESULT_MARK } from './cloud.js';
 import { claudeCode, type Generator } from './generator.js';
 import {
   claimNext,
@@ -80,6 +81,7 @@ Confira que \`${OUTPUT}\` existe e que o script não tem erro de sintaxe. Respon
 export class Prototypes {
   private running = false;
   private notifier?: Notifier;
+  private designer?: CloudDesigner;
   private readonly abort = new AbortController();
 
   constructor(
@@ -118,6 +120,7 @@ export class Prototypes {
       createdBy: prototype.createdBy as Prototype['createdBy'],
       ...(prototype.approvedVersion ? { approvedVersion: prototype.approvedVersion } : {}),
       ...(prototype.pautaId ? { pautaId: prototype.pautaId } : {}),
+      ...(prototype.designUrl ? { designUrl: prototype.designUrl } : {}),
       versions: versions.map(toVersion),
       createdAt: prototype.createdAt.toISOString(),
       updatedAt: prototype.updatedAt.toISOString(),
@@ -267,11 +270,96 @@ export class Prototypes {
     return failAbandoned(this.store.db, new Date(this.clock()));
   }
 
+  /** Prototypes of an application with its design system in Claude Design are drawn there. */
+  useDesigner(designer: CloudDesigner) {
+    this.designer = designer;
+  }
+
+  /** The request as the cloud session reads it: it has no folder, only this text. */
+  private async cloudPrompt(id: string, number: number, designSystem: string) {
+    const row = assertFound(await findPrototypeRow(this.store.db, id), 'Prototype');
+    const [app] = await this.store.db
+      .select()
+      .from(applications)
+      .where(eq(applications.id, row.prototype.applicationId))
+      .limit(1);
+    const versions = await listVersions(this.store.db, id);
+    const current = versions.find((item) => item.number === number);
+    const prints = await listPrints(this.store.db, id);
+    const canvas = row.prototype.designUrl;
+
+    return [
+      `Você desenha protótipos de tela para a Atena, do Moabe Charlor (PO da VX Case). Responda em português, sem travessão.`,
+      `Aplicação: ${app?.name ?? row.slug}, plataforma ${app?.platform ?? 'web'}.`,
+      `Design system no Claude Design: ${designSystem}. Antes de desenhar, leia dele project/README.md e project/preferencias-do-po.md, e os README e .d.ts dos componentes que usar. As preferências do PO valem por cima de tudo. Use os componentes reais do bundle, no layout do sistema.`,
+      canvas
+        ? `Atualize o artefato Design ${canvas} (leia antes). Mude só o que os comentários do PO pedem; o Claude Design guarda a versão anterior.`
+        : `Crie um artefato privado do tipo Design com o título "${row.prototype.title}". Não compartilhe com ninguém.`,
+      '',
+      `# ${row.prototype.title}`,
+      row.prototype.requestUrl ? `Pedido no Work: ${row.prototype.requestUrl}` : '',
+      '',
+      '## O que a tela precisa fazer',
+      row.prototype.brief,
+      current?.comments
+        ? `\n## Comentários do PO sobre a versão anterior\n${current.comments}`
+        : '',
+      prints.length
+        ? `\n## Prints\nO PO anexou ${prints.length} print(s) (${prints.map((print) => print.name).join(', ')}), que não chegam a esta sessão. Siga o texto acima.`
+        : '',
+      '',
+      'A tela é totalmente interativa: filtros filtram, botões abrem o que abririam, confirmações aparecem.',
+      `Ao terminar, a PRIMEIRA linha da sua resposta é exatamente: ${RESULT_MARK} <link do artefato>. Depois, em até 5 linhas, o que a tela tem e o que você decidiu sozinho.`,
+    ]
+      .filter((line) => line !== '')
+      .join('\n');
+  }
+
+  private async makeInCloud(id: string, number: number, designSystem: string) {
+    const designer = assertFound(this.designer, 'Cloud designer');
+    const folder = join(this.root, id, `v${number}`);
+
+    await rm(folder, { recursive: true, force: true });
+    await mkdir(folder, { recursive: true });
+
+    const outcome = await designer({
+      prompt: await this.cloudPrompt(id, number, designSystem),
+      folder,
+      signal: this.abort.signal,
+    });
+
+    if (!outcome.ok) throw new Error(outcome.error);
+
+    await updatePrototype(this.store.db, id, { designUrl: outcome.url });
+  }
+
   private async make(id: string, number: number) {
     const started = this.clock();
     const folder = join(this.root, id, `v${number}`);
 
     try {
+      const row = assertFound(await findPrototypeRow(this.store.db, id), 'Prototype');
+      const [app] = await this.store.db
+        .select({ designUrl: applications.designUrl })
+        .from(applications)
+        .where(eq(applications.id, row.prototype.applicationId))
+        .limit(1);
+
+      if (app?.designUrl && this.designer) {
+        await this.makeInCloud(id, number, app.designUrl);
+
+        const finished = new Date(this.clock());
+
+        await updateVersion(this.store.db, id, number, {
+          status: 'ready',
+          durationMs: finished.getTime() - started,
+          finishedAt: finished,
+        });
+        await updatePrototype(this.store.db, id, { updatedAt: finished });
+        await this.tell(id, number, 'pronta');
+        return;
+      }
+
       await this.prepare(id, number, folder);
 
       const outcome = await this.generate(

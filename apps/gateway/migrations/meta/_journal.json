@@ -379,6 +379,13 @@
       "when": 1792031668516,
       "tag": "0053_drawings",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792118068516,
+      "tag": "0054_claude_design",
+      "breakpoints": true
     }
   ]
 }

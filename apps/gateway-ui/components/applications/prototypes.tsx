@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ImagePlus, Plus, RefreshCw } from 'lucide-react';
+import { Check, ExternalLink, ImagePlus, Plus, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { Application, Prototype } from '../../lib/api';
 import { date } from '../../lib/format';
@@ -99,7 +99,7 @@ export function Prototypes({
 
   useEffect(() => {
     setPreview(undefined);
-    if (!current || shown?.status !== 'ready') return;
+    if (!current || shown?.status !== 'ready' || current.designUrl) return;
 
     void api
       .prototypePreview(current.id, shown.number)
@@ -164,7 +164,17 @@ export function Prototypes({
           </p>
         )}
 
-        {shown?.status === 'ready' ? (
+        {shown?.status === 'ready' && current.designUrl ? (
+          <div className="prototype-cloud">
+            <p className="note">
+              Esta tela está no Claude Design. Cada versão fica guardada lá, no mesmo canvas.
+            </p>
+            <a className="button" href={current.designUrl} target="_blank" rel="noreferrer">
+              <ExternalLink size={16} />
+              Abrir no Claude Design
+            </a>
+          </div>
+        ) : shown?.status === 'ready' ? (
           preview ? (
             <iframe
               title={`${current.title}, versão ${shown.number}`}
@@ -179,8 +189,9 @@ export function Prototypes({
           <p className="error">A geração falhou: {shown.error}</p>
         ) : (
           <p className="note">
-            O Claude Code está desenhando esta versão no servidor. Leva alguns minutos; esta página
-            atualiza sozinha.
+            {application.designUrl
+              ? 'A Atena está desenhando esta versão no Claude Design, na nuvem. Leva alguns minutos; esta página atualiza sozinha.'
+              : 'O Claude Code está desenhando esta versão no servidor. Leva alguns minutos; esta página atualiza sozinha.'}
           </p>
         )}
 

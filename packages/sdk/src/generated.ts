@@ -6926,6 +6926,7 @@ export interface operations {
                         /** @enum {string} */
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
+                        designUrl?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -7057,6 +7058,8 @@ export interface operations {
                      */
                     platform?: "web" | "mobile" | "desktop" | "other";
                     source?: string;
+                    /** Format: uri */
+                    designUrl?: string;
                 };
             };
         };
@@ -7077,6 +7080,7 @@ export interface operations {
                         /** @enum {string} */
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
+                        designUrl?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -7214,6 +7218,7 @@ export interface operations {
                         /** @enum {string} */
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
+                        designUrl?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -7351,6 +7356,7 @@ export interface operations {
                         /** @enum {string} */
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
+                        designUrl?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -7483,6 +7489,8 @@ export interface operations {
                      */
                     platform?: "web" | "mobile" | "desktop" | "other";
                     source?: string;
+                    /** Format: uri */
+                    designUrl?: string;
                 };
             };
         };
@@ -7503,6 +7511,7 @@ export interface operations {
                         /** @enum {string} */
                         platform: "web" | "mobile" | "desktop" | "other";
                         source?: string;
+                        designUrl?: string;
                         version: number;
                         files: number;
                         /** Format: date-time */
@@ -11175,6 +11184,7 @@ export interface operations {
                         approvedVersion?: number;
                         /** Format: uuid */
                         pautaId?: string;
+                        designUrl?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -11344,6 +11354,7 @@ export interface operations {
                         approvedVersion?: number;
                         /** Format: uuid */
                         pautaId?: string;
+                        designUrl?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -11494,6 +11505,7 @@ export interface operations {
                         approvedVersion?: number;
                         /** Format: uuid */
                         pautaId?: string;
+                        designUrl?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -11650,6 +11662,7 @@ export interface operations {
                         approvedVersion?: number;
                         /** Format: uuid */
                         pautaId?: string;
+                        designUrl?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
@@ -11801,6 +11814,7 @@ export interface operations {
                         approvedVersion?: number;
                         /** Format: uuid */
                         pautaId?: string;
+                        designUrl?: string;
                         versions: {
                             number: number;
                             /** @enum {string} */
