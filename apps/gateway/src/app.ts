@@ -41,6 +41,7 @@ import { registerStatsRoutes } from './stats/routes.js';
 import { registerStickerRoutes } from './stickers/routes.js';
 import type { Store } from './storage/database.js';
 import { registerWorkRoutes } from './tasks/routes.js';
+import { registerValidationRoutes } from './validations/routes.js';
 import { registerWebRoutes } from './web/routes.js';
 
 export function createApp(
@@ -135,6 +136,7 @@ export function createApp(
   registerDrawRoutes(app, options);
   registerDrawingRoutes(app, options);
   registerEpicRoutes(app, options);
+  registerValidationRoutes(app, options);
   registerPrototypeRoutes(app, options);
   registerPautaRoutes(app, options);
   registerPriorityRoutes(app, options);

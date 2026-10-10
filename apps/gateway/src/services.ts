@@ -5,7 +5,7 @@ import type { Clock } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
 import { boardRooms, Drawings } from './drawings/service.js';
 import { Epics } from './epics/service.js';
-import { SIGMA_EPICS } from './epics/target.js';
+import { SIGMA_EPICS, SIGMA_VALIDATION } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
 import { Learning } from './learning/service.js';
@@ -36,6 +36,7 @@ import { Stats } from './stats/service.js';
 import { Stickers } from './stickers/service.js';
 import type { Store } from './storage/database.js';
 import { Work } from './tasks/service.js';
+import { Validations } from './validations/service.js';
 import { WebSearch } from './web/service.js';
 
 export type Services = {
@@ -48,6 +49,7 @@ export type Services = {
   flow: Flow;
   drawings: Drawings;
   epics: Epics;
+  validations: Validations;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -130,6 +132,28 @@ export function buildServices({
     quality,
     clock,
   );
+  const workProfile = async () =>
+    (await profiles.profiles()).find((profile) =>
+      profile.mcpServers.some((server) => server.url?.includes('/v1/mcp')),
+    )?.id;
+  const validations = new Validations(
+    store,
+    workClients,
+    workProfile,
+    SIGMA_VALIDATION,
+    quality,
+    clock,
+  );
+  validations.useOwner(async (text) => {
+    const profileId = await workProfile();
+    if (!profileId) return;
+    const owner = (await sessions.sessions(profileId)).find(
+      (session) => session.channel === 'gateway',
+    );
+    if (owner)
+      await runs.submit(profileId, owner.id, { text, requestKey: `validation:${Date.now()}` });
+  });
+  runs.useValidations(validations);
   epics.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -165,6 +189,7 @@ export function buildServices({
     priorities,
     flow: new Flow(workClients, clock),
     epics,
+    validations,
     drawings: new Drawings(
       store,
       drawBoard

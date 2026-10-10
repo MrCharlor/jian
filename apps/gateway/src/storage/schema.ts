@@ -1207,3 +1207,61 @@ export const epicDrafts = pgTable(
   },
   (table) => [index('epic_drafts_pauta').on(table.pautaId, table.createdAt.desc())],
 );
+
+type ValidationItemRow = {
+  text: string;
+  result?: 'passou' | 'falhou';
+  reason?: string;
+  taskId?: string;
+};
+type ReturnDraftRow = {
+  item: number;
+  taskId: string;
+  title: string;
+  label: 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'hotfix';
+  description: string;
+  criteria: string[];
+  problems: string[];
+  state: 'rascunho' | 'criado';
+  workId?: string;
+  error?: string;
+  original: string;
+  linked?: boolean;
+  mirrored?: boolean;
+};
+
+/** The owner's check of an epic the tester passed, and the return cards it gave. */
+export const validations = pgTable(
+  'validations',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    epicWorkId: text('epic_work_id').notNull(),
+    epicTitle: text('epic_title').notNull(),
+    previewUrl: text('preview_url'),
+    prototypeUrl: text('prototype_url'),
+    pautaId: uuid('pauta_id').references(() => pautas.id, { onDelete: 'set null' }),
+    items: jsonb('items').$type<ValidationItemRow[]>().notNull(),
+    tasks: jsonb('tasks')
+      .$type<
+        Array<{ id: string; title: string; checklist: Array<{ text: string; done: boolean }> }>
+      >()
+      .notNull(),
+    notes: jsonb('notes').$type<string[]>().notNull(),
+    state: text('state').notNull(),
+    commented: boolean('commented').notNull().default(false),
+    returns: jsonb('returns').$type<ReturnDraftRow[]>().notNull(),
+    decidedVia: text('decided_via'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('validations_epic').on(table.epicWorkId, table.createdAt.desc())],
+);
+
+/** Return cards the tester opened that were already checked against the model. */
+export const returnReviews = pgTable('return_reviews', {
+  workId: text('work_id').primaryKey(),
+  problems: jsonb('problems').$type<string[]>().notNull(),
+  createdAt,
+});

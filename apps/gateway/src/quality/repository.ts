@@ -9,6 +9,7 @@ import {
   prototypes,
   prototypeVersions,
   runs,
+  validations,
 } from '../storage/schema.js';
 
 type Row = typeof corrections.$inferSelect;
@@ -119,7 +120,16 @@ export async function listRounds(db: Queryable, profileId: string): Promise<Roun
     .orderBy(desc(priorityProposals.decidedAt))
     .limit(5000);
 
+  // Each check the owner answered is one round of the validation.
+  const checked = await db
+    .select({ at: validations.decidedAt })
+    .from(validations)
+    .where(isNotNull(validations.decidedAt))
+    .orderBy(desc(validations.decidedAt))
+    .limit(5000);
+
   return [
+    ...checked.map((row) => ({ automation: 'validacao', at: row.at as Date })),
     ...ordered.map((row) => ({ automation: 'priorizacao', at: row.at as Date })),
     ...drawn.map((row) => ({ automation: `prototipo:${row.slug}`, at: row.at })),
     ...scheduled.map((row) => ({ automation: String(row.origin), at: row.at })),

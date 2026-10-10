@@ -5,8 +5,10 @@ import type {
   NewApplication,
   NewPauta,
   NewPrototype,
+  ReturnDraftPatch,
   ScheduleInput,
   SchedulePatch,
+  ValidationAnswer,
 } from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
@@ -107,6 +109,28 @@ export const resourceCalls = (client: Client) => ({
     result(client.POST('/v1/drawings', { body })),
   removeDrawing: (drawingId: string) =>
     result(client.DELETE('/v1/drawings/{drawingId}', { params: { path: { drawingId } } })),
+  validations: () => result(client.GET('/v1/validations')),
+  scanValidations: () => result(client.POST('/v1/validations/scan')),
+  answerValidation: (validationId: string, body: ValidationAnswer) =>
+    result(
+      client.POST('/v1/validations/{validationId}/answer', {
+        params: { path: { validationId } },
+        body,
+      }),
+    ),
+  updateReturnDraft: (validationId: string, index: number, body: ReturnDraftPatch) =>
+    result(
+      client.PATCH('/v1/validations/{validationId}/returns/{index}', {
+        params: { path: { validationId, index } },
+        body,
+      }),
+    ),
+  createReturnCard: (validationId: string, index: number) =>
+    result(
+      client.POST('/v1/validations/{validationId}/returns/{index}/create', {
+        params: { path: { validationId, index } },
+      }),
+    ),
   epicDrafts: (pautaId: string) =>
     result(client.GET('/v1/pautas/{pautaId}/epics', { params: { path: { pautaId } } })),
   updateEpicDraft: (draftId: string, body: EpicDraftPatch) =>

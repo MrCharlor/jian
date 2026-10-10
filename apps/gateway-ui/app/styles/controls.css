@@ -1133,3 +1133,25 @@ textarea.request-edit {
 .epic-image input {
   max-width: 220px;
 }
+
+.validation-items {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+}
+
+.validation-items li {
+  display: grid;
+  gap: 6px;
+}
+
+.validation-answer {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.validation-answer input {
+  min-width: 240px;
+}

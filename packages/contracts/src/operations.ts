@@ -131,6 +131,7 @@ import {
 import { panelSessionEndSchema, panelSessionInputSchema, panelSessionSchema } from './security.js';
 import { catalogQuerySchema, catalogSchema, skillImportSchema } from './skills.js';
 import { sshKeyCreateSchema, sshKeySchema } from './ssh.js';
+import { returnDraftPatchSchema, validationAnswerSchema, validationSchema } from './validations.js';
 import { webSearchInputSchema, webSearchStatusSchema } from './web.js';
 import { workExecutionSchema, workHistorySchema, workItemSchema } from './work.js';
 
@@ -661,6 +662,53 @@ export const operations: Operation[] = [
     access: 'admin',
     params: z.strictObject({ draftId: z.uuid() }),
     response: epicDraftSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/validations',
+    operationId: 'listValidations',
+    access: 'admin',
+    response: z.array(validationSchema),
+  },
+  {
+    // Looks at the board now instead of waiting for the hourly look.
+    method: 'POST',
+    path: '/v1/validations/scan',
+    operationId: 'scanValidations',
+    access: 'admin',
+    response: z.strictObject({ prepared: z.array(z.number()), reviewed: z.number() }),
+  },
+  {
+    method: 'POST',
+    path: '/v1/validations/:validationId/answer',
+    operationId: 'answerValidation',
+    access: 'admin',
+    params: z.strictObject({ validationId: z.uuid() }),
+    body: validationAnswerSchema,
+    response: validationSchema,
+  },
+  {
+    method: 'PATCH',
+    path: '/v1/validations/:validationId/returns/:index',
+    operationId: 'updateReturnDraft',
+    access: 'admin',
+    params: z.strictObject({
+      validationId: z.uuid(),
+      index: z.coerce.number().int().min(0).max(40),
+    }),
+    body: returnDraftPatchSchema,
+    response: validationSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/validations/:validationId/returns/:index/create',
+    operationId: 'createReturnCard',
+    access: 'admin',
+    params: z.strictObject({
+      validationId: z.uuid(),
+      index: z.coerce.number().int().min(0).max(40),
+    }),
+    response: validationSchema,
   },
   {
     method: 'GET',

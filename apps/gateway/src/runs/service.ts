@@ -7,6 +7,7 @@ import {
   parseApprovalReply,
   parseCorrectionReply,
   parseDecisionReply,
+  parseValidationReply,
   type Run,
   submitSchema,
   TASK_SESSION_CHANNEL,
@@ -31,6 +32,7 @@ import {
   setPonytailMode,
 } from '../sessions/repository.js';
 import type { Queryable, Store } from '../storage/database.js';
+import { Validations as ValidationNotices } from '../validations/service.js';
 import type { SubmitOptions } from './port.js';
 import {
   appendSteer,
@@ -113,6 +115,12 @@ export class Runs {
   private decisions?: Pick<DecisionNotices, 'decide'>;
 
   /** Wired after construction: the topics service is built after this one. */
+  private validations?: Pick<ValidationNotices, 'fromChat'>;
+
+  useValidations(validations: Pick<ValidationNotices, 'fromChat'>) {
+    this.validations = validations;
+  }
+
   useDecisions(decisions: Pick<DecisionNotices, 'decide'>) {
     this.decisions = decisions;
   }
@@ -179,6 +187,21 @@ export class Runs {
         });
 
       if (decision) parsed.text = DecisionNotices.notice(decision);
+    }
+
+    // "aprovado" or "reprovado: motivo" answers the one validation waiting for the owner.
+    const validated =
+      options.ownerMessage && this.validations && !reply && !decided
+        ? parseValidationReply(parsed.text)
+        : undefined;
+
+    if (validated && this.validations) {
+      const validation = await this.validations.fromChat(validated).catch((error: unknown) => {
+        if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+        throw error;
+      });
+
+      if (validation) parsed.text = ValidationNotices.notice(validation);
     }
 
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of

@@ -38,3 +38,14 @@ export const SIGMA_EPICS: EpicTarget = {
   },
   lead: { id: '2caf7fee-8ea1-4585-a43c-e04d979d23ef', name: 'Lucas Larangeira' },
 };
+
+/** What the owner's check reads on the Sigma boards, besides the epic board. */
+export const SIGMA_VALIDATION = {
+  ...SIGMA_EPICS,
+  tasksBoardId: '762d9c12-3467-49f4-9cc8-722762c8a454',
+  // stts::awaiting-po, until the Homologação column exists.
+  awaitingLabel: 'f5091215-db9a-423d-8e25-876416b2086f',
+  // type::returned
+  returnedLabel: 'f1183a66-7b43-4c67-bed9-22181f0fbdf1',
+  previewFieldId: '368ac481-2c90-4d91-8651-b1e42c232b79',
+};

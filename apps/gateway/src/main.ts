@@ -281,6 +281,11 @@ try {
       void services.prototypes
         .drain()
         .catch(() => console.error('jian: a prototype could not be made; will retry'));
+      void services.validations
+        .tick()
+        .catch(() =>
+          console.error('jian: the board could not be checked for validations; will retry'),
+        );
     }, SCHEDULE_TICK_MS);
     scheduleTimer.unref();
     await services.prototypes.recover();

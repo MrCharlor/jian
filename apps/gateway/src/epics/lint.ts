@@ -78,30 +78,7 @@ export function lintDraft(draft: Draft): string[] {
   }
 
   draft.tasks.forEach((task, index) => {
-    const where = `Task ${index + 1} ("${task.title.slice(0, 60)}")`;
-    const first = task.title.split(/\s+/)[0] ?? '';
-
-    if (!/(ar|er|ir|or)$/i.test(first)) {
-      problems.push(`${where}: o título não começa com verbo no infinitivo.`);
-    }
-
-    for (const name of TASK_SECTIONS) {
-      if (section(task.description, name) === undefined) {
-        problems.push(`${where}: falta a seção "${name}".`);
-      }
-    }
-
-    const rules = [...new Set(task.description.match(/\bRN-\d+\b/g) ?? [])];
-
-    for (const rule of rules) {
-      if (!task.criteria.some((criterion) => criterion.includes(`(${rule})`))) {
-        problems.push(`${where}: ${rule} não tem critério de aceite.`);
-      }
-    }
-
-    if (!/make test/i.test(task.criteria.at(-1) ?? '')) {
-      problems.push(`${where}: o último critério não é o make test.`);
-    }
+    problems.push(...lintTask(task, `Task ${index + 1} ("${task.title.slice(0, 60)}")`));
   });
 
   for (const image of draft.images) {
@@ -111,6 +88,69 @@ export function lintDraft(draft: Draft): string[] {
       );
     }
   }
+
+  return problems;
+}
+
+/** The rules of one task: title, sections, a criterion per rule, the make test last. */
+export function lintTask(
+  task: { title: string; description: string; criteria: string[] },
+  where = `Task ("${task.title.slice(0, 60)}")`,
+): string[] {
+  const problems: string[] = [];
+  const first = task.title.split(/\s+/)[0] ?? '';
+
+  if (!/(ar|er|ir|or)$/i.test(first)) {
+    problems.push(`${where}: o título não começa com verbo no infinitivo.`);
+  }
+
+  for (const name of TASK_SECTIONS) {
+    if (section(task.description, name) === undefined) {
+      problems.push(`${where}: falta a seção "${name}".`);
+    }
+  }
+
+  const rules = [...new Set(task.description.match(/\bRN-\d+\b/g) ?? [])];
+
+  for (const rule of rules) {
+    if (!task.criteria.some((criterion) => criterion.includes(`(${rule})`))) {
+      problems.push(`${where}: ${rule} não tem critério de aceite.`);
+    }
+  }
+
+  if (!/make test/i.test(task.criteria.at(-1) ?? '')) {
+    problems.push(`${where}: o último critério não é o make test.`);
+  }
+
+  if (/ [—–] /.test([task.title, task.description, ...task.criteria].join('\n'))) {
+    problems.push(`${where}: há travessão no texto.`);
+  }
+
+  return problems;
+}
+
+/** A return card also says which task it returns to and what the test showed. */
+export function lintReturn(card: {
+  title: string;
+  description: string;
+  criteria: string[];
+  labels: string[];
+  dependsOn: boolean;
+}): string[] {
+  const problems = lintTask(card, `Retorno ("${card.title.slice(0, 60)}")`).filter(
+    // A return written by the tester follows the return model, not every task section.
+    (problem) => !problem.includes('falta a seção "Contexto"'),
+  );
+
+  if (!/Retorno de:/i.test(card.description))
+    problems.push('Falta "Retorno de: <link da task original>".');
+  if (!/preview/i.test(card.description))
+    problems.push('O Hoje não cita o preview em que o teste foi feito.');
+  if (!card.labels.some((label) => label !== 'type::returned' && label.startsWith('type::'))) {
+    problems.push('Falta a etiqueta do tipo (bugfix, feature, style...) além de retorno.');
+  }
+  if (!card.dependsOn) problems.push('O retorno não depende da task original.');
+  if (!card.criteria.length) problems.push('O retorno não tem critério de aceite no checklist.');
 
   return problems;
 }
