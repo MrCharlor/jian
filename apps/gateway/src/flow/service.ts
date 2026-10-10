@@ -120,10 +120,10 @@ export function flowReport(
     '',
     `Em dias úteis (seg a sex, sem feriados). Épicos: ${epics.length}. Tasks: ${tasks.length}.`,
     '',
-    '## Aceitos por semana',
+    '## Por semana',
     '',
-    '| Semana | Tasks | Épicos |',
-    '|---|---|---|',
+    '| Semana | Tasks aceitas | Épicos aceitos | Voltas de task |',
+    '|---|---|---|---|',
   );
 
   for (let week = since; week <= now; week += 7 * DAY) {
@@ -133,7 +133,17 @@ export function flowReport(
         return at !== undefined && at >= week && at < week + 7 * DAY;
       }).length;
 
-    lines.push(`| ${date(week)} | ${inWeek(tasks)} | ${inWeek(epics)} |`);
+    const back = tasks.flatMap((card) =>
+      card.moves.filter(
+        (move) =>
+          move.at >= week &&
+          move.at < week + 7 * DAY &&
+          ['Em revisão', 'Aceito'].includes(move.from) &&
+          ['Em andamento', 'A fazer'].includes(move.to),
+      ),
+    ).length;
+
+    lines.push(`| ${date(week)} | ${inWeek(tasks)} | ${inWeek(epics)} | ${back} |`);
   }
 
   const accepted = epics.filter((card) => (last(card, 'Aceito') ?? 0) >= since);

@@ -41,7 +41,7 @@ describe('the flow report', () => {
 
     const report = flowReport([epic, task], at('2026-10-09T12:00:00Z'), 2, { diego: 'Diego' });
 
-    expect(report).toContain('| 05/10 | 0 | 1 |');
+    expect(report).toContain('| 05/10 | 0 | 1 | 1 |');
     expect(report).toContain('- Criado até Aceito: mediana 3,0 · máx 3,0 (1)');
     expect(report).toContain('- Diego: 1 voltas em 1 tasks.');
     expect(report).toContain('- Task em Em andamento há 2,0 (Diego): Listagem de cores');
