@@ -19,6 +19,9 @@ import type { EpicTarget } from './target.js';
 type Row = typeof epicDrafts.$inferSelect;
 type Image = z.infer<typeof epicImageSchema>;
 type Task = { title: string; label: string; description: string; criteria: string[] };
+
+/** An epic titled as an integration test is created like any other, but nobody is asked to act. */
+const INTEGRATION_TEST = /teste de integra[çc][ãa]o/i;
 type Work = EpicDraft['work'];
 
 /** The automation the owner's edits are counted against in Quality. */
@@ -289,10 +292,12 @@ export class Epics {
 
       if (this.target.lead && !work.announced) {
         const { id: leadId, name } = this.target.lead;
+        // Whoever is mentioned must see at once that a test epic asks nothing of them.
+        const body = INTEGRATION_TEST.test(row.title)
+          ? `@[${name}](mention:${leadId}) teste de integração da Atena, não é trabalho real: não precisa assumir, criar branch nem espelhar. Pode ignorar.`
+          : `@[${name}](mention:${leadId}) épico pronto para você assumir, com ${row.tasks.length} task${row.tasks.length === 1 ? '' : 's'}. Pode preencher os campos, criar a branch e espelhar as tasks.`;
 
-        await client.call('POST', `/activities/${work.epicId}/comments`, {
-          body: `@[${name}](mention:${leadId}) épico pronto para você assumir, com ${row.tasks.length} task${row.tasks.length === 1 ? '' : 's'}. Pode preencher os campos, criar a branch e espelhar as tasks.`,
-        });
+        await client.call('POST', `/activities/${work.epicId}/comments`, { body });
         work.announced = true;
       }
 

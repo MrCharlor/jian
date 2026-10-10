@@ -191,6 +191,22 @@ describe('creating an epic on the board', () => {
     ).toContain('@[Lucas Larangeira](mention:lucas)');
   });
 
+  it('tells the lead an integration test asks nothing of him', async () => {
+    const { epics, pauta, board, by } = await fixture();
+    const drafted = await epics.draft(
+      { ...draft, title: `[TESTE DE INTEGRAÇÃO] ${draft.title} (pode apagar)`, pautaId: pauta.id },
+      by,
+    );
+
+    await epics.create(drafted.id);
+
+    const comment = board.calls.find((call) => call.path === '/activities/card-1/comments')?.body
+      ?.body as string;
+    expect(comment).toContain('@[Lucas Larangeira](mention:lucas)');
+    expect(comment).toContain('teste de integração');
+    expect(comment).not.toContain('espelhar as tasks');
+  });
+
   it('goes on from where a create stopped, without making a card twice', async () => {
     const { epics, pauta, board, by } = await fixture();
     const drafted = await epics.draft({ ...draft, pautaId: pauta.id }, by);
