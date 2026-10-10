@@ -18,7 +18,7 @@ export function SignIn({ connected }: { connected: () => void }) {
       <section className="login-story">
         <a className="brand" href="/ui/">
           <Mark />
-          <span>Jian</span>
+          <span>Atena</span>
         </a>
         <div className="login-copy">
           <div className="login-emblem" aria-hidden="true">
@@ -60,7 +60,7 @@ export function SignIn({ connected }: { connected: () => void }) {
           <div className="login-lock">
             <LockKeyhole size={24} />
           </div>
-          <h2>Connect to Jian.</h2>
+          <h2>Connect to Atena.</h2>
           <p>Sign in with this installation's host token.</p>
           <Field label="Host token">
             <input

@@ -100,7 +100,7 @@ export class Contexts {
       // agent directly, and without it the agent believes the conversation it is in is missing.
       conversations: [
         ...(gateway
-          ? [{ sessionId: gateway.id, channel: 'gateway', with: 'your owner, in the Jian panel' }]
+          ? [{ sessionId: gateway.id, channel: 'gateway', with: 'your owner, in the Atena panel' }]
           : []),
         ...conversations.map((contact) => ({
           sessionId: contact.sessionId as string,

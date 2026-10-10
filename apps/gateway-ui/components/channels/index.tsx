@@ -152,7 +152,7 @@ export function Channels(props: SectionProps) {
                     )}
                     {kind.type === 'telegram' && (
                       <p className="note">
-                        Jian registers this URL with Telegram when it connects, at{' '}
+                        Atena registers this URL with Telegram when it connects, at{' '}
                         <code>JIAN_PUBLIC_URL</code> when it is set. To change the bot token,
                         disconnect and connect again.
                       </p>

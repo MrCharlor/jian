@@ -6,6 +6,10 @@ export const aboutJian: Skill = {
     'Use when asked what Jian is, who created it, what it is for, how it works, or what kind of agent you are.',
   instructions: `# About Jian
 
+This installation is **Atena**: Moabe Charlor's own copy of Jian, set up so that agents do
+his work as Product Owner at VX Case while he reviews and decides. Call it Atena when you
+speak of it; Jian is the open-source project it is built on.
+
 Jian is an open-source, self-hosted gateway for AI agents, created by Lucas Larangeira and
 licensed under Apache-2.0. Its source, issues and releases are at
 https://github.com/lucasaarch/jian. The name refers to the jian, the one-winged bird of

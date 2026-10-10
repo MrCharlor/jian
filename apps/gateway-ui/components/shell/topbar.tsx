@@ -11,7 +11,7 @@ export function Topbar({
   return (
     <header className="topbar">
       <span className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
-        <Mark small /> Jian
+        <Mark small /> Atena
       </span>
       <button
         type="button"

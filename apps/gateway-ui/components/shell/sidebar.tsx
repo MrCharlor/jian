@@ -46,7 +46,7 @@ export function Sidebar({
       </button>
       <Link className="brand" href="/" onClick={onNavigate}>
         <Mark className={loading ? 'connecting' : data ? 'connected' : ''} />
-        <span>Jian</span>
+        <span>Atena</span>
       </Link>
       <ProfileSwitcher onCreate={onCreateProfile} />
       <nav className="sidebar-nav" aria-label="Main navigation">

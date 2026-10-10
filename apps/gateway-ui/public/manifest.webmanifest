@@ -1,8 +1,8 @@
 {
   "id": "/ui/",
-  "name": "Jian",
-  "short_name": "Jian",
-  "description": "Your self-hosted agent gateway.",
+  "name": "Atena",
+  "short_name": "Atena",
+  "description": "O trabalho de PO do Moabe, feito pelos agentes.",
   "start_url": "/ui/",
   "scope": "/ui/",
   "display": "standalone",

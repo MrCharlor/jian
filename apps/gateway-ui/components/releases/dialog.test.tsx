@@ -46,7 +46,7 @@ it('shows what changed once, as text, and marks it read on close', async () => {
       root.render(<ReleaseNotes />);
     });
 
-    expect(element.querySelector('h2')?.textContent).toBe("What's new in Jian 2.2.0");
+    expect(element.querySelector('h2')?.textContent).toBe("What's new in Atena 2.2.0");
     expect(element.textContent).toContain('Agents search the web.');
     expect(element.querySelector('li strong')?.textContent).toBe('Search');
     expect(element.querySelector('a')?.getAttribute('href')).toBe('https://example.com');

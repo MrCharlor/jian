@@ -79,15 +79,15 @@ export function ReleaseNotes({ children }: { children?: ReactNode }) {
             title={
               asked
                 ? behind > 0
-                  ? `What's new since Jian ${releases?.version ?? ''}`
+                  ? `What's new since Atena ${releases?.version ?? ''}`
                   : 'Release notes'
-                : `What's new in Jian ${releases?.version ?? latest?.version ?? ''}`
+                : `What's new in Atena ${releases?.version ?? latest?.version ?? ''}`
             }
             {...(asked
               ? {
                   description:
                     behind > 0
-                      ? `${behind} newer ${behind === 1 ? 'release is' : 'releases are'} available. Update Jian through your deployment method after reviewing these notes.`
+                      ? `${behind} newer ${behind === 1 ? 'release is' : 'releases are'} available. Update Atena through your deployment method after reviewing these notes.`
                       : releases?.version
                         ? `Every release up to ${releases.version}, newest first.`
                         : 'This build has no version, so it has no notes to show.',

@@ -7,10 +7,10 @@ import { ThemeProvider } from '../components/shell/theme';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Jian · Gateway',
+  title: 'Atena',
   description: 'Configure your agents, their channels and their connections in one place.',
   manifest: '/ui/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Jian' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Atena' },
   robots: { index: false, follow: false },
 };
 

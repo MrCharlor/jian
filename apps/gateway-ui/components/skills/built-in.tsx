@@ -63,7 +63,7 @@ export function BuiltinSkills({
   return (
     <section className="row-group" aria-labelledby="skills-built-in">
       <h2 id="skills-built-in">Built in</h2>
-      <p>They ship with the gateway and teach the agent to use what Jian gives it.</p>
+      <p>They ship with the gateway and teach the agent to use what Atena gives it.</p>
       <div className="resource-list">
         {(skills ?? []).map((skill) => (
           <ResourceRow
