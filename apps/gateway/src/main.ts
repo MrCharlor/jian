@@ -72,6 +72,11 @@ const config = z
       .string()
       .regex(/^env_\w+$/)
       .optional(),
+    // The private GitHub repository (`owner/name`) the prints of a cloud drawing travel through.
+    JIAN_PRINTS_REPO: z
+      .string()
+      .regex(/^[\w.-]+\/[\w.-]+$/)
+      .optional(),
   })
   .safeParse(process.env);
 
@@ -143,6 +148,7 @@ const services = {
   }),
   store,
 };
+services.prints.useRepository(config.data.JIAN_PRINTS_REPO);
 if (config.data.JIAN_DESIGN_ROUTINE_ID && config.data.JIAN_DESIGN_ENVIRONMENT_ID) {
   services.prototypes.useDesigner(
     claudeRoutine({

@@ -13,6 +13,8 @@ export type CloudDesigner = (job: {
   prompt: string;
   folder: string;
   signal: AbortSignal;
+  /** A GitHub repository the session opens as its source: where the prints are. */
+  source?: string;
 }) => Promise<{ ok: true; url: string; summary: string } | { ok: false; error: string }>;
 
 /** The line the cloud session starts its answer with, so the link survives a cut log. */
@@ -78,15 +80,19 @@ const wait = (ms: number, signal: AbortSignal) =>
     );
   });
 
-/** What a routine run looks like to the cloud: one user message, no repository. */
-export function routineBody(prompt: string, environmentId: string, model: string) {
+/**
+ * What a routine run looks like to the cloud: one user message, and the prints repository when
+ * there are prints. Without prints there is no repository, so a gateway whose owner never linked
+ * GitHub to Claude still draws.
+ */
+export function routineBody(prompt: string, environmentId: string, model: string, source?: string) {
   return {
     job_config: {
       ccr: {
         environment_id: environmentId,
         session_context: {
           model,
-          sources: [],
+          sources: source ? [{ git_repository: { url: source } }] : [],
           allowed_tools: [
             'Bash',
             'Read',
@@ -153,11 +159,11 @@ export function claudeRoutine(options: {
   const pause = options.pause ?? wait;
   const limit = options.limitMs ?? 25 * 60_000;
 
-  return async ({ prompt, folder, signal }) => {
+  return async ({ prompt, folder, signal, source }) => {
     await writeFile(
       join(folder, 'rotina.json'),
       JSON.stringify(
-        routineBody(prompt, options.environmentId, options.model ?? 'claude-sonnet-5-5'),
+        routineBody(prompt, options.environmentId, options.model ?? 'claude-sonnet-5-5', source),
       ),
     );
 

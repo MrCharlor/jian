@@ -1,6 +1,6 @@
 'use client';
 
-import { Save, Scale, Trash2 } from 'lucide-react';
+import { Github, Save, Scale, Trash2 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
@@ -158,6 +158,36 @@ export function WebSearchRow({ api, mutate, busy }: RowProps) {
     >
       Lets agents with web search switched on search the internet and read pages. The free plan
       covers 1,000 searches a month.
+    </ServiceKeyRow>
+  );
+}
+
+export function PrototypePrintsRow({ api, mutate, busy }: RowProps) {
+  return (
+    <ServiceKeyRow
+      id="provider-prototype-prints"
+      icon={<Github size={20} strokeWidth={1.6} />}
+      title="Prototype prints"
+      vendor="GitHub"
+      source="a fine-grained token with Contents read and write on the prints repository only"
+      load={api.prototypePrints}
+      save={api.setPrototypePrints}
+      remove={api.removePrototypePrints}
+      more={(status) =>
+        status.repository ? (
+          <p className="text-sm text-muted">Repository: {status.repository}</p>
+        ) : (
+          <p className="text-sm text-muted">
+            No repository: set JIAN_PRINTS_REPO on the server first.
+          </p>
+        )
+      }
+      mutate={mutate}
+      busy={busy}
+    >
+      Lets a prototype drawn in Claude Design see the prints attached to its request. The prints go
+      to a private GitHub repository that the cloud drawing session opens, because it cannot reach
+      this server.
     </ServiceKeyRow>
   );
 }
