@@ -26,6 +26,7 @@ import { ReleaseNotes } from './releases/service.js';
 import { RunLifecycle } from './runs/lifecycle.js';
 import { Runs } from './runs/service.js';
 import { Schedules } from './schedules/service.js';
+import { Screens } from './screens/service.js';
 import type { GatewayVault } from './security/gateway-vault.js';
 import { createSafeFetch } from './security/outbound.js';
 import type { Vault } from './security/vault.js';
@@ -50,6 +51,7 @@ export type Services = {
   drawings: Drawings;
   epics: Epics;
   validations: Validations;
+  screens: Screens;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -190,6 +192,7 @@ export function buildServices({
     flow: new Flow(workClients, clock),
     epics,
     validations,
+    screens: new Screens(store, applications, clock),
     drawings: new Drawings(
       store,
       drawBoard

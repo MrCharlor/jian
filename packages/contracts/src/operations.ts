@@ -128,6 +128,15 @@ import {
   scheduleRecordSchema,
   scheduleRunSchema,
 } from './schedules.js';
+import {
+  screenInventoryInputSchema,
+  screenInventoryResultSchema,
+  screenListQuerySchema,
+  screenPrintContentSchema,
+  screenPrintsInputSchema,
+  screenRecordSchema,
+  screenSheetInputSchema,
+} from './screens.js';
 import { panelSessionEndSchema, panelSessionInputSchema, panelSessionSchema } from './security.js';
 import { catalogQuerySchema, catalogSchema, skillImportSchema } from './skills.js';
 import { sshKeyCreateSchema, sshKeySchema } from './ssh.js';
@@ -709,6 +718,66 @@ export const operations: Operation[] = [
       index: z.coerce.number().int().min(0).max(40),
     }),
     response: validationSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/screens',
+    operationId: 'listScreens',
+    access: 'admin',
+    query: screenListQuerySchema,
+    response: z.array(screenRecordSchema),
+  },
+  {
+    // Lists screens from the code and the menu; a second run updates, never duplicates.
+    method: 'POST',
+    path: '/v1/screens/inventory',
+    operationId: 'saveScreenInventory',
+    access: 'admin',
+    body: screenInventoryInputSchema,
+    response: screenInventoryResultSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/screens/:screenId',
+    operationId: 'getScreen',
+    access: 'admin',
+    params: z.strictObject({ screenId: z.uuid() }),
+    response: screenRecordSchema,
+  },
+  {
+    method: 'PUT',
+    path: '/v1/screens/:screenId/sheet',
+    operationId: 'writeScreenSheet',
+    access: 'admin',
+    params: z.strictObject({ screenId: z.uuid() }),
+    body: screenSheetInputSchema,
+    response: screenRecordSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/screens/:screenId/prints',
+    operationId: 'attachScreenPrints',
+    access: 'admin',
+    params: z.strictObject({ screenId: z.uuid() }),
+    body: screenPrintsInputSchema,
+    response: screenRecordSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/screens/:screenId/prints/:name',
+    operationId: 'getScreenPrint',
+    access: 'admin',
+    params: z.strictObject({ screenId: z.uuid(), name: z.string().min(1).max(120) }),
+    response: screenPrintContentSchema,
+  },
+  {
+    // The owner's review of the sheet; agents have no tool for it.
+    method: 'POST',
+    path: '/v1/screens/:screenId/review',
+    operationId: 'reviewScreen',
+    access: 'admin',
+    params: z.strictObject({ screenId: z.uuid() }),
+    response: screenRecordSchema,
   },
   {
     method: 'GET',

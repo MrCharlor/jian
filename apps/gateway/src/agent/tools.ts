@@ -34,6 +34,8 @@ import type { ProfileAdmin } from '../profiles/port.js';
 import type { Prototypes } from '../prototypes/service.js';
 import type { RunExecution, RunReader } from '../runs/port.js';
 import type { Schedules } from '../schedules/service.js';
+import type { Screens } from '../screens/service.js';
+import { screenTools } from '../screens/tools.js';
 import type { SessionNamer, SessionReader, SessionSummarizer } from '../sessions/port.js';
 import { findSkill } from '../skills/builtin/index.js';
 import { skillTools } from '../skills/tools.js';
@@ -109,6 +111,7 @@ export type ToolServices = {
   flow?: Pick<Flow, 'report'>;
   drawings?: Pick<Drawings, 'list' | 'draw'>;
   epics?: Pick<Epics, 'draft' | 'get' | 'list'>;
+  screens?: Pick<Screens, 'list' | 'saveInventory' | 'get' | 'writeSheet' | 'attachPrints'>;
 };
 
 export function profileTools(
@@ -263,6 +266,7 @@ export function profileTools(
     ...(services.applications ? designTools(services.applications) : {}),
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
+    ...(services.screens ? screenTools(services.screens, run) : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
     ...(services.epics
       ? {
@@ -678,6 +682,11 @@ export const TOOL_GROUPS = {
     summary:
       'write the epic and tasks of a topic as a draft for the owner to review, and read a draft back',
     tools: ['draft_epic', 'read_epic_draft'],
+  },
+  screens: {
+    summary:
+      'map the screens of an application: record the list from its routes and menu, read one, and write its sheet (today, inferred requirements, questions, problems, each line with its source) with prints, for the owner to review',
+    tools: ['list_screens', 'save_screen_inventory', 'read_screen', 'write_screen_sheet'],
   },
   draw: {
     summary:

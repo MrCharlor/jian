@@ -1265,3 +1265,53 @@ export const returnReviews = pgTable('return_reviews', {
   problems: jsonb('problems').$type<string[]>().notNull(),
   createdAt,
 });
+
+type ScreenItemRow = { text: string; source: 'screen' | 'code' | 'unknown' };
+
+/**
+ * A screen of an application, listed from its code and menu and mapped by an agent. The route
+ * is unique per application, so listing the screens again updates them instead of doubling.
+ */
+export const screens = pgTable(
+  'screens',
+  {
+    id: uuid('id').primaryKey(),
+    applicationId: uuid('application_id')
+      .notNull()
+      .references(() => applications.id, { onDelete: 'cascade' }),
+    route: text('route').notNull(),
+    menuPath: text('menu_path').notNull().default(''),
+    title: text('title').notNull(),
+    squad: text('squad'),
+    state: text('state').notNull(),
+    sheet: jsonb('sheet').$type<{
+      today: ScreenItemRow[];
+      requirements: ScreenItemRow[];
+      questions: ScreenItemRow[];
+      problems: ScreenItemRow[];
+    }>(),
+    workUrl: text('work_url'),
+    mappedAt: timestamp('mapped_at', { withTimezone: true }),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('screens_route').on(table.applicationId, table.route),
+    index('screens_state').on(table.applicationId, table.state),
+  ],
+);
+
+export const screenPrints = pgTable(
+  'screen_prints',
+  {
+    screenId: uuid('screen_id')
+      .notNull()
+      .references(() => screens.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    contentType: text('content_type').notNull(),
+    content: text('content').notNull(),
+    createdAt,
+  },
+  (table) => [primaryKey({ columns: [table.screenId, table.name] })],
+);

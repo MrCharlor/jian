@@ -8,6 +8,7 @@ import type {
   ReturnDraftPatch,
   ScheduleInput,
   SchedulePatch,
+  ScreenFilter,
   ValidationAnswer,
 } from './types';
 
@@ -109,6 +110,15 @@ export const resourceCalls = (client: Client) => ({
     result(client.POST('/v1/drawings', { body })),
   removeDrawing: (drawingId: string) =>
     result(client.DELETE('/v1/drawings/{drawingId}', { params: { path: { drawingId } } })),
+  screens: (query: ScreenFilter = {}) => result(client.GET('/v1/screens', { params: { query } })),
+  screen: (screenId: string) =>
+    result(client.GET('/v1/screens/{screenId}', { params: { path: { screenId } } })),
+  screenPrint: (screenId: string, name: string) =>
+    result(
+      client.GET('/v1/screens/{screenId}/prints/{name}', { params: { path: { screenId, name } } }),
+    ),
+  reviewScreen: (screenId: string) =>
+    result(client.POST('/v1/screens/{screenId}/review', { params: { path: { screenId } } })),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

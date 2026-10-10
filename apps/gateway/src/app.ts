@@ -30,6 +30,7 @@ import { registerQualityRoutes } from './quality/routes.js';
 import { registerReleaseRoutes } from './releases/routes.js';
 import { registerRunRoutes } from './runs/routes.js';
 import { registerScheduleRoutes } from './schedules/routes.js';
+import { registerScreenRoutes } from './screens/routes.js';
 import { registerSecurityRoutes } from './security/routes.js';
 import type { Services } from './services.js';
 import { registerSessionRoutes } from './sessions/routes.js';
@@ -137,6 +138,7 @@ export function createApp(
   registerDrawingRoutes(app, options);
   registerEpicRoutes(app, options);
   registerValidationRoutes(app, options);
+  registerScreenRoutes(app, options);
   registerPrototypeRoutes(app, options);
   registerPautaRoutes(app, options);
   registerPriorityRoutes(app, options);

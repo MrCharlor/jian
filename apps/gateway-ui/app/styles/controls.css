@@ -1155,3 +1155,28 @@ textarea.request-edit {
 .validation-answer input {
   min-width: 240px;
 }
+
+.screen-items {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.screen-prints {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.screen-prints figure {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.screen-prints img {
+  width: 100%;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+  border-radius: 8px;
+}

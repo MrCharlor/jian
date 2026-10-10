@@ -16,6 +16,7 @@ export * from './providers.js';
 export * from './records.js';
 export * from './releases.js';
 export * from './schedules.js';
+export * from './screens.js';
 export * from './security.js';
 export * from './skills.js';
 export * from './ssh.js';
