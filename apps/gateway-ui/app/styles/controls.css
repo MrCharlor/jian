@@ -1087,3 +1087,49 @@ textarea.request-edit {
   font-weight: 600;
   text-decoration: none;
 }
+
+.epic-draft .settings-fields {
+  margin: 8px 0;
+}
+
+.epic-draft textarea {
+  width: 100%;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.9em;
+}
+
+.epic-problems {
+  border: 1px solid var(--warn, #b45309);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.epic-problems ul {
+  margin: 4px 0 0;
+}
+
+.epic-task {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.epic-task legend {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.epic-image {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.epic-image input {
+  max-width: 220px;
+}

@@ -1,6 +1,13 @@
 import { type Client, profile } from './params';
 import { result } from './result';
-import type { NewApplication, NewPauta, NewPrototype, ScheduleInput, SchedulePatch } from './types';
+import type {
+  EpicDraftPatch,
+  NewApplication,
+  NewPauta,
+  NewPrototype,
+  ScheduleInput,
+  SchedulePatch,
+} from './types';
 
 /** What the agent carries between runs: what it remembers and what it knows how to do. */
 export const resourceCalls = (client: Client) => ({
@@ -100,6 +107,14 @@ export const resourceCalls = (client: Client) => ({
     result(client.POST('/v1/drawings', { body })),
   removeDrawing: (drawingId: string) =>
     result(client.DELETE('/v1/drawings/{drawingId}', { params: { path: { drawingId } } })),
+  epicDrafts: (pautaId: string) =>
+    result(client.GET('/v1/pautas/{pautaId}/epics', { params: { path: { pautaId } } })),
+  updateEpicDraft: (draftId: string, body: EpicDraftPatch) =>
+    result(client.PATCH('/v1/epics/{draftId}', { params: { path: { draftId } }, body })),
+  createEpicOnBoard: (draftId: string) =>
+    result(client.POST('/v1/epics/{draftId}/create', { params: { path: { draftId } } })),
+  discardEpicDraft: (draftId: string) =>
+    result(client.POST('/v1/epics/{draftId}/discard', { params: { path: { draftId } } })),
   priorityCriteria: () => result(client.GET('/v1/priorities/criteria')),
   setPriorityCriteria: (text: string) =>
     result(client.PUT('/v1/priorities/criteria', { body: { text } })),

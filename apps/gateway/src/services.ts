@@ -4,6 +4,8 @@ import { Contexts } from './context/service.js';
 import type { Clock } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
 import { boardRooms, Drawings } from './drawings/service.js';
+import { Epics } from './epics/service.js';
+import { SIGMA_EPICS } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
 import { Learning } from './learning/service.js';
@@ -45,6 +47,7 @@ export type Services = {
   priorities: Priorities;
   flow: Flow;
   drawings: Drawings;
+  epics: Epics;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -115,6 +118,22 @@ export function buildServices({
   runs.useDecisions(pautas);
   const workClients = workClientOpener(profiles, vault, fetcher ?? createSafeFetch().fetch);
   const priorities = new Priorities(store, workBoardOpener(workClients), quality, clock);
+  const epics = new Epics(
+    store,
+    workClients,
+    async () =>
+      (await profiles.profiles()).find((profile) =>
+        profile.mcpServers.some((server) => server.url?.includes('/v1/mcp')),
+      )?.id,
+    SIGMA_EPICS,
+    fetcher ?? createSafeFetch().fetch,
+    quality,
+    clock,
+  );
+  epics.useAgents({
+    remember: (profileId, key, content) =>
+      memories.remember(profileId, { key, content, expectedVersion: 0 }),
+  });
   priorities.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -145,6 +164,7 @@ export function buildServices({
     pautas,
     priorities,
     flow: new Flow(workClients, clock),
+    epics,
     drawings: new Drawings(
       store,
       drawBoard

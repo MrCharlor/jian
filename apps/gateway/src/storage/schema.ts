@@ -1165,3 +1165,45 @@ export const drawings = pgTable(
   },
   (table) => [index('drawings_recent').on(table.updatedAt.desc())],
 );
+
+type EpicTaskRow = { title: string; label: string; description: string; criteria: string[] };
+type EpicImageRow = {
+  name: string;
+  caption: string;
+  contentType: 'image/png' | 'image/jpeg' | 'image/webp';
+  data: string;
+  task?: number;
+};
+
+/** An epic and its tasks drafted by an agent, until the owner creates them on the board. */
+export const epicDrafts = pgTable(
+  'epic_drafts',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    pautaId: uuid('pauta_id')
+      .notNull()
+      .references(() => pautas.id, { onDelete: 'cascade' }),
+    state: text('state').notNull(),
+    requestWorkId: text('request_work_id'),
+    title: text('title').notNull(),
+    label: text('label').notNull(),
+    description: text('description').notNull(),
+    prototypeUrl: text('prototype_url'),
+    tasks: jsonb('tasks').$type<EpicTaskRow[]>().notNull(),
+    images: jsonb('images').$type<EpicImageRow[]>().notNull().default([]),
+    problems: jsonb('problems').$type<string[]>().notNull().default([]),
+    // The agent's own version, to tell what the owner changed before creating.
+    original: jsonb('original').notNull(),
+    work: jsonb('work')
+      .$type<{ epicId?: string; taskIds: string[]; linked: boolean; announced: boolean }>()
+      .notNull(),
+    error: text('error'),
+    proposedBy: text('proposed_by'),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('epic_drafts_pauta').on(table.pautaId, table.createdAt.desc())],
+);

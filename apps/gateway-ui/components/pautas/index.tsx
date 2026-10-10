@@ -8,6 +8,7 @@ import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
 import { Badge, Button, Empty, Field, Modal, SectionHeading } from '../ui';
 import { Markdown } from '../ui/markdown';
+import { EpicDrafts } from './epics';
 
 export const stateLabel: Record<Pauta['state'], string> = {
   descoberta: 'Descoberta',
@@ -388,6 +389,8 @@ function PautaDetail({
           ))}
         </div>
       </section>
+
+      <EpicDrafts api={api} pautaId={pauta.id} />
 
       {pauta.prototypes.length > 0 && (
         <section>

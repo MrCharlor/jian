@@ -2,6 +2,7 @@ import {
   agentCallSchema,
   decisionInputSchema,
   decisionUseSchema,
+  epicDraftInputSchema,
   memoryKeySchema,
   memorySchema,
   pautaInputSchema,
@@ -21,6 +22,7 @@ import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
 import type { Decisions, Question } from '../decisions/service.js';
 import { type Drawings, drawInputSchema } from '../drawings/service.js';
+import type { Epics } from '../epics/service.js';
 import type { Outreach } from '../errands/port.js';
 import { type Flow, flowReportInputSchema } from '../flow/service.js';
 import { sameSubject } from '../memories/duplicates.js';
@@ -106,6 +108,7 @@ export type ToolServices = {
   priorities?: Pick<Priorities, 'criteria' | 'list' | 'propose' | 'apply'>;
   flow?: Pick<Flow, 'report'>;
   drawings?: Pick<Drawings, 'list' | 'draw'>;
+  epics?: Pick<Epics, 'draft' | 'get' | 'list'>;
 };
 
 export function profileTools(
@@ -261,6 +264,27 @@ export function profileTools(
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
+    ...(services.epics
+      ? {
+          draft_epic: tool({
+            description:
+              'Write the epic and its tasks for a topic, as a draft the owner reviews in the panel; nothing reaches the board until the owner clicks Criar no Work. Follow the owner models: the epic lean (Hoje, Esperado, Decisões, Ordem de execução fechada, Pronto quando in terms of use), the detail in the tasks (Contexto, Hoje with a real example, Regras de negócio RN-n, Fora de escopo, Referências técnicas) and each task acceptance criteria as "CA-n (RN-n): ...", the last one the make test. The answer lists every rule the draft breaks: fix them with a new draft.',
+            inputSchema: epicDraftInputSchema,
+            execute: async (input) =>
+              services.epics?.draft(input, {
+                profileId: run.profileId,
+                sessionId: run.sessionId,
+                name: run.profile.name,
+              }),
+          }),
+          read_epic_draft: tool({
+            description:
+              'Read an epic draft by its number: its text, tasks, the rules it breaks, and, once created, the cards on the board.',
+            inputSchema: z.object({ number: z.number().int().positive() }),
+            execute: async ({ number }) => services.epics?.get({ number }),
+          }),
+        }
+      : {}),
     ...(services.drawings
       ? {
           list_drawings: tool({
@@ -649,6 +673,11 @@ export const TOOL_GROUPS = {
     summary:
       'read and keep the owner’s product topics (pautas): their screens, board cards, state and next steps, and propose a decision for the owner to take',
     tools: ['list_pautas', 'read_pauta', 'create_pauta', 'update_pauta', 'propose_decision'],
+  },
+  epics: {
+    summary:
+      'write the epic and tasks of a topic as a draft for the owner to review, and read a draft back',
+    tools: ['draft_epic', 'read_epic_draft'],
   },
   draw: {
     summary:

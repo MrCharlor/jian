@@ -53,6 +53,7 @@ import {
   drawLinkInputSchema,
   drawLinkSchema,
 } from './draw.js';
+import { epicDraftPatchSchema, epicDraftSchema } from './epics.js';
 import {
   inlineMediaSchema,
   mediaContentSchema,
@@ -626,6 +627,40 @@ export const operations: Operation[] = [
     operationId: 'checkDraw',
     access: 'public',
     response: drawCheckSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/pautas/:pautaId/epics',
+    operationId: 'listEpicDrafts',
+    access: 'admin',
+    params: z.strictObject({ pautaId: z.uuid() }),
+    response: z.array(epicDraftSchema),
+  },
+  {
+    method: 'PATCH',
+    path: '/v1/epics/:draftId',
+    operationId: 'updateEpicDraft',
+    access: 'admin',
+    params: z.strictObject({ draftId: z.uuid() }),
+    body: epicDraftPatchSchema,
+    response: epicDraftSchema,
+  },
+  {
+    // The owner's approval: writes the epic and its tasks on the board.
+    method: 'POST',
+    path: '/v1/epics/:draftId/create',
+    operationId: 'createEpicOnBoard',
+    access: 'admin',
+    params: z.strictObject({ draftId: z.uuid() }),
+    response: epicDraftSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/epics/:draftId/discard',
+    operationId: 'discardEpicDraft',
+    access: 'admin',
+    params: z.strictObject({ draftId: z.uuid() }),
+    response: epicDraftSchema,
   },
   {
     method: 'GET',

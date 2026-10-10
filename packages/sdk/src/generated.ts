@@ -714,6 +714,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pautas/{pautaId}/epics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listEpicDrafts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/epics/{draftId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Required permission: admin. */
+        patch: operations["updateEpicDraft"];
+        trace?: never;
+    };
+    "/v1/epics/{draftId}/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["createEpicOnBoard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/epics/{draftId}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["discardEpicDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/priorities/criteria": {
         parameters: {
             query?: never;
@@ -10320,6 +10388,689 @@ export interface operations {
                     "application/json": {
                         /** @constant */
                         ok: true;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    listEpicDrafts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pautaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        pauta?: string;
+                        /** @enum {string} */
+                        state: "rascunho" | "criado" | "descartado";
+                        requestWorkId?: string;
+                        title: string;
+                        /** @enum {string} */
+                        label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                        description: string;
+                        prototypeUrl?: string;
+                        tasks: {
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                        }[];
+                        images: {
+                            name: string;
+                            caption: string;
+                            /** @enum {string} */
+                            contentType: "image/png" | "image/jpeg" | "image/webp";
+                            task?: number;
+                        }[];
+                        problems: string[];
+                        work: {
+                            epicId?: string;
+                            epicUrl?: string;
+                            taskIds: string[];
+                            linked: boolean;
+                            announced: boolean;
+                        };
+                        error?: string;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updateEpicDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    requestWorkId?: string;
+                    title?: string;
+                    /** @enum {string} */
+                    label?: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                    description?: string;
+                    /** Format: uri */
+                    prototypeUrl?: string;
+                    tasks?: {
+                        title: string;
+                        /** @enum {string} */
+                        label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                        description: string;
+                        criteria: string[];
+                    }[];
+                    addImages?: {
+                        name: string;
+                        caption: string;
+                        /** @enum {string} */
+                        contentType: "image/png" | "image/jpeg" | "image/webp";
+                        data: string;
+                        task?: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        pauta?: string;
+                        /** @enum {string} */
+                        state: "rascunho" | "criado" | "descartado";
+                        requestWorkId?: string;
+                        title: string;
+                        /** @enum {string} */
+                        label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                        description: string;
+                        prototypeUrl?: string;
+                        tasks: {
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                        }[];
+                        images: {
+                            name: string;
+                            caption: string;
+                            /** @enum {string} */
+                            contentType: "image/png" | "image/jpeg" | "image/webp";
+                            task?: number;
+                        }[];
+                        problems: string[];
+                        work: {
+                            epicId?: string;
+                            epicUrl?: string;
+                            taskIds: string[];
+                            linked: boolean;
+                            announced: boolean;
+                        };
+                        error?: string;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    createEpicOnBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        pauta?: string;
+                        /** @enum {string} */
+                        state: "rascunho" | "criado" | "descartado";
+                        requestWorkId?: string;
+                        title: string;
+                        /** @enum {string} */
+                        label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                        description: string;
+                        prototypeUrl?: string;
+                        tasks: {
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                        }[];
+                        images: {
+                            name: string;
+                            caption: string;
+                            /** @enum {string} */
+                            contentType: "image/png" | "image/jpeg" | "image/webp";
+                            task?: number;
+                        }[];
+                        problems: string[];
+                        work: {
+                            epicId?: string;
+                            epicUrl?: string;
+                            taskIds: string[];
+                            linked: boolean;
+                            announced: boolean;
+                        };
+                        error?: string;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    discardEpicDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        pautaId: string;
+                        pauta?: string;
+                        /** @enum {string} */
+                        state: "rascunho" | "criado" | "descartado";
+                        requestWorkId?: string;
+                        title: string;
+                        /** @enum {string} */
+                        label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                        description: string;
+                        prototypeUrl?: string;
+                        tasks: {
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                        }[];
+                        images: {
+                            name: string;
+                            caption: string;
+                            /** @enum {string} */
+                            contentType: "image/png" | "image/jpeg" | "image/webp";
+                            task?: number;
+                        }[];
+                        problems: string[];
+                        work: {
+                            epicId?: string;
+                            epicUrl?: string;
+                            taskIds: string[];
+                            linked: boolean;
+                            announced: boolean;
+                        };
+                        error?: string;
+                        proposedBy?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
                     };
                 };
             };
