@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BoardCard, MoveInput, WorkBoard } from '../src/priorities/work-board.js';
-import { workBoardOpener } from '../src/priorities/work-board.js';
+import { workBoardOpener, workClientOpener } from '../src/priorities/work-board.js';
 import { testServices } from './helpers/services.js';
 
 const agent = {
@@ -261,9 +261,7 @@ describe('the board client', () => {
     }) as unknown as typeof fetch;
 
     const board = await workBoardOpener(
-      services.profiles,
-      services.vault,
-      fetcher,
+      workClientOpener(services.profiles, services.vault, fetcher),
     )(profile.id, { workspaceId: 'ws', boardId: BOARD });
     const [card] = await board.column(PRIORIZADO);
     await board.move(card as BoardCard, { statusId: PRIORIZADO, aboveId: 'b' });

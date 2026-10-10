@@ -21,6 +21,7 @@ import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
 import type { Decisions, Question } from '../decisions/service.js';
 import type { Outreach } from '../errands/port.js';
+import { type Flow, flowReportInputSchema } from '../flow/service.js';
 import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
 import type { Pautas } from '../pautas/service.js';
@@ -102,6 +103,7 @@ export type ToolServices = {
   prototypes?: Pick<Prototypes, 'create' | 'get' | 'redo'>;
   pautas?: Pick<Pautas, 'list' | 'get' | 'create' | 'update' | 'propose'>;
   priorities?: Pick<Priorities, 'criteria' | 'list' | 'propose' | 'apply'>;
+  flow?: Pick<Flow, 'report'>;
 };
 
 export function profileTools(
@@ -257,6 +259,18 @@ export function profileTools(
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
+    ...(services.flow
+      ? {
+          read_flow_report: tool({
+            description:
+              'Read the team’s flow from the board history: accepted per week, how long epics took in each stretch, tasks that came back from review, and what stands still today, in working days. Pass member names by id (from the tracker’s member list) to name people. It reads every card’s history and takes a minute.',
+            inputSchema: flowReportInputSchema,
+            execute: async (input) => ({
+              report: await services.flow?.report(run.profileId, input),
+            }),
+          }),
+        }
+      : {}),
 
     ...(services.schedules
       ? scheduleTools(services.schedules, run, () =>
@@ -616,6 +630,11 @@ export const TOOL_GROUPS = {
     summary:
       'read and keep the owner’s product topics (pautas): their screens, board cards, state and next steps, and propose a decision for the owner to take',
     tools: ['list_pautas', 'read_pauta', 'create_pauta', 'update_pauta', 'propose_decision'],
+  },
+  flow: {
+    summary:
+      'read the team’s flow on the board: accepted per week, time per stretch, rework and what stands still',
+    tools: ['read_flow_report'],
   },
   priorities: {
     summary:

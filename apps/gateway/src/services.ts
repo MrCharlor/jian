@@ -4,13 +4,14 @@ import { Contexts } from './context/service.js';
 import type { Clock } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
 import { Errands } from './errands/service.js';
+import { Flow } from './flow/service.js';
 import { Learning } from './learning/service.js';
 import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
 import { Pautas } from './pautas/service.js';
 import { Peers } from './peers/service.js';
 import { Priorities } from './priorities/service.js';
-import { workBoardOpener } from './priorities/work-board.js';
+import { workBoardOpener, workClientOpener } from './priorities/work-board.js';
 import { Profiles } from './profiles/service.js';
 import { Prototypes } from './prototypes/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
@@ -41,6 +42,7 @@ export type Services = {
   prototypes: Prototypes;
   pautas: Pautas;
   priorities: Priorities;
+  flow: Flow;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -106,12 +108,8 @@ export function buildServices({
       runs.submit(profileId, sessionId, { text, requestKey }),
   });
   runs.useDecisions(pautas);
-  const priorities = new Priorities(
-    store,
-    workBoardOpener(profiles, vault, fetcher ?? createSafeFetch().fetch),
-    quality,
-    clock,
-  );
+  const workClients = workClientOpener(profiles, vault, fetcher ?? createSafeFetch().fetch);
+  const priorities = new Priorities(store, workBoardOpener(workClients), quality, clock);
   priorities.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -141,6 +139,7 @@ export function buildServices({
     prototypes,
     pautas,
     priorities,
+    flow: new Flow(workClients, clock),
     quality,
     providers,
     sessions,

@@ -42,16 +42,26 @@ const card = (item: ActivityJson): BoardCard => ({
   boardId: item.board_id,
 });
 
+/** The tracker's REST API for one workspace, as the agent's key reaches it. */
+export type WorkClient = {
+  call(method: string, path: string, body?: unknown): Promise<unknown>;
+};
+
+export type WorkClientOpener = (
+  profileId: string,
+  address: { workspaceId: string; server?: string },
+) => Promise<WorkClient>;
+
 /**
- * Opens a board with the key the agent already uses on the tracker's MCP server: the server's
+ * Opens the tracker with the key the agent already uses on its MCP server: the server's
  * Authorization header, kept in the profile's vault. The REST API lives on the same origin.
  */
-export function workBoardOpener(
+export function workClientOpener(
   profiles: Pick<Profiles, 'profile'>,
   vault: SecretReader,
   fetcher: typeof fetch,
   env: NodeJS.ProcessEnv = process.env,
-): BoardOpener {
+): WorkClientOpener {
   return async (profileId, address) => {
     const profile = await profiles.profile(profileId);
     const server = profile.mcpServers.find((item) =>
@@ -76,25 +86,39 @@ export function workBoardOpener(
     }
 
     const base = `${new URL(server.url).origin}/v1/workspaces/${address.workspaceId}`;
-    const call = async (method: string, path: string, body?: unknown) => {
-      const response = await fetcher(`${base}${path}`, {
-        method,
-        headers: {
-          Authorization: key.startsWith('Bearer ') ? key : `Bearer ${key}`,
-          ...(body ? { 'Content-Type': 'application/json' } : {}),
-        },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-        redirect: 'error',
-        signal: AbortSignal.timeout(30_000),
-      });
-      const text = await response.text();
 
-      if (!response.ok) {
-        throw new GatewayError(502, `The board answered ${response.status}: ${text.slice(0, 300)}`);
-      }
+    return {
+      async call(method, path, body) {
+        const response = await fetcher(`${base}${path}`, {
+          method,
+          headers: {
+            Authorization: key.startsWith('Bearer ') ? key : `Bearer ${key}`,
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+          redirect: 'error',
+          signal: AbortSignal.timeout(30_000),
+        });
+        const text = await response.text();
 
-      return text ? JSON.parse(text) : undefined;
+        if (!response.ok) {
+          throw new GatewayError(
+            502,
+            `The board answered ${response.status}: ${text.slice(0, 300)}`,
+          );
+        }
+
+        return text ? JSON.parse(text) : undefined;
+      },
     };
+  };
+}
+
+/** A board of the tracker, on top of the workspace client. */
+export function workBoardOpener(open: WorkClientOpener): BoardOpener {
+  return async (profileId, address) => {
+    const client = await open(profileId, address);
+    const call = (method: string, path: string, body?: unknown) => client.call(method, path, body);
 
     return {
       async column(statusId) {
