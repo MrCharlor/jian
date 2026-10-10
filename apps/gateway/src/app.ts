@@ -10,6 +10,7 @@ import type { WhatsAppConnections } from './channels/whatsapp/connections.js';
 import { registerCoordinationRoutes } from './coordination/routes.js';
 import { Coordination } from './coordination/service.js';
 import { registerDecisionRoutes } from './decisions/routes.js';
+import { registerDrawRoutes } from './draw/routes.js';
 import { registerEventRoutes } from './http/events.js';
 import { registerMetaRoutes } from './http/meta.js';
 import { configureSecurity } from './http/security.js';
@@ -52,6 +53,8 @@ export function createApp(
     whatsapp?: WhatsAppConnections;
     maxStreams?: number;
     uiRoot?: string;
+    /** The drawing board's public address (`JIAN_DRAW_URL`), when one runs beside the gateway. */
+    drawUrl?: string;
     /**
      * The guarded client every outbound call of the gateway goes through, with the private
      * origins the operator allowed. Absent, a request made from a route allows none.
@@ -127,6 +130,7 @@ export function createApp(
   registerScheduleRoutes(app, options);
   registerApprovalRoutes(app, options);
   registerApplicationRoutes(app, options);
+  registerDrawRoutes(app, options);
   registerPrototypeRoutes(app, options);
   registerPautaRoutes(app, options);
   registerPriorityRoutes(app, options);

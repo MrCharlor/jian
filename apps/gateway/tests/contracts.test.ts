@@ -82,15 +82,22 @@ describe('public API contracts', () => {
         ]);
       }
 
-      // Liveness, the sign-in that verifies the token itself, the OAuth redirect, and a
-      // component preview — a frame cannot give a header either, so it carries a signature
-      // this gateway wrote, which expires.
+      // Liveness, the sign-in that verifies the token itself, the OAuth redirect, a component
+      // preview — a frame cannot give a header either, so it carries a signature this gateway
+      // wrote, which expires — and the drawing board's entry and its cookie check.
       expect(
         operations
           .filter((operation) => operation.access === 'public')
           .map((operation) => operation.operationId)
           .sort(),
-      ).toEqual(['completeMcpLogin', 'health', 'showApplicationPreview', 'startPanelSession']);
+      ).toEqual([
+        'checkDraw',
+        'completeMcpLogin',
+        'enterDraw',
+        'health',
+        'showApplicationPreview',
+        'startPanelSession',
+      ]);
     } finally {
       await app.close();
     }

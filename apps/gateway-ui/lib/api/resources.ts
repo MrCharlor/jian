@@ -94,6 +94,7 @@ export const resourceCalls = (client: Client) => ({
   discardDecision: (decisionId: string) =>
     result(client.POST('/v1/decisions/{decisionId}/discard', { params: { path: { decisionId } } })),
   board: () => result(client.GET('/v1/board')),
+  drawLink: () => result(client.POST('/v1/draw/link')),
   priorityCriteria: () => result(client.GET('/v1/priorities/criteria')),
   setPriorityCriteria: (text: string) =>
     result(client.PUT('/v1/priorities/criteria', { body: { text } })),

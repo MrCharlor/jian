@@ -3,6 +3,7 @@ export * from './approvals.js';
 export * from './channels.js';
 export * from './coordination.js';
 export * from './decisions.js';
+export * from './draw.js';
 export * from './media.js';
 export * from './operations.js';
 export * from './pautas.js';

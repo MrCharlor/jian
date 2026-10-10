@@ -45,6 +45,7 @@ import {
   decisionsSettingsPatchSchema,
   decisionsStatusSchema,
 } from './decisions.js';
+import { drawCheckSchema, drawEnterQuerySchema, drawLinkSchema } from './draw.js';
 import {
   inlineMediaSchema,
   mediaContentSchema,
@@ -567,6 +568,31 @@ export const operations: Operation[] = [
     operationId: 'getAgentBoard',
     access: 'admin',
     response: z.array(boardCardSchema),
+  },
+  {
+    method: 'POST',
+    path: '/v1/draw/link',
+    operationId: 'createDrawLink',
+    access: 'admin',
+    response: drawLinkSchema,
+  },
+  {
+    // The drawing board's own address sends the owner here with a signature this gateway wrote.
+    method: 'GET',
+    path: '/v1/draw/enter',
+    operationId: 'enterDraw',
+    access: 'public',
+    query: drawEnterQuerySchema,
+    response: z.string(),
+    status: 302,
+  },
+  {
+    // Asked by the drawing board's router before every request; the proof is the cookie.
+    method: 'GET',
+    path: '/v1/draw/check',
+    operationId: 'checkDraw',
+    access: 'public',
+    response: drawCheckSchema,
   },
   {
     method: 'GET',
