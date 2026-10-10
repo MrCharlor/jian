@@ -45,7 +45,14 @@ import {
   decisionsSettingsPatchSchema,
   decisionsStatusSchema,
 } from './decisions.js';
-import { drawCheckSchema, drawEnterQuerySchema, drawLinkSchema } from './draw.js';
+import {
+  drawCheckSchema,
+  drawEnterQuerySchema,
+  drawingInputSchema,
+  drawingSchema,
+  drawLinkInputSchema,
+  drawLinkSchema,
+} from './draw.js';
 import {
   inlineMediaSchema,
   mediaContentSchema,
@@ -574,7 +581,33 @@ export const operations: Operation[] = [
     path: '/v1/draw/link',
     operationId: 'createDrawLink',
     access: 'admin',
+    body: drawLinkInputSchema,
     response: drawLinkSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/drawings',
+    operationId: 'listDrawings',
+    access: 'admin',
+    response: z.array(drawingSchema),
+  },
+  {
+    method: 'POST',
+    path: '/v1/drawings',
+    operationId: 'addDrawing',
+    access: 'admin',
+    body: drawingInputSchema,
+    response: drawingSchema,
+    status: 201,
+  },
+  {
+    // Takes it off the list; the drawing itself stays on the board.
+    method: 'DELETE',
+    path: '/v1/drawings/:drawingId',
+    operationId: 'removeDrawing',
+    access: 'admin',
+    params: z.strictObject({ drawingId: z.uuid() }),
+    response: drawingSchema,
   },
   {
     // The drawing board's own address sends the owner here with a signature this gateway wrote.

@@ -61,6 +61,7 @@ const config = z
     // back to it, so it has to be the public address rather than the listening one.
     JIAN_PUBLIC_URL: z.url().optional(),
     JIAN_DRAW_URL: z.url().optional(),
+    JIAN_DRAW_INTERNAL_URL: z.url().optional(),
   })
   .safeParse(process.env);
 
@@ -119,6 +120,15 @@ const services = {
     gatewayVault,
     catalog,
     fetcher: outbound.fetch,
+    ...(config.data.JIAN_DRAW_URL && config.data.JIAN_DRAW_INTERNAL_URL
+      ? {
+          drawBoard: {
+            publicUrl: config.data.JIAN_DRAW_URL.replace(/\/+$/, ''),
+            internalUrl: config.data.JIAN_DRAW_INTERNAL_URL.replace(/\/+$/, ''),
+            token: config.data.JIAN_API_TOKEN,
+          },
+        }
+      : {}),
     ...(config.data.JIAN_TIME_ZONE ? { timeZone: config.data.JIAN_TIME_ZONE } : {}),
   }),
   store,

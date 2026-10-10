@@ -3,6 +3,7 @@ import { Approvals } from './approvals/service.js';
 import { Contexts } from './context/service.js';
 import type { Clock } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
+import { boardRooms, Drawings } from './drawings/service.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
 import { Learning } from './learning/service.js';
@@ -43,6 +44,7 @@ export type Services = {
   pautas: Pautas;
   priorities: Priorities;
   flow: Flow;
+  drawings: Drawings;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -78,7 +80,10 @@ export function buildServices({
   catalog,
   fetcher,
   timeZone,
+  drawBoard,
 }: {
+  /** The drawing board beside the gateway: its public address, and where the gateway reaches it. */
+  drawBoard?: { publicUrl: string; internalUrl: string; token: string };
   store: Store;
   vault: Vault;
   gatewayVault: GatewayVault;
@@ -140,6 +145,16 @@ export function buildServices({
     pautas,
     priorities,
     flow: new Flow(workClients, clock),
+    drawings: new Drawings(
+      store,
+      drawBoard
+        ? {
+            publicUrl: drawBoard.publicUrl,
+            rooms: boardRooms(drawBoard.internalUrl, drawBoard.token, clock),
+          }
+        : undefined,
+      clock,
+    ),
     quality,
     providers,
     sessions,

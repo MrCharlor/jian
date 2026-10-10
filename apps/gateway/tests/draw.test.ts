@@ -32,6 +32,15 @@ describe('the drawing board gate', () => {
       (await app.inject({ url: '/v1/draw/check', headers: { cookie: `${cookie}0` } })).statusCode,
     ).toBe(401);
 
+    const room = (
+      await app.inject({ method: 'POST', url: '/v1/draw/link', payload: { to: '/#room=abc,key' } })
+    ).json().url;
+    const landed = await app.inject({ url: `/v1/draw/enter${new URL(room).search}` });
+    expect(landed.headers.location).toBe('/#room=abc,key');
+    const forged = new URL(room);
+    forged.searchParams.set('to', '/#room=other,key');
+    expect((await app.inject({ url: `/v1/draw/enter${forged.search}` })).statusCode).toBe(401);
+
     later(3 * 60_000);
     expect((await app.inject({ url: `/v1/draw/enter${query}` })).statusCode).toBe(401);
 

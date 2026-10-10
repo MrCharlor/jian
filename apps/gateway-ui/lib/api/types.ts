@@ -30,6 +30,7 @@ export type Prototype = JsonResponse<'listPrototypes', 200>[number];
 export type Pauta = JsonResponse<'listPautas', 200>[number];
 export type NewPauta = RequestBody<'createPauta'>;
 export type BoardCard = JsonResponse<'getAgentBoard', 200>[number];
+export type Drawing = JsonResponse<'listDrawings', 200>[number];
 export type PriorityProposal = JsonResponse<'listPriorityProposals', 200>[number];
 export type PriorityCriteria = JsonResponse<'getPriorityCriteria', 200>;
 export type NewPrototype = RequestBody<'createPrototype'>;

@@ -20,6 +20,7 @@ import { Coordination } from '../coordination/service.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
 import type { Decisions, Question } from '../decisions/service.js';
+import { type Drawings, drawInputSchema } from '../drawings/service.js';
 import type { Outreach } from '../errands/port.js';
 import { type Flow, flowReportInputSchema } from '../flow/service.js';
 import { sameSubject } from '../memories/duplicates.js';
@@ -104,6 +105,7 @@ export type ToolServices = {
   pautas?: Pick<Pautas, 'list' | 'get' | 'create' | 'update' | 'propose'>;
   priorities?: Pick<Priorities, 'criteria' | 'list' | 'propose' | 'apply'>;
   flow?: Pick<Flow, 'report'>;
+  drawings?: Pick<Drawings, 'list' | 'draw'>;
 };
 
 export function profileTools(
@@ -259,6 +261,23 @@ export function profileTools(
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
+    ...(services.drawings
+      ? {
+          list_drawings: tool({
+            description:
+              'List the drawings the owner keeps: title, topic, who drew it, the link, and whether you can draw it again (editable).',
+            inputSchema: z.object({}),
+            execute: async () => services.drawings?.list(),
+          }),
+          draw_diagram: tool({
+            description:
+              'Draw a diagram on the owner’s drawing board (Excalidraw) and keep it on their list. Describe boxes on a grid (col, row from 0) and the arrows between them; the layout is computed for you. Shapes: box for a step, diamond for a decision, ellipse for an end, note for a remark. One color per actor. Give drawingId to redraw one you made before at the same link. Answer with the link it returns.',
+            inputSchema: drawInputSchema,
+            execute: async (input) =>
+              services.drawings?.draw(input, { profileId: run.profileId, name: run.profile.name }),
+          }),
+        }
+      : {}),
     ...(services.flow
       ? {
           read_flow_report: tool({
@@ -630,6 +649,11 @@ export const TOOL_GROUPS = {
     summary:
       'read and keep the owner’s product topics (pautas): their screens, board cards, state and next steps, and propose a decision for the owner to take',
     tools: ['list_pautas', 'read_pauta', 'create_pauta', 'update_pauta', 'propose_decision'],
+  },
+  draw: {
+    summary:
+      'draw diagrams (flows, the chain Pauta > Tela > Demanda, maps) on the owner’s Excalidraw and list the drawings they keep',
+    tools: ['list_drawings', 'draw_diagram'],
   },
   flow: {
     summary:

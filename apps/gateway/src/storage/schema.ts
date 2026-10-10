@@ -1144,3 +1144,22 @@ export const priorityProposals = pgTable(
   },
   (table) => [index('priority_proposals_recent').on(table.createdAt.desc())],
 );
+
+/** The drawings the owner keeps track of. A room's key lets an agent draw it again. */
+export const drawings = pgTable(
+  'drawings',
+  {
+    id: uuid('id').primaryKey(),
+    title: text('title').notNull(),
+    url: text('url').notNull(),
+    pautaId: uuid('pauta_id').references(() => pautas.id, { onDelete: 'set null' }),
+    roomId: text('room_id'),
+    roomKey: text('room_key'),
+    spec: jsonb('spec'),
+    createdBy: text('created_by'),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('drawings_recent').on(table.updatedAt.desc())],
+);
