@@ -12,8 +12,10 @@ export type BoardCard = {
 
 export type MoveInput = {
   statusId: string;
-  beforeId?: string;
-  afterId?: string;
+  /** The card that ends up right above it; none at the top. The board checks both are adjacent. */
+  aboveId?: string;
+  /** The card that ends up right below it; none at the bottom. */
+  belowId?: string;
 };
 
 /** One board of the work tracker, read and reordered through its REST API. */
@@ -122,8 +124,8 @@ export function workBoardOpener(
           {
             status_id: input.statusId,
             expected_version: target.version,
-            ...(input.beforeId ? { before_activity_id: input.beforeId } : {}),
-            ...(input.afterId ? { after_activity_id: input.afterId } : {}),
+            before_activity_id: input.aboveId ?? null,
+            after_activity_id: input.belowId ?? null,
           },
         )) as ActivityJson;
 

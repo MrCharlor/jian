@@ -37,11 +37,9 @@ function memoryBoard(columns: Record<string, string[]>) {
         state[status] = (state[status] ?? []).filter((id) => id !== card.id);
       }
       const target = state[input.statusId] ?? [];
-      const at = input.afterId
-        ? target.indexOf(input.afterId) + 1
-        : input.beforeId
-          ? Math.max(0, target.indexOf(input.beforeId))
-          : 0;
+      const at = input.aboveId ? target.indexOf(input.aboveId) + 1 : 0;
+      // The real board refuses neighbours that are not next to each other.
+      if (target[at] !== input.belowId) throw new Error('not adjacent');
       target.splice(at, 0, card.id);
       state[input.statusId] = target;
       const moved = { ...(cards.get(card.id) as BoardCard), version: card.version + 1 };
@@ -139,7 +137,7 @@ describe('applying an order', () => {
     const applied = await services.priorities.apply({ id: proposal.id }, {}, 'panel');
 
     expect(memory.state[PRIORIZADO]).toEqual(['a', 'c', 'b']);
-    expect(memory.moves).toEqual([{ id: 'c', statusId: PRIORIZADO, afterId: 'a' }]);
+    expect(memory.moves).toEqual([{ id: 'c', statusId: PRIORIZADO, aboveId: 'a', belowId: 'b' }]);
     expect(applied).toMatchObject({ state: 'aplicada', adjusted: false, decidedVia: 'panel' });
     expect(await services.quality.report(profile.id)).toContainEqual(
       expect.objectContaining({ automation: 'priorizacao', rounds: 1, corrections: 0 }),
@@ -268,7 +266,7 @@ describe('the board client', () => {
       fetcher,
     )(profile.id, { workspaceId: 'ws', boardId: BOARD });
     const [card] = await board.column(PRIORIZADO);
-    await board.move(card as BoardCard, { statusId: PRIORIZADO, afterId: 'b' });
+    await board.move(card as BoardCard, { statusId: PRIORIZADO, aboveId: 'b' });
 
     expect(calls[0]?.url).toBe(
       `https://work.example/v1/workspaces/ws/boards/${BOARD}/activities/column?status_id=${PRIORIZADO}&limit=100`,
@@ -278,7 +276,8 @@ describe('the board client', () => {
     expect(JSON.parse(String(calls[1]?.init.body))).toEqual({
       status_id: PRIORIZADO,
       expected_version: 3,
-      after_activity_id: 'b',
+      before_activity_id: 'b',
+      after_activity_id: null,
     });
   });
 });

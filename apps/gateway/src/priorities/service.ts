@@ -369,8 +369,12 @@ export class Priorities {
     for (const [index, target] of final.entries()) {
       if (live[index] === target.id) continue;
 
-      const above = final[index - 1];
-      const placement = above ? { afterId: above.id } : { beforeId: live[0] };
+      const above = final[index - 1]?.id;
+      const below = live.filter((id) => id !== target.id)[index];
+      const placement = {
+        ...(above ? { aboveId: above } : {}),
+        ...(below ? { belowId: below } : {}),
+      };
 
       try {
         await board.move(target, { statusId: row.statusId, ...placement });
