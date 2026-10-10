@@ -16,6 +16,7 @@ import { Peers } from './peers/service.js';
 import { Priorities } from './priorities/service.js';
 import { workBoardOpener, workClientOpener } from './priorities/work-board.js';
 import { Profiles } from './profiles/service.js';
+import { PrintsRepository } from './prototypes/prints-repo.js';
 import { Prototypes } from './prototypes/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
 import { Providers } from './providers/service.js';
@@ -45,6 +46,7 @@ export type Services = {
   approvals: Approvals;
   applications: Applications;
   prototypes: Prototypes;
+  prints: PrintsRepository;
   pautas: Pautas;
   priorities: Priorities;
   flow: Flow;
@@ -109,6 +111,8 @@ export function buildServices({
   approvals.useRuns(runs);
   const applications = new Applications(store, clock);
   const prototypes = new Prototypes(store, applications, quality);
+  const prints = new PrintsRepository(store, gatewayVault, fetcher ?? createSafeFetch().fetch);
+  prototypes.usePrints(prints);
   prototypes.useNotifier((profileId, sessionId, text, requestKey) =>
     runs.submit(profileId, sessionId, { text, requestKey }),
   );
@@ -187,6 +191,7 @@ export function buildServices({
     approvals,
     applications,
     prototypes,
+    prints,
     pautas,
     priorities,
     flow: new Flow(workClients, clock),

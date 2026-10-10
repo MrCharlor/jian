@@ -8,7 +8,7 @@ import type { SectionProps } from '../props';
 import { Badge, Button, Field, hasLogo, ProviderLogo, ResourceRow, SectionHeading } from '../ui';
 import { Select } from '../ui/select';
 import { anthropicCredentials, providers } from './catalog';
-import { DecisionsRow, WebSearchRow } from './service-keys';
+import { DecisionsRow, PrototypePrintsRow, WebSearchRow } from './service-keys';
 
 /** What the row says about the credential in place, in one line. */
 function credentialLine(provider: {
@@ -322,6 +322,7 @@ export function Providers({ data, api, mutate, busy }: SectionProps) {
         <div className="resource-list">
           <WebSearchRow api={api} mutate={mutate} busy={busy} />
           <DecisionsRow api={api} mutate={mutate} busy={busy} />
+          <PrototypePrintsRow api={api} mutate={mutate} busy={busy} />
         </div>
       </section>
     </>

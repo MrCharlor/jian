@@ -12,6 +12,7 @@ import type { Store } from '../storage/database.js';
 import { applicationFiles, applications } from '../storage/schema.js';
 import { type CloudDesigner, RESULT_MARK } from './cloud.js';
 import { claudeCode, type Generator } from './generator.js';
+import type { PrintsRepository } from './prints-repo.js';
 import {
   claimNext,
   failAbandoned,
@@ -82,6 +83,7 @@ export class Prototypes {
   private running = false;
   private notifier?: Notifier;
   private designer?: CloudDesigner;
+  private prints?: Pick<PrintsRepository, 'push' | 'source'>;
   private readonly abort = new AbortController();
 
   constructor(
@@ -275,8 +277,16 @@ export class Prototypes {
     this.designer = designer;
   }
 
-  /** The request as the cloud session reads it: it has no folder, only this text. */
-  private async cloudPrompt(id: string, number: number, designSystem: string) {
+  /** Where the prints of a cloud drawing go so the session can open them. */
+  usePrints(prints: Pick<PrintsRepository, 'push' | 'source'>) {
+    this.prints = prints;
+  }
+
+  /**
+   * The request as the cloud session reads it: no folder, only this text and, when the prints
+   * reached the repository, their `paths` in it.
+   */
+  private async cloudPrompt(id: string, number: number, designSystem: string, paths?: string[]) {
     const row = assertFound(await findPrototypeRow(this.store.db, id), 'Prototype');
     const [app] = await this.store.db
       .select()
@@ -304,12 +314,14 @@ export class Prototypes {
       current?.comments
         ? `\n## Comentários do PO sobre a versão anterior\n${current.comments}`
         : '',
-      prints.length
-        ? `\n## Prints\nO PO anexou ${prints.length} print(s) (${prints.map((print) => print.name).join(', ')}), que não chegam a esta sessão. Siga o texto acima.`
-        : '',
+      paths?.length
+        ? `\n## Prints\nAntes de desenhar, abra com Read cada print, que está neste repositório:\n${paths.map((path) => `- ${path}`).join('\n')}\nÉ a tela de hoje ou um rascunho do PO: ponto de partida, não cópia. O design system e as preferências do PO valem por cima do print. Se um print não abrir, siga pelo texto.`
+        : prints.length
+          ? `\n## Prints\nO PO anexou ${prints.length} print(s) (${prints.map((print) => print.name).join(', ')}), que não chegam a esta sessão. Siga o texto acima.`
+          : '',
       '',
       'A tela é totalmente interativa: filtros filtram, botões abrem o que abririam, confirmações aparecem.',
-      `Ao terminar, a PRIMEIRA linha da sua resposta é exatamente: ${RESULT_MARK} <link do artefato>. Depois, em até 5 linhas, o que a tela tem e o que você decidiu sozinho.`,
+      `Ao terminar, a PRIMEIRA linha da sua resposta é exatamente: ${RESULT_MARK} <link do artefato>. Depois, em até 5 linhas, o que a tela tem e o que você decidiu sozinho${paths?.length ? ', o que tirou de cada print e o que mudou dele para melhorar a tela para o usuário' : ''}.`,
     ]
       .filter((line) => line !== '')
       .join('\n');
@@ -322,10 +334,24 @@ export class Prototypes {
     await rm(folder, { recursive: true, force: true });
     await mkdir(folder, { recursive: true });
 
+    const prints = await listPrints(this.store.db, id);
+    // A print that fails to travel costs the drawing its picture, not the drawing itself.
+    const paths = prints.length
+      ? await this.prints
+          ?.push(
+            `${id}/v${number}`,
+            prints.map((print) => ({ name: print.name, content: print.content })),
+            this.abort.signal,
+          )
+          .catch(() => undefined)
+      : undefined;
+    const source = paths?.length ? await this.prints?.source() : undefined;
+
     const outcome = await designer({
-      prompt: await this.cloudPrompt(id, number, designSystem),
+      prompt: await this.cloudPrompt(id, number, designSystem, source ? paths : undefined),
       folder,
       signal: this.abort.signal,
+      ...(source ? { source } : {}),
     });
 
     if (!outcome.ok) throw new Error(outcome.error);

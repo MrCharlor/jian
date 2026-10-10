@@ -21,6 +21,10 @@ export const providerCalls = (client: Client) => ({
   setWebSearch: (apiKey: string) =>
     result(client.PUT('/v1/web-search', { body: { provider: 'tavily', apiKey } })),
   removeWebSearch: () => result(client.DELETE('/v1/web-search')),
+  prototypePrints: () => result(client.GET('/v1/prototype-prints')),
+  setPrototypePrints: (token: string) =>
+    result(client.PUT('/v1/prototype-prints', { body: { token } })),
+  removePrototypePrints: () => result(client.DELETE('/v1/prototype-prints')),
   decisions: () => result(client.GET('/v1/decisions')),
   setDecisions: (apiKey: string) =>
     result(client.PUT('/v1/decisions', { body: { provider: 'jev', apiKey } })),

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { applicationSlugSchema } from './applications.js';
+import { secretSchema } from './security.js';
 
 export const prototypeStatusSchema = z.enum(['queued', 'generating', 'ready', 'failed']);
 
@@ -55,6 +56,23 @@ export const prototypeRecordSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
 });
 
+/**
+ * The private GitHub repository the prints of a cloud drawing travel through: the cloud session
+ * opens it as its source because it cannot reach this gateway. The repository is configuration;
+ * only the token is typed in the panel.
+ */
+export const prototypePrintsInputSchema = z.strictObject({
+  token: secretSchema,
+});
+
+export const prototypePrintsStatusSchema = z.strictObject({
+  /** `owner/name`, from `JIAN_PRINTS_REPO`; absent when the gateway has none. */
+  repository: z.string().optional(),
+  configured: z.boolean(),
+  updatedAt: z.iso.datetime().optional(),
+});
+
+export type PrototypePrintsStatus = z.infer<typeof prototypePrintsStatusSchema>;
 export type Prototype = z.infer<typeof prototypeRecordSchema>;
 export type PrototypeVersion = z.infer<typeof prototypeVersionSchema>;
 

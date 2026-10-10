@@ -92,7 +92,13 @@ import {
   sessionSchema,
   submitSchema,
 } from './profile.js';
-import { prototypeInputSchema, prototypeRecordSchema, prototypeRedoSchema } from './prototypes.js';
+import {
+  prototypeInputSchema,
+  prototypePrintsInputSchema,
+  prototypePrintsStatusSchema,
+  prototypeRecordSchema,
+  prototypeRedoSchema,
+} from './prototypes.js';
 import {
   codexLoginSchema,
   modelDefaultsInputSchema,
@@ -262,6 +268,28 @@ export const operations: Operation[] = [
     operationId: 'removeWebSearch',
     access: 'admin',
     response: webSearchStatusSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/prototype-prints',
+    operationId: 'getPrototypePrints',
+    access: 'admin',
+    response: prototypePrintsStatusSchema,
+  },
+  {
+    method: 'PUT',
+    path: '/v1/prototype-prints',
+    operationId: 'setPrototypePrints',
+    access: 'admin',
+    body: prototypePrintsInputSchema,
+    response: prototypePrintsStatusSchema,
+  },
+  {
+    method: 'DELETE',
+    path: '/v1/prototype-prints',
+    operationId: 'removePrototypePrints',
+    access: 'admin',
+    response: prototypePrintsStatusSchema,
   },
   {
     method: 'GET',
