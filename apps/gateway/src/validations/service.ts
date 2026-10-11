@@ -614,6 +614,11 @@ export class Validations {
 
     const row = assertFound(open[0], 'Validation');
 
+    // Checked here too: the item added below must not land on a validation already answered.
+    if (row.state !== 'aberta') {
+      throw new GatewayError(409, `Validation #${row.number} is already ${row.state}`);
+    }
+
     if (reply.approved) {
       return this.answer(
         { id: row.id },
@@ -622,9 +627,21 @@ export class Validations {
       );
     }
 
+    // One item: the reason is about it, and its text is what the return card expects.
+    if (row.items.length === 1) {
+      return this.answer(
+        { id: row.id },
+        {
+          items: [{ result: 'falhou' as const, ...(reply.reason ? { reason: reply.reason } : {}) }],
+        },
+        'channel',
+      );
+    }
+
+    // Several items and one reason: the chat does not say which item failed.
     await this.store.db
       .update(validations)
-      .set({ items: [...row.items, { text: reply.reason ?? 'Reprovado pelo PO' }] })
+      .set({ items: [...row.items, { text: 'Reprovado pelo PO no chat' }] })
       .where(eq(validations.id, row.id));
 
     return this.answer(

@@ -144,6 +144,55 @@ describe('validations', () => {
     expect(JSON.stringify(comment?.body)).toContain('Aprovado na validação do PO');
   });
 
+  it('takes a refusal from the chat once, on the item it is about', async () => {
+    const { validations } = await fixture();
+    await validations.scan();
+
+    const refused = await validations.fromChat({
+      number: 1,
+      approved: false,
+      reason: 'a busca ignora acento',
+    });
+
+    expect(refused?.items.map((item) => item.text)).toEqual([
+      'O usuário filtra por situação.',
+      'A busca acha a cor pelo nome.',
+      'Reprovado pelo PO no chat',
+    ]);
+    await expect(
+      validations.fromChat({ number: 1, approved: false, reason: 'de novo' }),
+    ).rejects.toThrow('already reprovada');
+    expect((await validations.get({ number: 1 })).items).toHaveLength(3);
+  });
+
+  it('puts the chat reason on the only item when there is one', async () => {
+    const original = epic.description;
+    epic.description = '## Pronto quando\n- O usuário filtra por situação.';
+    try {
+      const { validations } = await fixture();
+      await validations.scan();
+
+      const refused = await validations.fromChat({
+        number: 1,
+        approved: false,
+        reason: 'o filtro não aparece',
+      });
+
+      expect(refused?.items).toEqual([
+        {
+          text: 'O usuário filtra por situação.',
+          result: 'falhou',
+          reason: 'o filtro não aparece',
+        },
+      ]);
+      expect(refused?.returns[0]?.description).toContain(
+        '**Esperado:** O usuário filtra por situação.',
+      );
+    } finally {
+      epic.description = original;
+    }
+  });
+
   it('turns a failed item into a return card, created and mirrored on top of the tasks', async () => {
     const { validations, board } = await fixture();
     await validations.scan();
