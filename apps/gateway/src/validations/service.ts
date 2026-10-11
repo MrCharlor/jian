@@ -551,17 +551,29 @@ export class Validations {
       }
 
       if (!draft.mirrored) {
-        const mirror = (await client.call('POST', `/activities/${draft.workId}/boards`, {
-          board_id: this.target.tasksBoardId,
-        })) as { version?: number } | undefined;
+        const before = (await client.call('GET', `/activities/${draft.workId}`)) as {
+          mirror_board_ids?: string[];
+        };
+
+        // A create that stopped after mirroring must not mirror twice.
+        if (!before.mirror_board_ids?.includes(this.target.tasksBoardId)) {
+          await client.call('POST', `/activities/${draft.workId}/boards`, {
+            board_id: this.target.tasksBoardId,
+          });
+        }
+
         const column = (await client.call(
           'GET',
           `/boards/${this.target.tasksBoardId}/activities/column?status_id=${this.target.todoStatusId}&limit=2`,
         )) as { items: Array<{ id: string; version: number }> };
         const top = column.items.find((card) => card.id !== draft.workId);
-        const self = column.items.find((card) => card.id === draft.workId);
 
         if (top && column.items[0]?.id !== draft.workId) {
+          // The card's version moves with every write above; only a fresh read is safe to send.
+          const current = (await client.call('GET', `/activities/${draft.workId}`)) as {
+            version: number;
+          };
+
           await client.call(
             'POST',
             `/activities/${draft.workId}/boards/${this.target.tasksBoardId}/move`,
@@ -569,7 +581,7 @@ export class Validations {
               status_id: this.target.todoStatusId,
               before_activity_id: null,
               after_activity_id: top.id,
-              expected_version: self?.version ?? mirror?.version ?? 1,
+              expected_version: current.version,
             },
           );
         }
