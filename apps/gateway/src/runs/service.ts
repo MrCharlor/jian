@@ -7,6 +7,7 @@ import {
   parseApprovalReply,
   parseCorrectionReply,
   parseDecisionReply,
+  parseKnowledgeReply,
   parsePlanReply,
   parseValidationCommentReply,
   parseValidationReply,
@@ -18,6 +19,7 @@ import { Approvals as ApprovalNotices, type Approvals } from '../approvals/servi
 import { type Clock, nowIso } from '../core/clock.js';
 import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
+import { Knowledge as KnowledgeNotices } from '../knowledge/service.js';
 import { bindMedia, mediaMarker } from '../media/repository.js';
 import { Pautas as DecisionNotices } from '../pautas/service.js';
 import { Plans as PlanNotices } from '../plans/service.js';
@@ -134,6 +136,12 @@ export class Runs {
     this.plans = plans;
   }
 
+  private knowledge?: Pick<KnowledgeNotices, 'fromChat' | 'learn'>;
+
+  useKnowledge(knowledge: Pick<KnowledgeNotices, 'fromChat' | 'learn'>) {
+    this.knowledge = knowledge;
+  }
+
   /** Where a late answer goes when the agent that asked has already stopped waiting. */
   async relayTo(profileId: string, runId: string, sessionId: string | null) {
     await this.store.transaction(profileId, (tx) => setRelayTo(tx, runId, sessionId));
@@ -192,9 +200,24 @@ export class Runs {
       if (plan) parsed.text = PlanNotices.notice(plan);
     }
 
+    // "ok regra 4" or "recusa regra 4: …" answers a rule the Curator proposed.
+    const ruled =
+      options.ownerMessage && this.knowledge && !reply && !planned && !parsed.mediaIds?.length
+        ? parseKnowledgeReply(parsed.text)
+        : undefined;
+
+    if (ruled && this.knowledge) {
+      const proposal = await this.knowledge.fromChat(ruled).catch((error: unknown) => {
+        if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+        throw error;
+      });
+
+      if (proposal) parsed.text = KnowledgeNotices.notice(proposal);
+    }
+
     // "decisão 4: B, porque …" is the owner deciding; the agent reads the decision recorded.
     const decided =
-      options.ownerMessage && this.decisions && !reply && !planned
+      options.ownerMessage && this.decisions && !reply && !planned && !ruled
         ? parseDecisionReply(parsed.text)
         : undefined;
 
@@ -215,7 +238,7 @@ export class Runs {
 
     // "aprovado" or "reprovado: motivo" answers the one validation waiting for the owner.
     const validated =
-      options.ownerMessage && this.validations && !reply && !decided && !planned
+      options.ownerMessage && this.validations && !reply && !decided && !planned && !ruled
         ? parseValidationReply(parsed.text)
         : undefined;
 
@@ -248,7 +271,7 @@ export class Runs {
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of
     // the last answer here, which is how the owner sees how often this needed fixing.
     const correction =
-      options.ownerMessage && this.quality && !reply && !planned
+      options.ownerMessage && this.quality && !reply && !planned && !ruled
         ? parseCorrectionReply(parsed.text)
         : undefined;
 
@@ -264,6 +287,11 @@ export class Runs {
           activity === 'channel' ? 'channel' : 'panel',
         ),
       );
+      await this.knowledge?.learn({
+        kind: 'correcao',
+        ref: 'corrige: na conversa',
+        text: correction,
+      });
     }
 
     const modeChange =

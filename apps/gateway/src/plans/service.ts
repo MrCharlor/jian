@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  type KnowledgeRule,
   type ModelSelection,
   type Plan,
   type PlanAction,
@@ -19,6 +20,8 @@ import {
 import { asc, eq } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
+import { scopeLabel } from '../knowledge/match.js';
+import type { Knowledge } from '../knowledge/service.js';
 import type { Quality } from '../quality/service.js';
 import { toSchedule } from '../schedules/repository.js';
 import type { Queryable, Store } from '../storage/database.js';
@@ -34,6 +37,7 @@ import {
   profileNames,
   proposalOf,
   prototypeOf,
+  questionedPlans,
   recentCorrections,
   updatePlan,
 } from './repository.js';
@@ -65,6 +69,11 @@ type ProposalRow = NonNullable<Awaited<ReturnType<typeof proposalOf>>>;
 
 /** A run's text is capped at 8000 characters; the rest of a plan is read with read_plan. */
 const MESSAGE_LIMIT = 7800;
+
+const WEEK_MS = 7 * 86_400_000;
+
+/** Weeks the question metric looks back. */
+const WEEKS_SHOWN = 8;
 
 const OPEN_STATES = new Set(['escrevendo', 'em_revisao', 'devolvido', 'aguardando_po']);
 
@@ -118,6 +127,50 @@ const settingsKey = (action: PlanAction) => `plans:${action}`;
 const clip = (text: string, limit = MESSAGE_LIMIT) =>
   text.length > limit ? `${text.slice(0, limit)}\n[…] (leia inteiro com read_plan)` : text;
 
+/** The question budget, as the author is told it (B19). */
+const AUTHOR_BUDGET = [
+  'Orçamento de perguntas: no máximo 3 perguntas ao Moabe, só as que mudam o que vai ser feito e não têm padrão razoável. Liste-as também em questions do write_plan.',
+  'Antes de perguntar, procure nas regras abaixo, com search_knowledge, nas decisões da pauta, nas preferências do PO e no guia do design system. Achou, use e cite a fonte ("regra #N").',
+  'O resto vira suposição com padrão sugerido, numa seção "Suposições" do plano, que o Moabe corrige na curadoria.',
+  'Suposição que toca regra sensível (faturamento, fiscal, dado de cliente, preço, permissão, dado em produção) vira pergunta, mesmo passando de 3.',
+];
+
+/** What the Reviewer holds the plan to, beside the rules (B19). */
+const REVIEW_BUDGET = [
+  'Cobre o orçamento de perguntas (no máximo 3 por plano):',
+  '- pergunta que já tem resposta na base (regras abaixo ou search_knowledge) é divergência; cite "regra #N";',
+  '- mais de 3 perguntas, sem contar as que tocam regra sensível, é divergência: o excesso vira suposição com padrão sugerido;',
+  '- suposição que toca regra sensível e não virou pergunta é regra sensível;',
+  '- duas regras em conflito: vale a mais recente e a mais específica; aponte o conflito como divergência para o Moabe resolver uma vez.',
+];
+
+/** Characters of a message the rules may take; the rest of the base is a search away. */
+const RULES_ROOM = 3500;
+
+/** The rules a plan carries, as many as fit in `room` characters, most specific first. */
+function ruleSection(rules: KnowledgeRule[], room: number) {
+  if (!rules.length) return '';
+
+  const head = '\n## Regras da base que valem aqui (siga e cite "regra #N")';
+  const lines = [head];
+  let used = head.length;
+
+  for (const [index, rule] of rules.entries()) {
+    const text = rule.text.length > 240 ? `${rule.text.slice(0, 240)}…` : rule.text;
+    const line = `- regra #${rule.number}${rule.sensitive ? ' (sensível)' : ''} [${scopeLabel(rule.scope)}]: ${text}`;
+
+    if (used + line.length + 1 > Math.min(room, RULES_ROOM)) {
+      lines.push(`- (mais ${rules.length - index} regra(s): search_knowledge)`);
+      break;
+    }
+
+    lines.push(line);
+    used += line.length + 1;
+  }
+
+  return lines.length > 1 ? lines.join('\n') : '';
+}
+
 const findingLines = (findings: PlanFinding[]) =>
   findings
     .map(
@@ -138,6 +191,7 @@ export class Plans {
   private owner?: (text: string, short?: string) => Promise<unknown>;
   private target?: PlanTarget;
   private board?: PriorityTarget;
+  private knowledge?: Pick<Knowledge, 'relevant' | 'learn'>;
 
   constructor(
     private readonly store: Store,
@@ -164,6 +218,11 @@ export class Plans {
 
   usePriorities(board: PriorityTarget) {
     this.board = board;
+  }
+
+  /** The rules a plan carries, and the Curator told of what the owner answered. */
+  useKnowledge(knowledge: Pick<Knowledge, 'relevant' | 'learn'>) {
+    this.knowledge = knowledge;
   }
 
   async settings(action: unknown): Promise<PlanSettings> {
@@ -278,21 +337,28 @@ export class Plans {
     );
 
     const plan = await this.get(id);
+    const text = [
+      `[Plano #${plan.number}] Antes de gerar o protótipo "${prototype.title}" (${prototype.applicationName}), escreva o plano com write_plan (planId ${plan.id}) e pare.`,
+      'O plano diz: o que vai fazer; de onde tirou cada coisa (pauta, decisão, regra, print); o que assumiu; o que vai entregar. Não invente: o que faltar e mudar o trabalho vira pergunta ao Moabe dentro do plano.',
+      ...AUTHOR_BUDGET,
+      'Não chame request_prototype de novo: a Atena gera a tela depois que o plano for aprovado.',
+      '',
+      prototype.requestUrl ? `Pedido no Work: ${prototype.requestUrl}` : '',
+      prototype.pautaId ? `Pauta: ${prototype.pautaId}` : '',
+      '## O que a tela precisa fazer',
+      prototype.brief,
+    ]
+      .filter((line) => line !== '')
+      .join('\n');
+    const rules = await this.rulesFor({
+      applications: [prototype.application, prototype.applicationName],
+      screen: prototype.title,
+      text: `${prototype.title} ${prototype.brief}`,
+    });
 
     await this.tellAuthor(
       plan,
-      [
-        `[Plano #${plan.number}] Antes de gerar o protótipo "${prototype.title}" (${prototype.applicationName}), escreva o plano com write_plan (planId ${plan.id}) e pare.`,
-        'O plano diz: o que vai fazer; de onde tirou cada coisa (pauta, decisão, regra, print); o que assumiu; o que vai entregar. Não invente: o que faltar vira pergunta ao Moabe dentro do plano.',
-        'Não chame request_prototype de novo: a Atena gera a tela depois que o plano for aprovado.',
-        '',
-        prototype.requestUrl ? `Pedido no Work: ${prototype.requestUrl}` : '',
-        prototype.pautaId ? `Pauta: ${prototype.pautaId}` : '',
-        '## O que a tela precisa fazer',
-        prototype.brief,
-      ]
-        .filter((line) => line !== '')
-        .join('\n'),
+      `${text}${ruleSection(rules, MESSAGE_LIMIT - text.length - 100)}`,
       'aberto',
     );
 
@@ -405,6 +471,11 @@ export class Plans {
     }
   }
 
+  /** The active rules that hold where the action is; none without a base. */
+  private async rulesFor(context: { applications: string[]; screen?: string; text: string }) {
+    return (await this.knowledge?.relevant(context).catch(() => [])) ?? [];
+  }
+
   private async view(row: PlanRow, names?: Map<string, string>): Promise<Plan> {
     const people = names ?? (await profileNames(this.store.db));
     const prototype = row.prototypeId ? await prototypeOf(this.store.db, row.prototypeId) : null;
@@ -452,6 +523,7 @@ export class Plans {
       ...(row.original ? { original: row.original } : {}),
       ...(row.revised ? { revised: row.revised } : {}),
       findings: row.findings,
+      ...(row.questions ? { questions: row.questions } : {}),
       rounds: row.rounds,
       state,
       ...(row.note ? { note: row.note } : {}),
@@ -490,7 +562,7 @@ export class Plans {
 
   /** The author's plan, first or rewritten; it goes straight to the Reviewer. */
   async write(id: string, input: unknown, by: { profileId: string }) {
-    const { text } = planWriteSchema.parse(input);
+    const { text, questions } = planWriteSchema.parse(input);
 
     await this.store.transaction('plans', async (tx) => {
       const row = await this.row({ id }, tx);
@@ -513,6 +585,7 @@ export class Plans {
 
       await updatePlan(tx, id, {
         original: text,
+        questions,
         state: 'em_revisao',
         updatedAt: new Date(this.clock()),
       });
@@ -569,6 +642,7 @@ export class Plans {
       '- regra sensível: muda a posição de um card que o Moabe já fixou, ou depende de decisão de produto como cliente ou diretoria; ou toca faturamento, fiscal (Tipos e Natureza), dado de cliente (CPF, LGPD), preço, permissão ou dado em produção;',
       '- lacuna: falta informação para ordenar sem inventar (card sem motivo, motivo sem fonte).',
       'Com qualquer achado, não aprove. Você não executa nada: aprovado, a Atena aplica no Work a ordem proposta, não o seu texto.',
+      ...REVIEW_BUDGET,
       '\n## Plano',
       plan.original ?? '',
       history.criteria ? `\n## Critérios do Moabe\n${history.criteria.slice(0, 2000)}` : '',
@@ -592,11 +666,17 @@ export class Plans {
         ? await this.priorityReview(plan, rules)
         : this.prototypeReview(plan, rules);
     const text = lines.filter((line) => line !== '').join('\n');
+    const prototype = plan.prototypeId ? await prototypeOf(this.store.db, plan.prototypeId) : null;
+    const known = await this.rulesFor({
+      applications: prototype ? [prototype.application, prototype.applicationName] : [],
+      ...(prototype ? { screen: prototype.title } : {}),
+      text: [plan.title, prototype?.brief ?? '', plan.original ?? ''].join(' '),
+    });
 
     await this.submit(
       row.reviewerProfileId,
       session.id,
-      clip(text),
+      clip(`${text}${ruleSection(known, MESSAGE_LIMIT - text.length - 100)}`),
       // The rounds start again when the owner gives a plan back: the time keeps the key new.
       `plan:${plan.id}:review:${plan.rounds + 1}:${Date.parse(plan.updatedAt)}`,
       config.reviewerModel,
@@ -611,8 +691,12 @@ export class Plans {
       '- regra sensível: toca faturamento, fiscal (Tipos e Natureza), dado de cliente (CPF, LGPD), preço, permissão ou dado em produção;',
       '- lacuna: falta informação para executar sem inventar.',
       'Com qualquer achado, não aprove. Você não executa nada.',
+      ...REVIEW_BUDGET,
       rules.length
         ? `\n## Correções recentes do Moabe nesta ação (barre o erro repetido)\n${rules.join('\n')}`
+        : '',
+      plan.questions?.length
+        ? `\n## Perguntas do autor ao Moabe (${plan.questions.length})\n${plan.questions.map((question, index) => `${index + 1}. ${question}`).join('\n')}`
         : '',
       '\n## Plano',
       plan.original ?? '',
@@ -850,8 +934,29 @@ export class Plans {
         : `[Plano #${plan.number}] O Moabe devolveu: ${reason}\nReescreva com write_plan (planId ${plan.id}). O plano atual está em read_plan.`,
       `moabe:${Date.parse(plan.updatedAt)}`,
     );
+    await this.teach(plan, reason);
 
     return plan;
+  }
+
+  /** What the owner wrote on a plan, for the Curator to turn into rules. */
+  private async teach(plan: Plan, said?: string) {
+    if (!said) return;
+
+    await this.knowledge?.learn({
+      kind: 'plano',
+      ref: `Plano #${plan.number}, ${what(plan)}`,
+      text: [
+        `O Moabe escreveu: ${said}`,
+        plan.questions?.length
+          ? `Perguntas do plano:\n${plan.questions.map((question) => `- ${question}`).join('\n')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      ...(plan.application ? { application: plan.application } : {}),
+      ...(plan.action === 'prototype' ? { screen: plan.title } : {}),
+    });
   }
 
   /** The owner's no: the plan ends and the version it held fails with the reason. */
@@ -890,6 +995,8 @@ export class Plans {
         `Plano #${plan.number} recusado pelo PO${reason ? `: ${reason}` : ''}`,
       );
     }
+
+    await this.teach(plan, reason);
 
     return plan;
   }
@@ -970,6 +1077,44 @@ export class Plans {
       })),
       waiting,
       actions,
+      questionsPerWeek: await this.questionsPerWeek(),
     };
+  }
+
+  /**
+   * Questions the authors asked per written plan, by the week (from Monday, UTC) the plan was
+   * opened, over the last eight weeks. It should fall as the base learns. A plan written before
+   * questions were counted is left out rather than counted as none.
+   */
+  private async questionsPerWeek(): Promise<Routines['questionsPerWeek']> {
+    const now = this.clock();
+    const rows = await questionedPlans(this.store.db, new Date(now - WEEKS_SHOWN * WEEK_MS));
+    const weeks = new Map<string, { plans: number; questions: number }>();
+
+    for (const row of rows) {
+      const day = new Date(row.createdAt);
+      const monday = new Date(
+        Date.UTC(
+          day.getUTCFullYear(),
+          day.getUTCMonth(),
+          day.getUTCDate() - ((day.getUTCDay() + 6) % 7),
+        ),
+      )
+        .toISOString()
+        .slice(0, 10);
+      const week = weeks.get(monday) ?? { plans: 0, questions: 0 };
+
+      week.plans += 1;
+      week.questions += row.questions?.length ?? 0;
+      weeks.set(monday, week);
+    }
+
+    return [...weeks.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([week, count]) => ({
+        week,
+        ...count,
+        average: Math.round((count.questions / count.plans) * 10) / 10,
+      }));
   }
 }

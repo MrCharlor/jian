@@ -1,5 +1,5 @@
 import type { Plan } from '@jian/contracts';
-import { and, desc, eq, gt, inArray, like, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNotNull, like, ne, sql } from 'drizzle-orm';
 import type { Queryable } from '../storage/database.js';
 import {
   applications,
@@ -191,3 +191,11 @@ export async function countExecuted(db: Queryable, action: string, after?: Date)
 }
 
 export type { Plan };
+
+/** Plans whose author counted its questions (B19), opened since a moment: the weekly metric. */
+export async function questionedPlans(db: Queryable, since: Date) {
+  return db
+    .select({ createdAt: plans.createdAt, questions: plans.questions })
+    .from(plans)
+    .where(and(isNotNull(plans.questions), gt(plans.createdAt, since)));
+}

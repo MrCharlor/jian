@@ -25,6 +25,8 @@ import { type Drawings, drawInputSchema } from '../drawings/service.js';
 import type { Epics } from '../epics/service.js';
 import type { Outreach } from '../errands/port.js';
 import { type Flow, flowReportInputSchema } from '../flow/service.js';
+import type { Knowledge } from '../knowledge/service.js';
+import { knowledgeTools } from '../knowledge/tools.js';
 import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
 import type { Pautas } from '../pautas/service.js';
@@ -115,6 +117,7 @@ export type ToolServices = {
   epics?: Pick<Epics, 'draft' | 'get' | 'list'>;
   screens?: Pick<Screens, 'list' | 'saveInventory' | 'get' | 'writeSheet' | 'attachPrints'>;
   plans?: Pick<Plans, 'write' | 'review' | 'read'>;
+  knowledge?: Pick<Knowledge, 'lookup' | 'propose' | 'isCurator'>;
 };
 
 export function profileTools(
@@ -271,6 +274,7 @@ export function profileTools(
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
     ...(services.screens ? screenTools(services.screens, run) : {}),
     ...(services.plans ? planTools(services.plans, run) : {}),
+    ...(services.knowledge ? knowledgeTools(services.knowledge, run) : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
     ...(services.epics
       ? {
@@ -696,6 +700,11 @@ export const TOOL_GROUPS = {
     summary:
       'write the plan you were asked for before an action (a prototype), review a plan as the Reviewer (a prototype or a prioritization), and read a plan back by id or number',
     tools: ['write_plan', 'review_plan', 'read_plan'],
+  },
+  knowledge: {
+    summary:
+      'search the owner’s knowledge base (rules he already answered, with scope and source) before asking him anything; as the Curator, propose to add, change or retire a rule',
+    tools: ['search_knowledge', 'propose_knowledge'],
   },
   draw: {
     summary:

@@ -11,6 +11,7 @@ import {
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
+import type { Lesson } from '../knowledge/service.js';
 import type { Queryable, Store } from '../storage/database.js';
 import {
   applications,
@@ -59,10 +60,17 @@ export class Pautas {
     key: string,
   ) => Promise<unknown>;
 
+  private learn?: (lesson: Lesson) => Promise<unknown>;
+
   constructor(
     private readonly store: Store,
     private readonly clock: Clock = Date.now,
   ) {}
+
+  /** The knowledge base learns from each decision, through its Curator. */
+  useLearner(learn: (lesson: Lesson) => Promise<unknown>) {
+    this.learn = learn;
+  }
 
   /** Wired after construction: memories and runs are built alongside this service. */
   useAgents(hooks: {
@@ -306,6 +314,13 @@ export class Pautas {
         ).catch(() => {});
       }
     }
+
+    await this.learn?.({
+      kind: 'decisao',
+      ref: `Decisão #${current.number} (pauta "${pauta.title}")`,
+      text: `${current.question} Decisão: ${choice}.${reason ? ` Motivo: ${reason}.` : ''}`,
+      ...(pauta.application ? { application: pauta.application } : {}),
+    }).catch(() => {});
 
     return decided;
   }

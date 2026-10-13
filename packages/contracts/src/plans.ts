@@ -37,6 +37,11 @@ export const planFindingSchema = z.strictObject({
 /** The author's plan: what it will do, where each thing came from, what it assumed, what it delivers. */
 export const planWriteSchema = z.strictObject({
   text: z.string().trim().min(1).max(20_000),
+  /**
+   * The questions to the owner, also written in the text. At most three, only what changes the
+   * work and has no reasonable default; one that touches a sensitive rule counts past three.
+   */
+  questions: z.array(z.string().trim().min(1).max(1000)).max(20).default([]),
 });
 
 /** The Reviewer's answer. Any finding means not approved, whatever `approved` says. */
@@ -83,6 +88,8 @@ export const planRecordSchema = z.strictObject({
   original: z.string().optional(),
   revised: z.string().optional(),
   findings: z.array(planFindingSchema),
+  /** What the author asked the owner in its last version; absent before it wrote one. */
+  questions: z.array(z.string()).optional(),
   /** Reviews done since the plan was opened or the owner last gave it back. */
   rounds: z.number().int().nonnegative(),
   state: planStateSchema,
@@ -133,6 +140,15 @@ export const routinesSchema = z.strictObject({
       /** Plans executed since the owner's last correction of this action. */
       clean: z.number().int().nonnegative(),
       lastCorrectionAt: z.iso.datetime().optional(),
+    }),
+  ),
+  /** Questions per written plan, by the week the plan was opened (Monday), oldest first. */
+  questionsPerWeek: z.array(
+    z.strictObject({
+      week: z.iso.date(),
+      plans: z.number().int().nonnegative(),
+      questions: z.number().int().nonnegative(),
+      average: z.number().nonnegative(),
     }),
   ),
 });

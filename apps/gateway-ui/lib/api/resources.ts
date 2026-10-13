@@ -4,6 +4,9 @@ import type {
   ApplicationPatch,
   EpicDraftPatch,
   GatewaySettingsPatch,
+  KnowledgeFilter,
+  KnowledgePatch,
+  KnowledgeSettingsPatch,
   NewApplication,
   NewPauta,
   NewPrototype,
@@ -146,6 +149,28 @@ export const resourceCalls = (client: Client) => ({
   updatePlanSettings: (action: PlanSettings['action'], body: PlanSettingsPatch) =>
     result(client.PUT('/v1/plan-settings/{action}', { params: { path: { action } }, body })),
   routines: () => result(client.GET('/v1/routines')),
+  knowledge: (query: KnowledgeFilter = {}) =>
+    result(client.GET('/v1/knowledge', { params: { query } })),
+  updateKnowledge: (ruleId: string, body: KnowledgePatch) =>
+    result(client.PATCH('/v1/knowledge/{ruleId}', { params: { path: { ruleId } }, body })),
+  knowledgeProposals: () =>
+    result(client.GET('/v1/knowledge-proposals', { params: { query: {} } })),
+  approveKnowledgeProposal: (proposalId: string) =>
+    result(
+      client.POST('/v1/knowledge-proposals/{proposalId}/approve', {
+        params: { path: { proposalId } },
+      }),
+    ),
+  rejectKnowledgeProposal: (proposalId: string, reason?: string) =>
+    result(
+      client.POST('/v1/knowledge-proposals/{proposalId}/reject', {
+        params: { path: { proposalId } },
+        body: reason ? { reason } : {},
+      }),
+    ),
+  knowledgeSettings: () => result(client.GET('/v1/knowledge-settings')),
+  updateKnowledgeSettings: (body: KnowledgeSettingsPatch) =>
+    result(client.PUT('/v1/knowledge-settings', { body })),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

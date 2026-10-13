@@ -8,6 +8,7 @@ import { Epics } from './epics/service.js';
 import { SIGMA_EPICS, SIGMA_VALIDATION } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
+import { Knowledge } from './knowledge/service.js';
 import { Learning } from './learning/service.js';
 import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
@@ -57,6 +58,7 @@ export type Services = {
   validations: Validations;
   screens: Screens;
   plans: Plans;
+  knowledge: Knowledge;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -172,6 +174,17 @@ export function buildServices({
     runs.submit(profileId, sessionId, { text, requestKey, ...(model ? { model } : {}) }),
   );
   plans.useOwner((text, short) => ownerNotices.tell(text, 'plan', short));
+  // The base every agent reads before asking (B19); the Curator learns from the owner's answers.
+  // Its proposals reach the owner the way plans do: the panel and, by the setting, the channels.
+  const knowledge = new Knowledge(store, profiles, sessions, clock);
+  knowledge.useAgents((profileId, sessionId, text, requestKey) =>
+    runs.submit(profileId, sessionId, { text, requestKey }),
+  );
+  knowledge.useOwner((text) => ownerNotices.tell(text, 'knowledge'));
+  plans.useKnowledge(knowledge);
+  runs.useKnowledge(knowledge);
+  pautas.useLearner((lesson) => knowledge.learn(lesson));
+  validations.useLearner((lesson) => knowledge.learn(lesson));
   plans.usePrototypes(prototypes);
   prototypes.usePlanner(plans);
   plans.usePriorities(priorities);
@@ -215,6 +228,7 @@ export function buildServices({
     validations,
     screens: new Screens(store, applications, clock),
     plans,
+    knowledge,
     drawings: new Drawings(
       store,
       drawBoard
