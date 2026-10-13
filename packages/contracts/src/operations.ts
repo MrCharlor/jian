@@ -156,7 +156,12 @@ import {
 import { panelSessionEndSchema, panelSessionInputSchema, panelSessionSchema } from './security.js';
 import { catalogQuerySchema, catalogSchema, skillImportSchema } from './skills.js';
 import { sshKeyCreateSchema, sshKeySchema } from './ssh.js';
-import { returnDraftPatchSchema, validationAnswerSchema, validationSchema } from './validations.js';
+import {
+  returnDraftPatchSchema,
+  validationAnswerSchema,
+  validationCommentPublishSchema,
+  validationSchema,
+} from './validations.js';
 import { webSearchInputSchema, webSearchStatusSchema } from './web.js';
 import { workExecutionSchema, workHistorySchema, workItemSchema } from './work.js';
 
@@ -732,6 +737,33 @@ export const operations: Operation[] = [
     access: 'admin',
     params: z.strictObject({ validationId: z.uuid() }),
     body: validationAnswerSchema,
+    response: validationSchema,
+  },
+  {
+    // Publishes the comment draft of a refusal, as it is or with the owner's words.
+    method: 'POST',
+    path: '/v1/validations/:validationId/comment',
+    operationId: 'publishValidationComment',
+    access: 'admin',
+    params: z.strictObject({ validationId: z.uuid() }),
+    body: validationCommentPublishSchema,
+    response: validationSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/validations/:validationId/comment/discard',
+    operationId: 'discardValidationComment',
+    access: 'admin',
+    params: z.strictObject({ validationId: z.uuid() }),
+    response: validationSchema,
+  },
+  {
+    // Return card drafts for the failed items, only when the owner asks for them.
+    method: 'POST',
+    path: '/v1/validations/:validationId/returns',
+    operationId: 'draftValidationReturns',
+    access: 'admin',
+    params: z.strictObject({ validationId: z.uuid() }),
     response: validationSchema,
   },
   {

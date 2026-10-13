@@ -3,7 +3,8 @@ import { epicLabelSchema } from './epics.js';
 
 /**
  * The owner's check of an epic the tester passed: the "done when" as items, what the tester
- * recorded, and the owner's answer per item. A failed item becomes a return card draft.
+ * recorded, and the owner's answer per item. A refusal becomes a comment draft the owner
+ * publishes, and a return card draft only when the owner asks for one.
  */
 export const validationResultSchema = z.enum(['passou', 'falhou']);
 
@@ -36,6 +37,15 @@ export const returnDraftSchema = z.strictObject({
 
 export type ReturnDraft = z.infer<typeof returnDraftSchema>;
 
+/** What goes on the epic: published at once on approval, a draft for the owner on refusal. */
+export const validationCommentSchema = z.strictObject({
+  body: z.string(),
+  state: z.enum(['rascunho', 'publicado', 'descartado']),
+  publishedAt: z.iso.datetime().optional(),
+});
+
+export type ValidationComment = z.infer<typeof validationCommentSchema>;
+
 export const validationSchema = z.strictObject({
   id: z.uuid(),
   number: z.number().int().positive(),
@@ -52,6 +62,7 @@ export const validationSchema = z.strictObject({
   notes: z.array(z.string()),
   state: z.enum(['aberta', 'aprovada', 'reprovada']),
   commented: z.boolean(),
+  comment: validationCommentSchema.optional(),
   returns: z.array(returnDraftSchema),
   decidedVia: z.enum(['panel', 'channel', 'api']).optional(),
   decidedAt: z.iso.datetime().optional(),
@@ -74,6 +85,13 @@ export const validationAnswerSchema = z.strictObject({
     .max(40),
   /** Anything the owner saw beyond the items, kept in the comment. */
   note: z.string().trim().max(4000).optional(),
+  /** A refusal drafts return cards for the failed items only when the owner asks. */
+  withReturn: z.boolean().optional(),
+});
+
+/** The owner publishing the comment draft; a body replaces the draft's words. */
+export const validationCommentPublishSchema = z.strictObject({
+  body: z.string().trim().min(1).max(4000).optional(),
 });
 
 export const returnDraftPatchSchema = z.strictObject({
@@ -84,14 +102,20 @@ export const returnDraftPatchSchema = z.strictObject({
   criteria: z.array(z.string().trim().min(1).max(1000)).min(1).max(40).optional(),
 });
 
-/** "validação 3 aprovada", "reprovado: o filtro não limpa" from the owner in a chat. */
-export function parseValidationReply(
-  text: string,
-): { number?: number; approved: boolean; reason?: string } | undefined {
+export type ValidationReply = {
+  number?: number;
+  approved: boolean;
+  reason?: string;
+  /** "reprovado 3 com retorno: …": the owner wants return card drafts too. */
+  withReturn?: boolean;
+};
+
+/** "validação 3 aprovada", "reprovado: o filtro não limpa", "reprovado 3 com retorno: …". */
+export function parseValidationReply(text: string): ValidationReply | undefined {
   const match = text
     .trim()
     .match(
-      /^(?:valida[cç][aã]o\s+#?(\d{1,6})\s*[:,-]?\s*)?(aprovad[oa]|reprovad[oa])(?:\s+#?(\d{1,6}))?\s*(?:[:,-]\s*([\s\S]{1,2000}))?$/i,
+      /^(?:valida[cç][aã]o\s+#?(\d{1,6})\s*[:,-]?\s*)?(aprovad[oa]|reprovad[oa])(?:\s+#?(\d{1,6}))?(\s+com\s+retorno)?\s*(?:[:,-]\s*([\s\S]{1,2000}))?$/i,
     );
 
   if (!match) return undefined;
@@ -102,6 +126,33 @@ export function parseValidationReply(
   return {
     ...(number ? { number } : {}),
     approved,
-    ...(match[4]?.trim() ? { reason: match[4].trim() } : {}),
+    ...(match[5]?.trim() ? { reason: match[5].trim() } : {}),
+    ...(!approved && match[4] ? { withReturn: true } : {}),
   };
+}
+
+export type ValidationCommentReply = { number: number; body?: string };
+
+const COMMENT_OK = [
+  /^ok\s+coment[aá]rio\s+#?(\d{1,6})\.?$/i,
+  /^publica(?:r)?\s+(?:o\s+)?(?:coment[aá]rio\s+)?#?(\d{1,6})\.?$/i,
+];
+const COMMENT_EDIT = /^coment[aá]rio\s+#?(\d{1,6})\s*:\s*([\s\S]{1,4000})$/i;
+
+/**
+ * The owner on a comment draft in a chat: "ok comentario 3" or "publica 3" publishes it as
+ * it is, "comentario 3: texto" publishes the owner's text instead.
+ */
+export function parseValidationCommentReply(text: string): ValidationCommentReply | undefined {
+  const words = text.trim();
+
+  for (const pattern of COMMENT_OK) {
+    const match = pattern.exec(words);
+    if (match) return { number: Number(match[1]) };
+  }
+
+  const edit = COMMENT_EDIT.exec(words);
+  const body = edit?.[2]?.trim();
+
+  return edit && body ? { number: Number(edit[1]), body } : undefined;
 }

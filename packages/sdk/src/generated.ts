@@ -852,6 +852,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/validations/{validationId}/comment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["publishValidationComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validations/{validationId}/comment/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["discardValidationComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validations/{validationId}/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["draftValidationReturns"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/validations/{validationId}/returns/{index}": {
         parameters: {
             query?: never;
@@ -11949,6 +12000,13 @@ export interface operations {
                         /** @enum {string} */
                         state: "aberta" | "aprovada" | "reprovada";
                         commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
                         returns: {
                             item: number;
                             taskId: string;
@@ -12216,6 +12274,7 @@ export interface operations {
                         taskId?: string;
                     }[];
                     note?: string;
+                    withReturn?: boolean;
                 };
             };
         };
@@ -12257,6 +12316,562 @@ export interface operations {
                         /** @enum {string} */
                         state: "aberta" | "aprovada" | "reprovada";
                         commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
+                        returns: {
+                            item: number;
+                            taskId: string;
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                            problems: string[];
+                            /** @enum {string} */
+                            state: "rascunho" | "criado";
+                            workId?: string;
+                            error?: string;
+                        }[];
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    publishValidationComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                validationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    body?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        epicWorkId: string;
+                        epicTitle: string;
+                        epicUrl: string;
+                        previewUrl?: string;
+                        prototypeUrl?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pauta?: string;
+                        items: {
+                            text: string;
+                            /** @enum {string} */
+                            result?: "passou" | "falhou";
+                            reason?: string;
+                            taskId?: string;
+                        }[];
+                        tasks: {
+                            id: string;
+                            title: string;
+                            checklist: {
+                                text: string;
+                                done: boolean;
+                            }[];
+                        }[];
+                        notes: string[];
+                        /** @enum {string} */
+                        state: "aberta" | "aprovada" | "reprovada";
+                        commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
+                        returns: {
+                            item: number;
+                            taskId: string;
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                            problems: string[];
+                            /** @enum {string} */
+                            state: "rascunho" | "criado";
+                            workId?: string;
+                            error?: string;
+                        }[];
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    discardValidationComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                validationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        epicWorkId: string;
+                        epicTitle: string;
+                        epicUrl: string;
+                        previewUrl?: string;
+                        prototypeUrl?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pauta?: string;
+                        items: {
+                            text: string;
+                            /** @enum {string} */
+                            result?: "passou" | "falhou";
+                            reason?: string;
+                            taskId?: string;
+                        }[];
+                        tasks: {
+                            id: string;
+                            title: string;
+                            checklist: {
+                                text: string;
+                                done: boolean;
+                            }[];
+                        }[];
+                        notes: string[];
+                        /** @enum {string} */
+                        state: "aberta" | "aprovada" | "reprovada";
+                        commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
+                        returns: {
+                            item: number;
+                            taskId: string;
+                            title: string;
+                            /** @enum {string} */
+                            label: "feature" | "bugfix" | "refactor" | "style" | "docs" | "hotfix";
+                            description: string;
+                            criteria: string[];
+                            problems: string[];
+                            /** @enum {string} */
+                            state: "rascunho" | "criado";
+                            workId?: string;
+                            error?: string;
+                        }[];
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    draftValidationReturns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                validationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        epicWorkId: string;
+                        epicTitle: string;
+                        epicUrl: string;
+                        previewUrl?: string;
+                        prototypeUrl?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pauta?: string;
+                        items: {
+                            text: string;
+                            /** @enum {string} */
+                            result?: "passou" | "falhou";
+                            reason?: string;
+                            taskId?: string;
+                        }[];
+                        tasks: {
+                            id: string;
+                            title: string;
+                            checklist: {
+                                text: string;
+                                done: boolean;
+                            }[];
+                        }[];
+                        notes: string[];
+                        /** @enum {string} */
+                        state: "aberta" | "aprovada" | "reprovada";
+                        commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
                         returns: {
                             item: number;
                             taskId: string;
@@ -12443,6 +13058,13 @@ export interface operations {
                         /** @enum {string} */
                         state: "aberta" | "aprovada" | "reprovada";
                         commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
                         returns: {
                             item: number;
                             taskId: string;
@@ -12618,6 +13240,13 @@ export interface operations {
                         /** @enum {string} */
                         state: "aberta" | "aprovada" | "reprovada";
                         commented: boolean;
+                        comment?: {
+                            body: string;
+                            /** @enum {string} */
+                            state: "rascunho" | "publicado" | "descartado";
+                            /** Format: date-time */
+                            publishedAt?: string;
+                        };
                         returns: {
                             item: number;
                             taskId: string;

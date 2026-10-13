@@ -3,7 +3,10 @@ import {
   type ReturnDraft,
   returnDraftPatchSchema,
   type Validation,
+  type ValidationCommentReply,
+  type ValidationReply,
   validationAnswerSchema,
+  validationCommentPublishSchema,
 } from '@jian/contracts';
 import { desc, eq, sql } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
@@ -37,7 +40,50 @@ type Activity = {
   labels: Array<{ id: string; name: string }>;
   custom_field_values?: Array<{ field_id: string; value: unknown }>;
   parent_id?: string | null;
+  assignee_id?: string | null;
 };
+
+type Member = { id: string; user_id?: string; display_name?: string };
+
+/** Accents the owner skips when typing fast in a chat; only the obvious ones. */
+const SPELLING: Record<string, string> = {
+  nao: 'não',
+  entao: 'então',
+  tambem: 'também',
+  voce: 'você',
+  botao: 'botão',
+  pagina: 'página',
+  informacao: 'informação',
+  acao: 'ação',
+  validacao: 'validação',
+  funcao: 'função',
+  configuracao: 'configuração',
+  numero: 'número',
+  codigo: 'código',
+  usuario: 'usuário',
+};
+
+/** The owner's words with the obvious accents back, no dashes and no closing punctuation. */
+function tidy(text: string): string {
+  return text
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/\p{L}+/gu, (word) => {
+      const fixed = SPELLING[word.toLowerCase()];
+      if (!fixed) return word;
+      return word[0] === word[0]?.toUpperCase()
+        ? `${fixed.charAt(0).toUpperCase()}${fixed.slice(1)}`
+        : fixed;
+    })
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.;,:]+$/, '');
+}
+
+/** At most that many words, so the comment stays short. */
+function shorten(text: string, words: number): string {
+  const parts = text.split(' ');
+  return parts.length > words ? `${parts.slice(0, words).join(' ')}...` : text;
+}
 
 /** The automation the owner's checks are counted in. */
 export const VALIDATION_AUTOMATION = 'validacao';
@@ -69,8 +115,8 @@ const fieldText = (value: unknown) =>
 
 /**
  * The owner's check of what the tester passed. Ready epics are found on the board, their "done
- * when" turned into items, and the owner's answer becomes a comment on the epic and, for each
- * failed item, a return card the owner creates on the board.
+ * when" turned into items, and the owner's answer becomes a comment on the epic: at once for an
+ * approval, a draft the owner publishes for a refusal. Return cards come only when asked for.
  */
 export class Validations {
   private notify?: (text: string) => Promise<unknown>;
@@ -112,6 +158,15 @@ export class Validations {
       commented: row.commented,
       returns: row.returns.map(({ original: _o, linked: _l, mirrored: _m, ...draft }) => draft),
       ...(row.decidedVia ? { decidedVia: row.decidedVia as Via } : {}),
+      ...(row.comment
+        ? {
+            comment: {
+              body: row.comment.body,
+              state: row.comment.state,
+              ...(row.comment.publishedAt ? { publishedAt: row.comment.publishedAt } : {}),
+            },
+          }
+        : {}),
       ...(row.decidedAt ? { decidedAt: row.decidedAt.toISOString() } : {}),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
@@ -196,10 +251,15 @@ export class Validations {
         .where(eq(validations.epicWorkId, epic.id))
         .orderBy(desc(validations.createdAt))
         .limit(1);
+      // The owner's comment, published later than the answer, moves the epic too.
+      const answered = Math.max(
+        latest?.decidedAt?.getTime() ?? 0,
+        latest?.comment?.publishedAt ? Date.parse(latest.comment.publishedAt) : 0,
+      );
       const again =
         latest?.state !== 'aberta' &&
         latest?.decidedAt &&
-        Date.parse(epic.updated_at) > latest.decidedAt.getTime() + 60_000;
+        Date.parse(epic.updated_at) > answered + 60_000;
 
       if (latest && !again) continue;
 
@@ -352,8 +412,9 @@ export class Validations {
   }
 
   /**
-   * The owner's answer. It goes on the epic as a comment at once, since the answer is the
-   * approval; each failed item gets a return card draft, created only when the owner says so.
+   * The owner's answer. An approval goes on the epic as a short comment at once. A refusal
+   * only drafts a comment for the owner to publish, edit or discard; return card drafts are
+   * made only when the owner asks for them.
    */
   async answer(which: { id: string } | { number: number }, input: unknown, via: Via) {
     const data = validationAnswerSchema.parse(input);
@@ -379,28 +440,24 @@ export class Validations {
       .filter(({ item }) => item.result === 'falhou');
     const approved = failed.length === 0;
     const now = new Date(this.clock());
-    const comment = approved
-      ? [
-          'Aprovado na validação do PO. Verifiquei no preview:',
-          ...items.map((item) => `- ${item.text}`),
-          ...(data.note ? ['', data.note] : []),
-        ].join('\n')
-      : [
-          'Reprovado na validação do PO:',
-          ...failed.map(({ item }) => `- ${item.text}: ${item.reason ?? 'não passou'}`),
-          ...(data.note ? ['', data.note] : []),
-          '',
-          'Os cards de retorno vêm em seguida.',
-        ].join('\n');
-    const returns: StoredReturn[] = failed.map(({ item, index }) =>
-      this.returnDraft(row, item, index),
-    );
+    const body = approved
+      ? ['Aprovado na validação do PO.', ...(data.note ? [data.note] : [])].join('\n\n')
+      : await this.refusalDraft(
+          row,
+          failed.flatMap(({ item }) => (item.reason ? [item.reason] : [])),
+          data.note,
+        );
+    const returns: StoredReturn[] =
+      !approved && data.withReturn
+        ? failed.map(({ item, index }) => this.returnDraft(row, item, index))
+        : [];
 
     await this.store.db
       .update(validations)
       .set({
         items,
         state: approved ? 'aprovada' : 'reprovada',
+        comment: { body, original: body, state: 'rascunho' },
         returns,
         decidedVia: via,
         decidedAt: now,
@@ -408,13 +465,179 @@ export class Validations {
       })
       .where(eq(validations.id, row.id));
 
+    if (approved) return this.publishComment({ id: row.id }, {}, via);
+
+    return this.get({ id: row.id });
+  }
+
+  /**
+   * The refusal comment as a colleague would write it: who took the tasks and the tech lead
+   * mentioned, what failed in the owner's words, and that the owner checks again after the fix.
+   */
+  private async refusalDraft(row: Row, reasons: string[], note?: string): Promise<string> {
+    const mentions = (await this.mentions(row)).map(
+      (person) => `@[${person.name.split(/\s+/)[0]}](mention:${person.id})`,
+    );
+    const said = shorten(tidy(reasons.join('; ')) || 'não passou', 28);
+    const where = row.previewUrl ? 'testei no preview e ' : 'testei e ';
+    const what = /^test/i.test(said)
+      ? said
+      : `${where}${said.charAt(0).toLowerCase()}${said.slice(1)}`;
+    const extra = note ? shorten(tidy(note), 12) : '';
+    const lines = [
+      `${what}.`,
+      ...(extra ? [`${extra.charAt(0).toUpperCase()}${extra.slice(1)}.`] : []),
+      'Podem dar uma olhada? Quando subir a correção, valido de novo.',
+    ].join(' ');
+    const text = mentions.length
+      ? `${mentions.join(' ')} ${lines}`
+      : `${lines.charAt(0).toUpperCase()}${lines.slice(1)}`;
+
+    return text.replace(/\.{2,}/g, '.').replace(/([?!])\./g, '$1');
+  }
+
+  /** Whoever took the epic's tasks, then the tech lead; each once, names from the workspace. */
+  private async mentions(row: Row): Promise<Array<{ id: string; name: string }>> {
+    const people: Array<{ id: string; name: string }> = [];
+    const add = (id: string, name: string) => {
+      if (!people.some((person) => person.id === id)) people.push({ id, name });
+    };
+
+    try {
+      const client = await this.client();
+      const subtasks = (await client.call('GET', `/activities/${row.epicWorkId}/subtasks`)) as
+        | Activity[]
+        | { subtasks: Activity[] };
+      const tasks = Array.isArray(subtasks) ? subtasks : subtasks.subtasks;
+      const assignees = [
+        ...new Set(tasks.flatMap((task) => (task.assignee_id ? [task.assignee_id] : []))),
+      ];
+
+      if (assignees.length) {
+        const listed = (await client.call('GET', '/members').catch(() => [])) as
+          | Member[]
+          | { members: Member[] };
+        const members = Array.isArray(listed) ? listed : (listed.members ?? []);
+
+        for (const id of assignees) {
+          const member = members.find((item) => (item.user_id ?? item.id) === id);
+          add(
+            id,
+            member?.display_name ??
+              (id === this.target.lead?.id ? this.target.lead.name : 'responsável'),
+          );
+        }
+      }
+    } catch {
+      // Without the board the draft still names the tech lead; the owner reads it before it goes.
+    }
+
+    if (this.target.lead) add(this.target.lead.id, this.target.lead.name);
+
+    return people;
+  }
+
+  /**
+   * Publishes the comment draft on the epic, as drafted or with the owner's words; the
+   * owner's words are a correction of the draft.
+   */
+  async publishComment(
+    which: { id: string } | { number: number },
+    input: unknown,
+    via: Via,
+  ): Promise<Validation> {
+    const data = validationCommentPublishSchema.parse(input);
+    const row = await this.row(which);
+    const comment = row.comment;
+
+    if (comment?.state !== 'rascunho') {
+      throw new GatewayError(409, `Validation #${row.number} has no comment draft to publish`);
+    }
+
+    const body = data.body ?? comment.body;
     const client = await this.client();
 
-    await client.call('POST', `/activities/${row.epicWorkId}/comments`, { body: comment });
+    await client.call('POST', `/activities/${row.epicWorkId}/comments`, { body });
+
+    const now = new Date(this.clock());
+
     await this.store.db
       .update(validations)
-      .set({ commented: true })
+      .set({
+        comment: { ...comment, body, state: 'publicado', publishedAt: now.toISOString() },
+        commented: true,
+        updatedAt: now,
+      })
       .where(eq(validations.id, row.id));
+
+    if (body !== comment.original) {
+      const profileId = await this.keyProfile();
+
+      if (profileId) {
+        await this.quality?.record(this.store.db, profileId, {
+          kind: 'edited',
+          via,
+          action: VALIDATION_AUTOMATION,
+          original: comment.original,
+          corrected: body,
+          note: 'O Moabe reescreveu o comentário da validação antes de publicar.',
+        });
+      }
+    }
+
+    return this.get({ id: row.id });
+  }
+
+  /** The owner drops the comment draft; nothing goes on the epic. */
+  async discardComment(id: string): Promise<Validation> {
+    const row = await this.row({ id });
+
+    if (row.comment?.state !== 'rascunho') {
+      throw new GatewayError(409, `Validation #${row.number} has no comment draft to discard`);
+    }
+
+    await this.store.db
+      .update(validations)
+      .set({
+        comment: { ...row.comment, state: 'descartado' },
+        updatedAt: new Date(this.clock()),
+      })
+      .where(eq(validations.id, id));
+
+    const profileId = await this.keyProfile();
+
+    if (profileId) {
+      await this.quality?.record(this.store.db, profileId, {
+        kind: 'rejected',
+        via: 'panel',
+        action: VALIDATION_AUTOMATION,
+        original: row.comment.original,
+        note: 'O Moabe descartou o rascunho do comentário da validação.',
+      });
+    }
+
+    return this.get({ id });
+  }
+
+  /** Return card drafts for the failed items of a refusal, made only when the owner asks. */
+  async draftReturns(which: { id: string } | { number: number }): Promise<Validation> {
+    const row = await this.row(which);
+
+    if (row.state !== 'reprovada') {
+      throw new GatewayError(409, `Validation #${row.number} is ${row.state}, not reprovada`);
+    }
+
+    if (!row.returns.length) {
+      const returns = row.items
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item.result === 'falhou')
+        .map(({ item, index }) => this.returnDraft(row, item, index));
+
+      await this.store.db
+        .update(validations)
+        .set({ returns, updatedAt: new Date(this.clock()) })
+        .where(eq(validations.id, row.id));
+    }
 
     return this.get({ id: row.id });
   }
@@ -616,8 +839,12 @@ export class Validations {
     return this.get({ id });
   }
 
-  /** "aprovado" or "reprovado: motivo" from the owner in a chat, for one open validation. */
-  async fromChat(reply: { number?: number; approved: boolean; reason?: string }) {
+  /**
+   * "aprovado", "reprovado: motivo" or "reprovado com retorno: motivo" from the owner in a
+   * chat, for one open validation.
+   */
+  async fromChat(reply: ValidationReply) {
+    const withReturn = !reply.approved && reply.withReturn ? { withReturn: true } : {};
     const open = reply.number
       ? [await this.row({ number: reply.number })]
       : await this.store.db.select().from(validations).where(eq(validations.state, 'aberta'));
@@ -645,6 +872,7 @@ export class Validations {
         { id: row.id },
         {
           items: [{ result: 'falhou' as const, ...(reply.reason ? { reason: reply.reason } : {}) }],
+          ...withReturn,
         },
         'channel',
       );
@@ -663,15 +891,43 @@ export class Validations {
           ...row.items.map(() => ({ result: 'passou' as const })),
           { result: 'falhou' as const, ...(reply.reason ? { reason: reply.reason } : {}) },
         ],
+        ...withReturn,
       },
+      'channel',
+    );
+  }
+
+  /** "ok comentario 3" publishes the draft; "comentario 3: texto" publishes the owner's text. */
+  commentFromChat(reply: ValidationCommentReply) {
+    return this.publishComment(
+      { number: reply.number },
+      reply.body ? { body: reply.body } : {},
       'channel',
     );
   }
 
   /** What an agent reads when the owner answered in a chat. */
   static notice(validation: Validation) {
-    return validation.state === 'aprovada'
-      ? `[Validação #${validation.number}] O Moabe aprovou "${validation.epicTitle}"; o comentário Aprovado já está no épico.`
-      : `[Validação #${validation.number}] O Moabe reprovou "${validation.epicTitle}"; o motivo está no épico e o card de retorno espera ele em Validações, no painel.`;
+    const head = `[Validação #${validation.number}]`;
+
+    if (validation.state === 'aprovada') {
+      return `${head} O Moabe aprovou "${validation.epicTitle}"; o comentário Aprovado já está no épico.`;
+    }
+
+    if (validation.comment?.state === 'publicado') {
+      return `${head} Comentário publicado no épico "${validation.epicTitle}":\n\n${validation.comment.body}`;
+    }
+
+    const returns = validation.returns.length
+      ? ' O card de retorno que ele pediu espera em Validações, no painel.'
+      : '';
+
+    return [
+      `${head} O Moabe reprovou "${validation.epicTitle}". Nada foi publicado no épico ainda. Mostre a ele este rascunho de comentário, exatamente como está:`,
+      '',
+      validation.comment?.body ?? '',
+      '',
+      `Ele publica com "ok comentario ${validation.number}", troca o texto com "comentario ${validation.number}: novo texto", ou descarta em Validações, no painel.${returns}`,
+    ].join('\n');
   }
 }

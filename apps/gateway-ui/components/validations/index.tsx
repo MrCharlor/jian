@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ExternalLink, RefreshCw, Send, X } from 'lucide-react';
+import { Check, ExternalLink, Plus, RefreshCw, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { Validation } from '../../lib/api';
 import { date } from '../../lib/format';
@@ -56,7 +56,7 @@ export function Validations({ api }: SectionProps) {
     <>
       <SectionHeading
         title="Validações"
-        description="Épicos que o Tester passou para você. Responda item a item: aprovado vira comentário no épico, e o que falhar vira card de retorno."
+        description="Épicos que o Tester passou para você. Responda item a item: aprovado vira comentário no épico; reprovado vira um rascunho de comentário que você publica, e card de retorno só se você pedir."
         action={
           <Button
             variant="secondary"
@@ -225,6 +225,31 @@ function ValidationCard({
         </footer>
       )}
 
+      {validation.comment?.state === 'rascunho' && (
+        <CommentEditor validation={validation} api={api} act={act} busy={busy} />
+      )}
+      {validation.comment?.state === 'publicado' && (
+        <p className="note">
+          <Check size={14} /> Comentário publicado no épico: {validation.comment.body}
+        </p>
+      )}
+      {validation.comment?.state === 'descartado' && (
+        <p className="note">Comentário descartado; nada foi publicado no épico.</p>
+      )}
+
+      {validation.state === 'reprovada' && validation.returns.length === 0 && (
+        <footer className="prototype-buttons">
+          <Button
+            variant="secondary"
+            busy={busy}
+            disabled={busy}
+            onClick={() => void act(() => api.draftValidationReturns(validation.id))}
+          >
+            <Plus size={16} /> Criar card de retorno
+          </Button>
+        </footer>
+      )}
+
       {validation.returns.map((draft, index) => (
         <ReturnEditor
           key={`${validation.id}-${draft.item}`}
@@ -236,6 +261,56 @@ function ValidationCard({
         />
       ))}
     </article>
+  );
+}
+
+/** The refusal comment the agent drafted: published as it is, edited first, or dropped. */
+function CommentEditor({
+  validation,
+  api,
+  act,
+  busy,
+}: {
+  validation: Validation;
+  api: SectionProps['api'];
+  act: (work: () => Promise<unknown>) => Promise<void>;
+  busy: boolean;
+}) {
+  const drafted = validation.comment?.body ?? '';
+  const [body, setBody] = useState(drafted);
+
+  return (
+    <fieldset className="epic-task">
+      <legend>Comentário no épico (rascunho)</legend>
+      <div className="settings-fields">
+        <Field label="Texto" hint="Nada vai para o épico antes de você publicar.">
+          <textarea rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
+        </Field>
+      </div>
+      <footer className="prototype-buttons">
+        <Button
+          variant="quiet"
+          disabled={busy}
+          onClick={() => void act(() => api.discardValidationComment(validation.id))}
+        >
+          <X size={16} /> Descartar
+        </Button>
+        <Button
+          busy={busy}
+          disabled={busy || !body.trim()}
+          onClick={() =>
+            void act(() =>
+              api.publishValidationComment(
+                validation.id,
+                body.trim() === drafted ? undefined : body.trim(),
+              ),
+            )
+          }
+        >
+          <Send size={16} /> Publicar no épico
+        </Button>
+      </footer>
+    </fieldset>
   );
 }
 

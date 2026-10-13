@@ -154,6 +154,25 @@ export const resourceCalls = (client: Client) => ({
         body,
       }),
     ),
+  publishValidationComment: (validationId: string, body?: string) =>
+    result(
+      client.POST('/v1/validations/{validationId}/comment', {
+        params: { path: { validationId } },
+        body: body ? { body } : {},
+      }),
+    ),
+  discardValidationComment: (validationId: string) =>
+    result(
+      client.POST('/v1/validations/{validationId}/comment/discard', {
+        params: { path: { validationId } },
+      }),
+    ),
+  draftValidationReturns: (validationId: string) =>
+    result(
+      client.POST('/v1/validations/{validationId}/returns', {
+        params: { path: { validationId } },
+      }),
+    ),
   updateReturnDraft: (validationId: string, index: number, body: ReturnDraftPatch) =>
     result(
       client.PATCH('/v1/validations/{validationId}/returns/{index}', {

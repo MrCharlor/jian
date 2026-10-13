@@ -1,4 +1,4 @@
-import { parseValidationReply } from '@jian/contracts';
+import { parseValidationCommentReply, parseValidationReply } from '@jian/contracts';
 import { describe, expect, it } from 'vitest';
 import type { WorkClient } from '../src/priorities/work-board.js';
 import { doneWhen, Validations, type ValidationTarget } from '../src/validations/service.js';
@@ -18,6 +18,7 @@ const target: ValidationTarget = {
   awaitingLabel: 'awaiting',
   returnedLabel: 'returned',
   previewFieldId: 'preview',
+  lead: { id: 'lucas', name: 'Lucas Larangeira' },
 };
 
 const epic = {
@@ -47,7 +48,12 @@ function memoryBoard(returned: Array<Record<string, unknown>> = []) {
       if (path === '/boards/tasks/activities') return returned;
       if (path === '/activities/epic-1') return epic;
       if (path === '/activities/epic-1/subtasks')
-        return [{ id: 'task-1', title: 'Filtrar a listagem', labels: [] }];
+        return [{ id: 'task-1', title: 'Filtrar a listagem', labels: [], assignee_id: 'ricardo' }];
+      if (path === '/members')
+        return [
+          { id: 'm-1', user_id: 'ricardo', display_name: 'Ricardo Albuquerque' },
+          { id: 'm-2', user_id: 'lucas', display_name: 'Lucas Larangeira' },
+        ];
       if (path.endsWith('/comments'))
         return [{ body: 'Todos os CAs passaram.', created_at: '2026-10-09T13:00:00Z' }];
       if (path.endsWith('/checklist')) return [{ text: 'CA-1 (RN-1): filtra', done: true }];
@@ -72,16 +78,26 @@ async function fixture(returned: Array<Record<string, unknown>> = []) {
   const services = await testServices();
   const board = memoryBoard(returned);
   const told: string[] = [];
+  const corrections: Array<Record<string, unknown>> = [];
   const validations = new Validations(
     services.store,
     async () => board.client,
     async () => 'profile',
     target,
+    {
+      record: async (_db, _profileId, entry) => {
+        corrections.push(entry);
+        return {} as never;
+      },
+    },
   );
   validations.useOwner(async (text) => told.push(text));
 
-  return { validations, board, told };
+  return { validations, board, told, corrections };
 }
+
+const comments = (writes: Array<{ path: string; body?: unknown }>) =>
+  writes.filter((write) => write.path === '/activities/epic-1/comments');
 
 describe('the owner reply', () => {
   it('reads approval and refusal, with or without the number', () => {
@@ -97,6 +113,38 @@ describe('the owner reply', () => {
       reason: 'falta a busca',
     });
     expect(parseValidationReply('o épico foi aprovado ontem')).toBeUndefined();
+    expect(parseValidationReply('reprovado 6: testei e nao funcionou')).toEqual({
+      number: 6,
+      approved: false,
+      reason: 'testei e nao funcionou',
+    });
+  });
+
+  it('reads a refusal that asks for a return card', () => {
+    expect(parseValidationReply('reprovado 6 com retorno: o print não entra')).toEqual({
+      number: 6,
+      approved: false,
+      reason: 'o print não entra',
+      withReturn: true,
+    });
+    expect(parseValidationReply('Reprovada com retorno: falta a busca')).toEqual({
+      approved: false,
+      reason: 'falta a busca',
+      withReturn: true,
+    });
+    expect(parseValidationReply('aprovado 2')).toEqual({ number: 2, approved: true });
+  });
+
+  it('reads the owner on a comment draft', () => {
+    expect(parseValidationCommentReply('ok comentario 6')).toEqual({ number: 6 });
+    expect(parseValidationCommentReply('ok comentário #6')).toEqual({ number: 6 });
+    expect(parseValidationCommentReply('publica 6')).toEqual({ number: 6 });
+    expect(parseValidationCommentReply('comentario 6: @Ricardo olha o print')).toEqual({
+      number: 6,
+      body: '@Ricardo olha o print',
+    });
+    expect(parseValidationCommentReply('ok 6')).toBeUndefined();
+    expect(parseValidationCommentReply('comentario 6:')).toBeUndefined();
   });
 
   it('turns the done-when section into items', () => {
@@ -139,9 +187,125 @@ describe('validations', () => {
       'panel',
     );
 
-    expect(answered).toMatchObject({ state: 'aprovada', commented: true, returns: [] });
-    const comment = board.writes.find((write) => write.path === '/activities/epic-1/comments');
-    expect(JSON.stringify(comment?.body)).toContain('Aprovado na validação do PO');
+    expect(answered).toMatchObject({
+      state: 'aprovada',
+      commented: true,
+      returns: [],
+      comment: { state: 'publicado', body: 'Aprovado na validação do PO.' },
+    });
+    expect(comments(board.writes)).toEqual([
+      {
+        method: 'POST',
+        path: '/activities/epic-1/comments',
+        body: { body: 'Aprovado na validação do PO.' },
+      },
+    ]);
+  });
+
+  it('keeps the approval short, with the owner note and without the done-when', async () => {
+    const { validations, board } = await fixture();
+    await validations.scan();
+
+    await validations.fromChat({ number: 1, approved: true });
+    const { validations: other, board: second } = await fixture();
+    await other.scan();
+    await other.answer(
+      { number: 1 },
+      { items: [{ result: 'passou' }, { result: 'passou' }], note: 'Ficou ótimo no celular.' },
+      'panel',
+    );
+
+    expect(comments(board.writes)[0]?.body).toEqual({ body: 'Aprovado na validação do PO.' });
+    expect(comments(second.writes)[0]?.body).toEqual({
+      body: 'Aprovado na validação do PO.\n\nFicou ótimo no celular.',
+    });
+  });
+
+  it('drafts the refusal comment for the owner and writes nothing on the board', async () => {
+    const original = epic.description;
+    epic.description = '## Pronto quando\n- No preview: abrir um documento e colar um print.';
+    try {
+      const { validations, board } = await fixture();
+      await validations.scan();
+
+      const refused = await validations.fromChat({
+        number: 1,
+        approved: false,
+        reason: 'testei e nao funcionou',
+      });
+
+      expect(board.writes).toEqual([]);
+      expect(refused).toMatchObject({ state: 'reprovada', commented: false, returns: [] });
+      expect(refused?.comment).toEqual({
+        state: 'rascunho',
+        body: '@[Ricardo](mention:ricardo) @[Lucas](mention:lucas) testei e não funcionou. Podem dar uma olhada? Quando subir a correção, valido de novo.',
+      });
+      expect(refused?.comment?.body).not.toContain('Pronto quando');
+      expect(refused?.comment?.body).not.toContain('colar um print');
+      expect(refused?.comment?.body).not.toContain(' — ');
+      expect(Validations.notice(refused as never)).toContain('ok comentario 1');
+    } finally {
+      epic.description = original;
+    }
+  });
+
+  it('publishes the draft on "ok comentario"', async () => {
+    const { validations, board, corrections } = await fixture();
+    await validations.scan();
+    await validations.answer(
+      { number: 1 },
+      { items: [{ result: 'passou' }, { result: 'falhou', reason: 'a busca ignora acento' }] },
+      'panel',
+    );
+    const drafted = (await validations.get({ number: 1 })).comment?.body;
+
+    expect(drafted).toBe(
+      '@[Ricardo](mention:ricardo) @[Lucas](mention:lucas) testei no preview e a busca ignora acento. Podem dar uma olhada? Quando subir a correção, valido de novo.',
+    );
+
+    const published = await validations.commentFromChat(
+      parseValidationCommentReply('ok comentario 1') as { number: number },
+    );
+
+    expect(published).toMatchObject({ commented: true, comment: { state: 'publicado' } });
+    expect(comments(board.writes)).toEqual([
+      { method: 'POST', path: '/activities/epic-1/comments', body: { body: drafted } },
+    ]);
+    expect(corrections).toEqual([]);
+    await expect(validations.commentFromChat({ number: 1 })).rejects.toThrow('no comment draft');
+  });
+
+  it('publishes the owner words instead of the draft, as a correction', async () => {
+    const { validations, board, corrections } = await fixture();
+    await validations.scan();
+    await validations.fromChat({ number: 1, approved: false, reason: 'o filtro não limpa' });
+
+    const text = '@[Ricardo](mention:ricardo) o filtro não limpa ao trocar de aba, olha o print.';
+    const published = await validations.commentFromChat(
+      parseValidationCommentReply(`comentario 1: ${text}`) as { number: number; body: string },
+    );
+
+    expect(published.comment).toMatchObject({ state: 'publicado', body: text });
+    expect(comments(board.writes)[0]?.body).toEqual({ body: text });
+    expect(corrections).toEqual([
+      expect.objectContaining({
+        kind: 'edited',
+        via: 'channel',
+        action: 'validacao',
+        corrected: text,
+      }),
+    ]);
+  });
+
+  it('discards the draft from the panel, with nothing on the board', async () => {
+    const { validations, board } = await fixture();
+    await validations.scan();
+    const refused = await validations.fromChat({ number: 1, approved: false, reason: 'x' });
+
+    const discarded = await validations.discardComment(refused?.id ?? '');
+
+    expect(discarded.comment?.state).toBe('descartado');
+    expect(comments(board.writes)).toEqual([]);
   });
 
   it('takes a refusal from the chat once, on the item it is about', async () => {
@@ -165,18 +329,22 @@ describe('validations', () => {
     expect((await validations.get({ number: 1 })).items).toHaveLength(3);
   });
 
-  it('puts the chat reason on the only item when there is one', async () => {
+  it('drafts a return card only when the chat refusal asks for one', async () => {
     const original = epic.description;
     epic.description = '## Pronto quando\n- O usuário filtra por situação.';
     try {
-      const { validations } = await fixture();
+      const { validations, board } = await fixture();
       await validations.scan();
 
-      const refused = await validations.fromChat({
-        number: 1,
-        approved: false,
-        reason: 'o filtro não aparece',
-      });
+      const refused = await validations.fromChat(
+        parseValidationReply('reprovado 1 com retorno: o filtro não aparece') as {
+          approved: boolean;
+        },
+      );
+
+      expect(board.writes).toEqual([]);
+      expect(refused?.returns).toHaveLength(1);
+      expect(refused?.returns[0]?.state).toBe('rascunho');
 
       expect(refused?.items).toEqual([
         {
@@ -204,13 +372,17 @@ describe('validations', () => {
     );
 
     expect(answered.state).toBe('reprovada');
-    expect(answered.returns[0]).toMatchObject({
+    expect(answered.returns).toEqual([]);
+
+    const asked = await validations.draftReturns({ id: answered.id });
+
+    expect(asked.returns[0]).toMatchObject({
       taskId: 'task-1',
       label: 'bugfix',
       state: 'rascunho',
       criteria: ['CA-1 (RN-1): A busca acha a cor pelo nome.', 'make test-web passa'],
     });
-    expect(answered.returns[0]?.description).toContain('**Aconteceu:** a busca ignora acento');
+    expect(asked.returns[0]?.description).toContain('**Aconteceu:** a busca ignora acento');
 
     const created = await validations.createReturn(answered.id, 0);
 

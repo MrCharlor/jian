@@ -8,6 +8,7 @@ import {
   parseCorrectionReply,
   parseDecisionReply,
   parsePlanReply,
+  parseValidationCommentReply,
   parseValidationReply,
   type Run,
   submitSchema,
@@ -117,9 +118,9 @@ export class Runs {
   private decisions?: Pick<DecisionNotices, 'decide'>;
 
   /** Wired after construction: the topics service is built after this one. */
-  private validations?: Pick<ValidationNotices, 'fromChat'>;
+  private validations?: Pick<ValidationNotices, 'fromChat' | 'commentFromChat'>;
 
-  useValidations(validations: Pick<ValidationNotices, 'fromChat'>) {
+  useValidations(validations: Pick<ValidationNotices, 'fromChat' | 'commentFromChat'>) {
     this.validations = validations;
   }
 
@@ -223,6 +224,23 @@ export class Runs {
         if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
         throw error;
       });
+
+      if (validation) parsed.text = ValidationNotices.notice(validation);
+    }
+
+    // "ok comentario 3" or "comentario 3: texto" publishes the comment of a refusal.
+    const commented =
+      options.ownerMessage && this.validations && !reply && !decided && !planned && !validated
+        ? parseValidationCommentReply(parsed.text)
+        : undefined;
+
+    if (commented && this.validations) {
+      const validation = await this.validations
+        .commentFromChat(commented)
+        .catch((error: unknown) => {
+          if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+          throw error;
+        });
 
       if (validation) parsed.text = ValidationNotices.notice(validation);
     }
