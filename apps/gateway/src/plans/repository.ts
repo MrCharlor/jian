@@ -175,6 +175,32 @@ export async function openPriorityPlans(db: Queryable) {
     .orderBy(desc(plans.createdAt));
 }
 
+/** Entry sync plans still open: a new read of the boards keeps, takes over or ends them. */
+export async function openEntryPlans(db: Queryable) {
+  return db
+    .select()
+    .from(plans)
+    .where(
+      and(
+        eq(plans.action, 'entry_sync'),
+        inArray(plans.state, ['escrevendo', 'em_revisao', 'devolvido', 'aguardando_po']),
+      ),
+    )
+    .orderBy(desc(plans.createdAt));
+}
+
+/**
+ * Entry sync plans decided since then, by the owner or the automatic switch: what the owner
+ * already saw, and the moves the owner refused.
+ */
+export async function decidedEntryPlans(db: Queryable, since: Date) {
+  return db
+    .select()
+    .from(plans)
+    .where(and(eq(plans.action, 'entry_sync'), gt(plans.decidedAt, since)))
+    .orderBy(desc(plans.decidedAt));
+}
+
 export async function countExecuted(db: Queryable, action: string, after?: Date) {
   const [row] = await db
     .select({ count: sql<number>`count(*)` })

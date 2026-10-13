@@ -84,6 +84,8 @@ import {
   pautaRecordSchema,
 } from './pautas.js';
 import {
+  entrySyncResultSchema,
+  entrySyncRunSchema,
   planActionParamsSchema,
   planListQuerySchema,
   planRecordSchema,
@@ -921,6 +923,15 @@ export const operations: Operation[] = [
     params: planActionParamsSchema,
     body: planSettingsPatchSchema,
     response: planSettingsSchema,
+  },
+  {
+    // Reads the Entrada, the epics and the tasks now and opens the plan of what to move.
+    method: 'POST',
+    path: '/v1/entry-sync/run',
+    operationId: 'runEntrySync',
+    access: 'admin',
+    body: entrySyncRunSchema,
+    response: entrySyncResultSchema,
   },
   {
     method: 'GET',

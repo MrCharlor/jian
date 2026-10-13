@@ -171,6 +171,7 @@ export const resourceCalls = (client: Client) => ({
   knowledgeSettings: () => result(client.GET('/v1/knowledge-settings')),
   updateKnowledgeSettings: (body: KnowledgeSettingsPatch) =>
     result(client.PUT('/v1/knowledge-settings', { body })),
+  runEntrySync: () => result(client.POST('/v1/entry-sync/run', { body: { skip: [] } })),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

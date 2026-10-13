@@ -26821,7 +26821,8 @@
                         "type": "string",
                         "enum": [
                           "prototype",
-                          "priority"
+                          "priority",
+                          "entry_sync"
                         ]
                       },
                       "prototypeId": {
@@ -26887,6 +26888,151 @@
                           "number",
                           "summary",
                           "cards"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "entrySync": {
+                        "type": "object",
+                        "properties": {
+                          "moves": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "workId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "board": {
+                                  "type": "string",
+                                  "enum": [
+                                    "entrada",
+                                    "epics"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "fromStatusId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "toStatusId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "type": "string"
+                                },
+                                "result": {
+                                  "type": "string",
+                                  "enum": [
+                                    "feito",
+                                    "pulado",
+                                    "falhou"
+                                  ]
+                                },
+                                "resultNote": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "workId",
+                                "title",
+                                "board",
+                                "from",
+                                "to",
+                                "fromStatusId",
+                                "toStatusId",
+                                "reason",
+                                "url"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "stale": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "workId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "days": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "url": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "workId",
+                                "title",
+                                "days",
+                                "url"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "skipped": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "workId": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "workId",
+                                "title",
+                                "to",
+                                "reason"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "readAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "moves",
+                          "stale",
+                          "skipped",
+                          "readAt"
                         ],
                         "additionalProperties": false
                       },
@@ -27246,7 +27392,8 @@
                       "type": "string",
                       "enum": [
                         "prototype",
-                        "priority"
+                        "priority",
+                        "entry_sync"
                       ]
                     },
                     "prototypeId": {
@@ -27312,6 +27459,151 @@
                         "number",
                         "summary",
                         "cards"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "entrySync": {
+                      "type": "object",
+                      "properties": {
+                        "moves": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string",
+                                "enum": [
+                                  "entrada",
+                                  "epics"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "fromStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "toStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "result": {
+                                "type": "string",
+                                "enum": [
+                                  "feito",
+                                  "pulado",
+                                  "falhou"
+                                ]
+                              },
+                              "resultNote": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "board",
+                              "from",
+                              "to",
+                              "fromStatusId",
+                              "toStatusId",
+                              "reason",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "stale": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "days",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "skipped": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "to",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "readAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "moves",
+                        "stale",
+                        "skipped",
+                        "readAt"
                       ],
                       "additionalProperties": false
                     },
@@ -27670,7 +27962,8 @@
                       "type": "string",
                       "enum": [
                         "prototype",
-                        "priority"
+                        "priority",
+                        "entry_sync"
                       ]
                     },
                     "prototypeId": {
@@ -27736,6 +28029,151 @@
                         "number",
                         "summary",
                         "cards"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "entrySync": {
+                      "type": "object",
+                      "properties": {
+                        "moves": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string",
+                                "enum": [
+                                  "entrada",
+                                  "epics"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "fromStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "toStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "result": {
+                                "type": "string",
+                                "enum": [
+                                  "feito",
+                                  "pulado",
+                                  "falhou"
+                                ]
+                              },
+                              "resultNote": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "board",
+                              "from",
+                              "to",
+                              "fromStatusId",
+                              "toStatusId",
+                              "reason",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "stale": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "days",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "skipped": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "to",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "readAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "moves",
+                        "stale",
+                        "skipped",
+                        "readAt"
                       ],
                       "additionalProperties": false
                     },
@@ -28115,7 +28553,8 @@
                       "type": "string",
                       "enum": [
                         "prototype",
-                        "priority"
+                        "priority",
+                        "entry_sync"
                       ]
                     },
                     "prototypeId": {
@@ -28181,6 +28620,151 @@
                         "number",
                         "summary",
                         "cards"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "entrySync": {
+                      "type": "object",
+                      "properties": {
+                        "moves": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string",
+                                "enum": [
+                                  "entrada",
+                                  "epics"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "fromStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "toStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "result": {
+                                "type": "string",
+                                "enum": [
+                                  "feito",
+                                  "pulado",
+                                  "falhou"
+                                ]
+                              },
+                              "resultNote": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "board",
+                              "from",
+                              "to",
+                              "fromStatusId",
+                              "toStatusId",
+                              "reason",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "stale": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "days",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "skipped": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "to",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "readAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "moves",
+                        "stale",
+                        "skipped",
+                        "readAt"
                       ],
                       "additionalProperties": false
                     },
@@ -28556,7 +29140,8 @@
                       "type": "string",
                       "enum": [
                         "prototype",
-                        "priority"
+                        "priority",
+                        "entry_sync"
                       ]
                     },
                     "prototypeId": {
@@ -28622,6 +29207,151 @@
                         "number",
                         "summary",
                         "cards"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "entrySync": {
+                      "type": "object",
+                      "properties": {
+                        "moves": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "board": {
+                                "type": "string",
+                                "enum": [
+                                  "entrada",
+                                  "epics"
+                                ]
+                              },
+                              "from": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "fromStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "toStatusId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "result": {
+                                "type": "string",
+                                "enum": [
+                                  "feito",
+                                  "pulado",
+                                  "falhou"
+                                ]
+                              },
+                              "resultNote": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "board",
+                              "from",
+                              "to",
+                              "fromStatusId",
+                              "toStatusId",
+                              "reason",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "stale": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "days": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "days",
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "skipped": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "to": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "to",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "readAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "moves",
+                        "stale",
+                        "skipped",
+                        "readAt"
                       ],
                       "additionalProperties": false
                     },
@@ -28955,7 +29685,8 @@
               "type": "string",
               "enum": [
                 "prototype",
-                "priority"
+                "priority",
+                "entry_sync"
               ]
             }
           }
@@ -28972,7 +29703,8 @@
                       "type": "string",
                       "enum": [
                         "prototype",
-                        "priority"
+                        "priority",
+                        "entry_sync"
                       ]
                     },
                     "automatic": {
@@ -29226,7 +29958,8 @@
               "type": "string",
               "enum": [
                 "prototype",
-                "priority"
+                "priority",
+                "entry_sync"
               ]
             }
           }
@@ -29315,7 +30048,8 @@
                       "type": "string",
                       "enum": [
                         "prototype",
-                        "priority"
+                        "priority",
+                        "entry_sync"
                       ]
                     },
                     "automatic": {
@@ -29373,6 +30107,637 @@
                     "action",
                     "automatic",
                     "maxRounds"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/entry-sync/run": {
+      "post": {
+        "operationId": "runEntrySync",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Required permission: admin.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "skip": {
+                    "default": [],
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "workId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "workId",
+                        "reason"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "moves": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "stale": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "skipped": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "unchanged": {
+                      "type": "boolean"
+                    },
+                    "plan": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "number": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "prototype",
+                            "priority",
+                            "entry_sync"
+                          ]
+                        },
+                        "prototypeId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "prototypeVersion": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "application": {
+                          "type": "string"
+                        },
+                        "priorityProposalId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "priority": {
+                          "type": "object",
+                          "properties": {
+                            "number": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "summary": {
+                              "type": "string"
+                            },
+                            "cards": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "workId": {
+                                    "type": "string"
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "reason": {
+                                    "type": "string"
+                                  },
+                                  "raise": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "workId",
+                                  "title",
+                                  "raise"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "number",
+                            "summary",
+                            "cards"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "entrySync": {
+                          "type": "object",
+                          "properties": {
+                            "moves": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "workId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "board": {
+                                    "type": "string",
+                                    "enum": [
+                                      "entrada",
+                                      "epics"
+                                    ]
+                                  },
+                                  "from": {
+                                    "type": "string"
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "fromStatusId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "toStatusId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "reason": {
+                                    "type": "string"
+                                  },
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "result": {
+                                    "type": "string",
+                                    "enum": [
+                                      "feito",
+                                      "pulado",
+                                      "falhou"
+                                    ]
+                                  },
+                                  "resultNote": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "workId",
+                                  "title",
+                                  "board",
+                                  "from",
+                                  "to",
+                                  "fromStatusId",
+                                  "toStatusId",
+                                  "reason",
+                                  "url"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "stale": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "workId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "days": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "url": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "workId",
+                                  "title",
+                                  "days",
+                                  "url"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "skipped": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "workId": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "to": {
+                                    "type": "string"
+                                  },
+                                  "reason": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "workId",
+                                  "title",
+                                  "to",
+                                  "reason"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "readAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            }
+                          },
+                          "required": [
+                            "moves",
+                            "stale",
+                            "skipped",
+                            "readAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "pautaId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "authorProfileId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "authorName": {
+                          "type": "string"
+                        },
+                        "reviewerProfileId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "reviewerName": {
+                          "type": "string"
+                        },
+                        "original": {
+                          "type": "string"
+                        },
+                        "revised": {
+                          "type": "string"
+                        },
+                        "findings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "divergencia",
+                                  "regra_sensivel",
+                                  "lacuna"
+                                ]
+                              },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 2000
+                              },
+                              "source": {
+                                "default": "",
+                                "type": "string",
+                                "maxLength": 500
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "text",
+                              "source"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "questions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "rounds": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "escrevendo",
+                            "em_revisao",
+                            "devolvido",
+                            "aguardando_po",
+                            "aprovado",
+                            "executado",
+                            "recusado"
+                          ]
+                        },
+                        "note": {
+                          "type": "string"
+                        },
+                        "approvedBy": {
+                          "type": "string",
+                          "enum": [
+                            "owner",
+                            "automatico"
+                          ]
+                        },
+                        "decidedVia": {
+                          "type": "string",
+                          "enum": [
+                            "panel",
+                            "channel",
+                            "api",
+                            "automatico"
+                          ]
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        "executedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "number",
+                        "action",
+                        "title",
+                        "findings",
+                        "rounds",
+                        "state",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "moves",
+                    "stale",
+                    "skipped",
+                    "unchanged",
+                    "message"
                   ],
                   "additionalProperties": false
                 }
@@ -29675,7 +31040,8 @@
                             "type": "string",
                             "enum": [
                               "prototype",
-                              "priority"
+                              "priority",
+                              "entry_sync"
                             ]
                           },
                           "prototypeId": {
@@ -29741,6 +31107,151 @@
                               "number",
                               "summary",
                               "cards"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "entrySync": {
+                            "type": "object",
+                            "properties": {
+                              "moves": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "workId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 80
+                                    },
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "board": {
+                                      "type": "string",
+                                      "enum": [
+                                        "entrada",
+                                        "epics"
+                                      ]
+                                    },
+                                    "from": {
+                                      "type": "string"
+                                    },
+                                    "to": {
+                                      "type": "string"
+                                    },
+                                    "fromStatusId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 80
+                                    },
+                                    "toStatusId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 80
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "url": {
+                                      "type": "string"
+                                    },
+                                    "result": {
+                                      "type": "string",
+                                      "enum": [
+                                        "feito",
+                                        "pulado",
+                                        "falhou"
+                                      ]
+                                    },
+                                    "resultNote": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "workId",
+                                    "title",
+                                    "board",
+                                    "from",
+                                    "to",
+                                    "fromStatusId",
+                                    "toStatusId",
+                                    "reason",
+                                    "url"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "stale": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "workId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 80
+                                    },
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "days": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "url": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "workId",
+                                    "title",
+                                    "days",
+                                    "url"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "skipped": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "workId": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 80
+                                    },
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "to": {
+                                      "type": "string"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "workId",
+                                    "title",
+                                    "to",
+                                    "reason"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "readAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              }
+                            },
+                            "required": [
+                              "moves",
+                              "stale",
+                              "skipped",
+                              "readAt"
                             ],
                             "additionalProperties": false
                           },
@@ -29889,7 +31400,8 @@
                             "type": "string",
                             "enum": [
                               "prototype",
-                              "priority"
+                              "priority",
+                              "entry_sync"
                             ]
                           },
                           "automatic": {

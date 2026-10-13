@@ -48,11 +48,12 @@ const OPEN = new Set<PlanState>(['escrevendo', 'em_revisao', 'devolvido', 'aguar
 
 type Action = Plan['action'];
 
-const ACTIONS: Action[] = ['prototype', 'priority'];
+const ACTIONS: Action[] = ['prototype', 'priority', 'entry_sync'];
 
 export const actionLabel: Record<Action, string> = {
   prototype: 'Protótipo',
   priority: 'Priorização',
+  entry_sync: 'Entrada segue o épico',
 };
 
 const actionHint: Record<Action, { direct: string; author: string }> = {
@@ -64,11 +65,23 @@ const actionHint: Record<Action, { direct: string; author: string }> = {
     direct: 'Sem Revisor, a proposta vai direto para a página Priorização, como antes.',
     author: 'Vazio: o agente que propôs a ordem, ou o Otto.',
   },
+  entry_sync: {
+    direct:
+      'Sem Revisor, o plano vem direto para você e nunca roda sozinho, mesmo com Automático ligado.',
+    author: 'Vazio: o agente que leu os boards, ou o Otto.',
+  },
 };
 
+/** How a plan is named in a list. */
+export const planTitle = (plan: Pick<Plan, 'action' | 'title'>) =>
+  plan.action === 'prototype' ? `Protótipo "${plan.title}"` : plan.title;
+
+const resultTone = { feito: 'good', pulado: 'warn', falhou: 'bad' } as const;
+const resultLabel = { feito: 'Feito', pulado: 'Pulado', falhou: 'Falhou' } as const;
+
 /**
- * Plans written before a prototype or a prioritization: the original beside the Reviewer's,
- * and the owner's OK.
+ * Plans written before a prototype, a prioritization or the Entrada moves: the original beside
+ * the Reviewer's, and the owner's OK.
  */
 export function Plans({ api, data }: SectionProps) {
   const [list, setList] = useState<Plan[]>();
@@ -118,7 +131,7 @@ export function Plans({ api, data }: SectionProps) {
     <>
       <SectionHeading
         title="Planos"
-        description="Antes de um protótipo ou de uma priorização, o agente escreve o plano e o Revisor confere contra as suas regras e correções. Aprove para executar, ou devolva com o motivo."
+        description="Antes de um protótipo, de uma priorização ou dos movimentos da Entrada, o agente escreve o plano e o Revisor confere contra as suas regras e correções. Aprove para executar, ou devolva com o motivo."
       />
       <Field label="Ação">
         <select value={action} onChange={(event) => setAction(event.target.value as Action | '')}>
@@ -137,7 +150,7 @@ export function Plans({ api, data }: SectionProps) {
       {list && !list.length ? (
         <Empty title="Nenhum plano ainda">
           Os planos aparecem aqui quando houver um Revisor configurado e alguém pedir um protótipo
-          ou propuser uma priorização.
+          ou propuser uma priorização, e quando a leitura da Entrada achar o que mover.
         </Empty>
       ) : (
         groups.map((group) => (
@@ -176,7 +189,7 @@ function PlanCard({
       <header>
         <div className="grow">
           <h4>
-            #{plan.number} · {plan.action === 'priority' ? plan.title : `Protótipo "${plan.title}"`}{' '}
+            #{plan.number} · {planTitle(plan)}{' '}
             <Badge tone={stateTone[plan.state]}>{planStateLabel[plan.state]}</Badge>
           </h4>
           <small>
@@ -233,6 +246,8 @@ function PlanCard({
             </ol>
             <p className="note">{plan.priority.summary}</p>
           </div>
+        ) : plan.entrySync ? (
+          <EntryMoves sync={plan.entrySync} />
         ) : (
           <div>
             <h5>Plano do autor</h5>
@@ -276,6 +291,60 @@ function PlanCard({
         </footer>
       )}
     </article>
+  );
+}
+
+/** The moves of an entry sync as "card: from → to, why", and what the owner should decide. */
+function EntryMoves({ sync }: { sync: NonNullable<Plan['entrySync']> }) {
+  return (
+    <div>
+      <h5>Movimentos</h5>
+      {sync.moves.length ? (
+        <ol>
+          {sync.moves.map((move) => (
+            <li key={`${move.workId}-${move.toStatusId}`}>
+              <a href={move.url} target="_blank" rel="noreferrer">
+                {move.board === 'epics' ? 'Épico' : 'Pedido'} "{move.title}"
+              </a>
+              : {move.from} → {move.to}, {move.reason}{' '}
+              {move.result && (
+                <Badge tone={resultTone[move.result]}>{resultLabel[move.result]}</Badge>
+              )}
+              {move.resultNote ? <small> {move.resultNote}</small> : null}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="note">Nenhum movimento.</p>
+      )}
+      {sync.stale.length > 0 && (
+        <>
+          <h5>Em Priorizado sem épico (você decide; não se movem)</h5>
+          <ul>
+            {sync.stale.map((item) => (
+              <li key={item.workId}>
+                <a href={item.url} target="_blank" rel="noreferrer">
+                  {item.title}
+                </a>
+                : há {item.days} dias
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {sync.skipped.length > 0 && (
+        <>
+          <h5>Deixados de fora</h5>
+          <ul>
+            {sync.skipped.map((item) => (
+              <li key={`${item.workId}-${item.to}`}>
+                {item.title} (→ {item.to}): {item.reason}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -336,7 +405,13 @@ function ActionSettings({
             value={settings.authorProfileId ?? ''}
             onChange={(event) => void save({ authorProfileId: event.target.value || null })}
           >
-            <option value="">{action === 'priority' ? 'Quem propôs' : 'Quem pediu'}</option>
+            <option value="">
+              {action === 'prototype'
+                ? 'Quem pediu'
+                : action === 'priority'
+                  ? 'Quem propôs'
+                  : 'Quem leu'}
+            </option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.name}
@@ -414,6 +489,23 @@ function ActionSettings({
           </Field>
         )}
       </div>
+      {action === 'entry_sync' && (
+        <p className="prototype-buttons">
+          <Button
+            variant="secondary"
+            onClick={() =>
+              void api
+                .runEntrySync()
+                .then((result) => setMessage(`${result.message} Recarregue a lista.`))
+                .catch((failure) =>
+                  setMessage(failure instanceof Error ? failure.message : 'Não leu os boards.'),
+                )
+            }
+          >
+            Ler os boards agora
+          </Button>
+        </p>
+      )}
       {message && <p className="note">{message}</p>}
     </article>
   );

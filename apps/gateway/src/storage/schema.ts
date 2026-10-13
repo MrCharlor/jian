@@ -2,6 +2,7 @@ import type {
   ActionPolicy,
   AgentCallOrigin,
   ContextPolicy,
+  EntrySync,
   GroupTurn,
   Identity,
   McpServer,
@@ -1347,6 +1348,8 @@ export const plans = pgTable(
     priorityProposalId: uuid('priority_proposal_id').references(() => priorityProposals.id, {
       onDelete: 'set null',
     }),
+    /** The moves an entry sync makes once approved, with what happened to each. */
+    entrySync: jsonb('entry_sync').$type<EntrySync>(),
     pautaId: uuid('pauta_id'),
     authorProfileId: uuid('author_profile_id').references(() => profiles.id, {
       onDelete: 'set null',

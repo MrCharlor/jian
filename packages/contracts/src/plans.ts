@@ -5,10 +5,11 @@ import { scheduleRecordSchema } from './schedules.js';
 
 /**
  * A plan written before an action runs, read by the Reviewer and, unless the action is
- * automatic, approved by the owner: a prototype before it is drawn, and the order of the
- * column the team pulls from before it is applied on the board.
+ * automatic, approved by the owner: a prototype before it is drawn, the order of the column
+ * the team pulls from before it is applied on the board, and the moves that keep the requests
+ * of the Entrada and the epics in step with the work (`entry_sync`).
  */
-export const planActionSchema = z.enum(['prototype', 'priority']);
+export const planActionSchema = z.enum(['prototype', 'priority', 'entry_sync']);
 
 export const planStateSchema = z.enum([
   'escrevendo',
@@ -63,6 +64,62 @@ export const planListQuerySchema = z.strictObject({
   state: planStateSchema.optional(),
 });
 
+/**
+ * One card moved by an entry sync: an epic by its tasks, or a request of the Entrada by its
+ * epic. The column names are the board's; the ids are read on the board when the plan is made.
+ */
+export const entryMoveSchema = z.strictObject({
+  workId: z.string().min(1).max(80),
+  title: z.string(),
+  board: z.enum(['entrada', 'epics']),
+  from: z.string(),
+  to: z.string(),
+  fromStatusId: z.string().min(1).max(80),
+  toStatusId: z.string().min(1).max(80),
+  reason: z.string(),
+  url: z.string(),
+  /** What happened when the plan ran: moved, left alone (and why), or the board's error. */
+  result: z.enum(['feito', 'pulado', 'falhou']).optional(),
+  resultNote: z.string().optional(),
+});
+
+/** A request in Priorizado with no epic of the squad linked, for longer than the limit. */
+export const entryStaleSchema = z.strictObject({
+  workId: z.string().min(1).max(80),
+  title: z.string(),
+  days: z.number().int().nonnegative(),
+  url: z.string(),
+});
+
+/** A move the author or an earlier refusal of the owner left out of the plan, with why. */
+export const entrySkippedSchema = z.strictObject({
+  workId: z.string().min(1).max(80),
+  title: z.string(),
+  to: z.string(),
+  reason: z.string(),
+});
+
+export const entrySyncSchema = z.strictObject({
+  moves: z.array(entryMoveSchema),
+  stale: z.array(entryStaleSchema),
+  skipped: z.array(entrySkippedSchema),
+  /** When the boards were read. */
+  readAt: z.iso.datetime(),
+});
+
+/** Moves the author leaves out when it reads again, as the Reviewer or the owner asked. */
+export const entrySyncRunSchema = z.strictObject({
+  skip: z
+    .array(
+      z.strictObject({
+        workId: z.string().min(1).max(80),
+        reason: z.string().trim().min(1).max(500),
+      }),
+    )
+    .max(50)
+    .default([]),
+});
+
 export const planRecordSchema = z.strictObject({
   id: z.uuid(),
   number: z.number().int().positive(),
@@ -80,6 +137,8 @@ export const planRecordSchema = z.strictObject({
       cards: z.array(priorityCardSchema),
     })
     .optional(),
+  /** The moves an entry sync makes once approved, and the requests standing still. */
+  entrySync: entrySyncSchema.optional(),
   pautaId: z.uuid().optional(),
   authorProfileId: z.uuid().optional(),
   authorName: z.string().optional(),
@@ -103,7 +162,10 @@ export const planRecordSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
 });
 
-/** Per action. Without a Reviewer the action runs as before, with no plan. */
+/**
+ * Per action. Without a Reviewer a prototype or a prioritization runs as before, with no plan;
+ * an entry sync still makes its plan, which goes straight to the owner and never runs alone.
+ */
 export const planSettingsSchema = z.strictObject({
   action: planActionSchema,
   /** On: a plan the Reviewer approved runs without the owner's OK. */
@@ -153,7 +215,23 @@ export const routinesSchema = z.strictObject({
   ),
 });
 
+/** What a read of the boards gave: the plan it opened or kept, or nothing to do. */
+export const entrySyncResultSchema = z.strictObject({
+  moves: z.number().int().nonnegative(),
+  stale: z.number().int().nonnegative(),
+  skipped: z.number().int().nonnegative(),
+  /** The open plan already says the same; no new one was made. */
+  unchanged: z.boolean(),
+  plan: planRecordSchema.optional(),
+  message: z.string(),
+});
+
 export type PlanAction = z.infer<typeof planActionSchema>;
+export type EntryMove = z.infer<typeof entryMoveSchema>;
+export type EntryStale = z.infer<typeof entryStaleSchema>;
+export type EntrySkipped = z.infer<typeof entrySkippedSchema>;
+export type EntrySync = z.infer<typeof entrySyncSchema>;
+export type EntrySyncResult = z.infer<typeof entrySyncResultSchema>;
 export type PlanState = z.infer<typeof planStateSchema>;
 export type PlanFinding = z.infer<typeof planFindingSchema>;
 export type Plan = z.infer<typeof planRecordSchema>;

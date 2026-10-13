@@ -2,6 +2,7 @@ import {
   agentCallSchema,
   decisionInputSchema,
   decisionUseSchema,
+  entrySyncRunSchema,
   epicDraftInputSchema,
   memoryKeySchema,
   memorySchema,
@@ -22,6 +23,7 @@ import { assertFound, GatewayError } from '../core/errors.js';
 import { gatewayTimeZone } from '../core/time-zone.js';
 import type { Decisions, Question } from '../decisions/service.js';
 import { type Drawings, drawInputSchema } from '../drawings/service.js';
+import type { EntrySync } from '../entry/service.js';
 import type { Epics } from '../epics/service.js';
 import type { Outreach } from '../errands/port.js';
 import { type Flow, flowReportInputSchema } from '../flow/service.js';
@@ -118,6 +120,7 @@ export type ToolServices = {
   screens?: Pick<Screens, 'list' | 'saveInventory' | 'get' | 'writeSheet' | 'attachPrints'>;
   plans?: Pick<Plans, 'write' | 'review' | 'read'>;
   knowledge?: Pick<Knowledge, 'lookup' | 'propose' | 'isCurator'>;
+  entrySync?: Pick<EntrySync, 'run'>;
 };
 
 export function profileTools(
@@ -275,6 +278,20 @@ export function profileTools(
     ...(services.screens ? screenTools(services.screens, run) : {}),
     ...(services.plans ? planTools(services.plans, run) : {}),
     ...(services.knowledge ? knowledgeTools(services.knowledge, run) : {}),
+    ...(services.entrySync
+      ? {
+          propose_entry_sync: tool({
+            description:
+              'Read the Sigma Entrada, Epics and Tasks boards now and open the plan of the moves that are missing: an epic to Em andamento once a task left A fazer, to Em revisão once every task is Aceito; a request to Em execução once its epic left A fazer, to Bloqueado with its epic, to Concluído once the owner approved the epic in the validation. Requests in Priorizado with no epic for over 7 days are listed for the owner, never moved. Nothing moves now: the Reviewer and the owner (or the automatic switch) let the plan through, then the moves are made with each card read again. When a plan comes back, call it again with skip for each card that must not move, with the reason.',
+            inputSchema: entrySyncRunSchema,
+            execute: async (input) =>
+              services.entrySync?.run(input, {
+                profileId: run.profileId,
+                sessionId: run.sessionId,
+              }),
+          }),
+        }
+      : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
     ...(services.epics
       ? {
@@ -698,8 +715,8 @@ export const TOOL_GROUPS = {
   },
   plans: {
     summary:
-      'write the plan you were asked for before an action (a prototype), review a plan as the Reviewer (a prototype or a prioritization), and read a plan back by id or number',
-    tools: ['write_plan', 'review_plan', 'read_plan'],
+      'write the plan you were asked for before an action (a prototype), review a plan as the Reviewer (a prototype, a prioritization or the Entrada moves), read a plan back by id or number, and read the Entrada and the epics to plan the moves that are missing',
+    tools: ['write_plan', 'review_plan', 'read_plan', 'propose_entry_sync'],
   },
   knowledge: {
     summary:

@@ -1159,6 +1159,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/entry-sync/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["runEntrySync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/routines": {
         parameters: {
             query?: never;
@@ -14632,7 +14649,7 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
@@ -14649,6 +14666,37 @@ export interface operations {
                                 reason?: string;
                                 raise: boolean;
                             }[];
+                        };
+                        entrySync?: {
+                            moves: {
+                                workId: string;
+                                title: string;
+                                /** @enum {string} */
+                                board: "entrada" | "epics";
+                                from: string;
+                                to: string;
+                                fromStatusId: string;
+                                toStatusId: string;
+                                reason: string;
+                                url: string;
+                                /** @enum {string} */
+                                result?: "feito" | "pulado" | "falhou";
+                                resultNote?: string;
+                            }[];
+                            stale: {
+                                workId: string;
+                                title: string;
+                                days: number;
+                                url: string;
+                            }[];
+                            skipped: {
+                                workId: string;
+                                title: string;
+                                to: string;
+                                reason: string;
+                            }[];
+                            /** Format: date-time */
+                            readAt: string;
                         };
                         /** Format: uuid */
                         pautaId?: string;
@@ -14810,7 +14858,7 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
@@ -14827,6 +14875,37 @@ export interface operations {
                                 reason?: string;
                                 raise: boolean;
                             }[];
+                        };
+                        entrySync?: {
+                            moves: {
+                                workId: string;
+                                title: string;
+                                /** @enum {string} */
+                                board: "entrada" | "epics";
+                                from: string;
+                                to: string;
+                                fromStatusId: string;
+                                toStatusId: string;
+                                reason: string;
+                                url: string;
+                                /** @enum {string} */
+                                result?: "feito" | "pulado" | "falhou";
+                                resultNote?: string;
+                            }[];
+                            stale: {
+                                workId: string;
+                                title: string;
+                                days: number;
+                                url: string;
+                            }[];
+                            skipped: {
+                                workId: string;
+                                title: string;
+                                to: string;
+                                reason: string;
+                            }[];
+                            /** Format: date-time */
+                            readAt: string;
                         };
                         /** Format: uuid */
                         pautaId?: string;
@@ -14988,7 +15067,7 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
@@ -15005,6 +15084,37 @@ export interface operations {
                                 reason?: string;
                                 raise: boolean;
                             }[];
+                        };
+                        entrySync?: {
+                            moves: {
+                                workId: string;
+                                title: string;
+                                /** @enum {string} */
+                                board: "entrada" | "epics";
+                                from: string;
+                                to: string;
+                                fromStatusId: string;
+                                toStatusId: string;
+                                reason: string;
+                                url: string;
+                                /** @enum {string} */
+                                result?: "feito" | "pulado" | "falhou";
+                                resultNote?: string;
+                            }[];
+                            stale: {
+                                workId: string;
+                                title: string;
+                                days: number;
+                                url: string;
+                            }[];
+                            skipped: {
+                                workId: string;
+                                title: string;
+                                to: string;
+                                reason: string;
+                            }[];
+                            /** Format: date-time */
+                            readAt: string;
                         };
                         /** Format: uuid */
                         pautaId?: string;
@@ -15172,7 +15282,7 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
@@ -15189,6 +15299,37 @@ export interface operations {
                                 reason?: string;
                                 raise: boolean;
                             }[];
+                        };
+                        entrySync?: {
+                            moves: {
+                                workId: string;
+                                title: string;
+                                /** @enum {string} */
+                                board: "entrada" | "epics";
+                                from: string;
+                                to: string;
+                                fromStatusId: string;
+                                toStatusId: string;
+                                reason: string;
+                                url: string;
+                                /** @enum {string} */
+                                result?: "feito" | "pulado" | "falhou";
+                                resultNote?: string;
+                            }[];
+                            stale: {
+                                workId: string;
+                                title: string;
+                                days: number;
+                                url: string;
+                            }[];
+                            skipped: {
+                                workId: string;
+                                title: string;
+                                to: string;
+                                reason: string;
+                            }[];
+                            /** Format: date-time */
+                            readAt: string;
                         };
                         /** Format: uuid */
                         pautaId?: string;
@@ -15356,7 +15497,7 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
@@ -15373,6 +15514,37 @@ export interface operations {
                                 reason?: string;
                                 raise: boolean;
                             }[];
+                        };
+                        entrySync?: {
+                            moves: {
+                                workId: string;
+                                title: string;
+                                /** @enum {string} */
+                                board: "entrada" | "epics";
+                                from: string;
+                                to: string;
+                                fromStatusId: string;
+                                toStatusId: string;
+                                reason: string;
+                                url: string;
+                                /** @enum {string} */
+                                result?: "feito" | "pulado" | "falhou";
+                                resultNote?: string;
+                            }[];
+                            stale: {
+                                workId: string;
+                                title: string;
+                                days: number;
+                                url: string;
+                            }[];
+                            skipped: {
+                                workId: string;
+                                title: string;
+                                to: string;
+                                reason: string;
+                            }[];
+                            /** Format: date-time */
+                            readAt: string;
                         };
                         /** Format: uuid */
                         pautaId?: string;
@@ -15517,7 +15689,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                action: "prototype" | "priority";
+                action: "prototype" | "priority" | "entry_sync";
             };
             cookie?: never;
         };
@@ -15531,7 +15703,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         automatic: boolean;
                         maxRounds: number;
                         /** Format: uuid */
@@ -15654,7 +15826,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                action: "prototype" | "priority";
+                action: "prototype" | "priority" | "entry_sync";
             };
             cookie?: never;
         };
@@ -15686,7 +15858,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        action: "prototype" | "priority";
+                        action: "prototype" | "priority" | "entry_sync";
                         automatic: boolean;
                         maxRounds: number;
                         /** Format: uuid */
@@ -15700,6 +15872,230 @@ export interface operations {
                             /** @enum {string} */
                             reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
                         };
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    runEntrySync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default [] */
+                    skip?: {
+                        workId: string;
+                        reason: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        moves: number;
+                        stale: number;
+                        skipped: number;
+                        unchanged: boolean;
+                        plan?: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            /** @enum {string} */
+                            action: "prototype" | "priority" | "entry_sync";
+                            /** Format: uuid */
+                            prototypeId?: string;
+                            prototypeVersion?: number;
+                            title: string;
+                            application?: string;
+                            /** Format: uuid */
+                            priorityProposalId?: string;
+                            priority?: {
+                                number: number;
+                                summary: string;
+                                cards: {
+                                    workId: string;
+                                    title: string;
+                                    reason?: string;
+                                    raise: boolean;
+                                }[];
+                            };
+                            entrySync?: {
+                                moves: {
+                                    workId: string;
+                                    title: string;
+                                    /** @enum {string} */
+                                    board: "entrada" | "epics";
+                                    from: string;
+                                    to: string;
+                                    fromStatusId: string;
+                                    toStatusId: string;
+                                    reason: string;
+                                    url: string;
+                                    /** @enum {string} */
+                                    result?: "feito" | "pulado" | "falhou";
+                                    resultNote?: string;
+                                }[];
+                                stale: {
+                                    workId: string;
+                                    title: string;
+                                    days: number;
+                                    url: string;
+                                }[];
+                                skipped: {
+                                    workId: string;
+                                    title: string;
+                                    to: string;
+                                    reason: string;
+                                }[];
+                                /** Format: date-time */
+                                readAt: string;
+                            };
+                            /** Format: uuid */
+                            pautaId?: string;
+                            /** Format: uuid */
+                            authorProfileId?: string;
+                            authorName?: string;
+                            /** Format: uuid */
+                            reviewerProfileId?: string;
+                            reviewerName?: string;
+                            original?: string;
+                            revised?: string;
+                            findings: {
+                                /** @enum {string} */
+                                kind: "divergencia" | "regra_sensivel" | "lacuna";
+                                text: string;
+                                /** @default  */
+                                source: string;
+                            }[];
+                            questions?: string[];
+                            rounds: number;
+                            /** @enum {string} */
+                            state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                            note?: string;
+                            /** @enum {string} */
+                            approvedBy?: "owner" | "automatico";
+                            /** @enum {string} */
+                            decidedVia?: "panel" | "channel" | "api" | "automatico";
+                            /** Format: date-time */
+                            decidedAt?: string;
+                            /** Format: date-time */
+                            executedAt?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        };
+                        message: string;
                     };
                 };
             };
@@ -15849,7 +16245,7 @@ export interface operations {
                             id: string;
                             number: number;
                             /** @enum {string} */
-                            action: "prototype" | "priority";
+                            action: "prototype" | "priority" | "entry_sync";
                             /** Format: uuid */
                             prototypeId?: string;
                             prototypeVersion?: number;
@@ -15866,6 +16262,37 @@ export interface operations {
                                     reason?: string;
                                     raise: boolean;
                                 }[];
+                            };
+                            entrySync?: {
+                                moves: {
+                                    workId: string;
+                                    title: string;
+                                    /** @enum {string} */
+                                    board: "entrada" | "epics";
+                                    from: string;
+                                    to: string;
+                                    fromStatusId: string;
+                                    toStatusId: string;
+                                    reason: string;
+                                    url: string;
+                                    /** @enum {string} */
+                                    result?: "feito" | "pulado" | "falhou";
+                                    resultNote?: string;
+                                }[];
+                                stale: {
+                                    workId: string;
+                                    title: string;
+                                    days: number;
+                                    url: string;
+                                }[];
+                                skipped: {
+                                    workId: string;
+                                    title: string;
+                                    to: string;
+                                    reason: string;
+                                }[];
+                                /** Format: date-time */
+                                readAt: string;
                             };
                             /** Format: uuid */
                             pautaId?: string;
@@ -15904,7 +16331,7 @@ export interface operations {
                         }[];
                         actions: {
                             /** @enum {string} */
-                            action: "prototype" | "priority";
+                            action: "prototype" | "priority" | "entry_sync";
                             automatic: boolean;
                             reviewer: boolean;
                             executed: number;

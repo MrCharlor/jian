@@ -12,6 +12,7 @@ import { Coordination } from './coordination/service.js';
 import { registerDecisionRoutes } from './decisions/routes.js';
 import { registerDrawRoutes } from './draw/routes.js';
 import { registerDrawingRoutes } from './drawings/routes.js';
+import { registerEntrySyncRoutes } from './entry/routes.js';
 import { registerEpicRoutes } from './epics/routes.js';
 import { registerEventRoutes } from './http/events.js';
 import { registerMetaRoutes } from './http/meta.js';
@@ -143,6 +144,7 @@ export function createApp(
   registerScreenRoutes(app, options);
   registerPlanRoutes(app, options);
   registerKnowledgeRoutes(app, options);
+  registerEntrySyncRoutes(app, options);
   registerPrototypeRoutes(app, options);
   registerPautaRoutes(app, options);
   registerPriorityRoutes(app, options);

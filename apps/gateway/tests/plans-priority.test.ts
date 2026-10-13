@@ -291,6 +291,7 @@ describe('plans before a prioritization', () => {
     expect((await services.plans.routines()).actions.map((item) => item.action)).toEqual([
       'prototype',
       'priority',
+      'entry_sync',
     ]);
   });
 });

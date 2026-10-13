@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  type EntrySync,
   type KnowledgeRule,
   type ModelSelection,
   type Plan,
@@ -31,6 +32,7 @@ import {
   findPlan,
   insertPlan,
   listPlanRows,
+  openEntryPlans,
   openPriorityPlans,
   type PlanRow,
   priorityHistory,
@@ -63,6 +65,11 @@ export type PriorityTarget = {
   close(proposalId: string, note: string): Promise<unknown>;
 };
 
+/** How the moves of an approved entry sync are made: each against the card as it is now. */
+export type EntryRunner = {
+  apply(sync: EntrySync): Promise<EntrySync>;
+};
+
 type Via = 'panel' | 'channel' | 'api';
 
 type ProposalRow = NonNullable<Awaited<ReturnType<typeof proposalOf>>>;
@@ -86,16 +93,64 @@ const DEFAULTS: Omit<PlanSettings, 'action'> = { automatic: false, maxRounds: 2 
 const CORRECTION_PREFIX: Record<PlanAction, string> = {
   prototype: 'prototipo:',
   priority: 'priorizacao',
+  entry_sync: 'entrada',
 };
 
 /** How a plan's note starts when the approved order could not be applied on the board. */
 const APPLY_FAILED = 'Não aplicou no Work:';
 
 /** Who writes the plan when no author is set and the requester is gone. */
-const FALLBACK_AUTHOR: Record<PlanAction, string> = { prototype: 'subaru', priority: 'otto' };
+const FALLBACK_AUTHOR: Record<PlanAction, string> = {
+  prototype: 'subaru',
+  priority: 'otto',
+  entry_sync: 'otto',
+};
 
 const what = (plan: Pick<Plan, 'action' | 'title'>) =>
-  plan.action === 'priority' ? `${plan.title} (ordem do Priorizado)` : `protótipo "${plan.title}"`;
+  plan.action === 'priority'
+    ? `${plan.title} (ordem do Priorizado)`
+    : plan.action === 'entry_sync'
+      ? plan.title
+      : `protótipo "${plan.title}"`;
+
+/** One line per move, as the Reviewer and the owner read it: card, from → to, why. */
+export function entryPlanText(sync: EntrySync) {
+  const board = (move: EntrySync['moves'][number]) =>
+    move.board === 'epics' ? 'Épico' : 'Pedido na Entrada';
+
+  return [
+    `Leitura da Entrada, dos épicos e das tasks da Sigma em ${sync.readAt}.`,
+    '',
+    '## Movimentos',
+    ...(sync.moves.length
+      ? sync.moves.map(
+          (move, index) =>
+            `${index + 1}. ${board(move)} "${move.title}": ${move.from} → ${move.to}, ${move.reason}`,
+        )
+      : ['(nenhum)']),
+    ...(sync.stale.length
+      ? [
+          '',
+          '## Pedidos em Priorizado sem épico (não se movem; o Moabe decide)',
+          ...sync.stale.map((item) => `- "${item.title}": há ${item.days} dias`),
+        ]
+      : []),
+    ...(sync.skipped.length
+      ? [
+          '',
+          '## Deixados de fora',
+          ...sync.skipped.map((item) => `- "${item.title}" (→ ${item.to}): ${item.reason}`),
+        ]
+      : []),
+  ].join('\n');
+}
+
+/** What makes two reads the same plan: the same moves and the same requests standing still. */
+const entrySignature = (sync: EntrySync) =>
+  JSON.stringify([
+    sync.moves.map((move) => `${move.workId}:${move.toStatusId}`).sort(),
+    sync.stale.map((item) => item.workId).sort(),
+  ]);
 
 /** A proposed order as the Reviewer and the owner read it: one numbered line per card. */
 function priorityPlanText(proposal: ProposalRow) {
@@ -192,6 +247,7 @@ export class Plans {
   private target?: PlanTarget;
   private board?: PriorityTarget;
   private knowledge?: Pick<Knowledge, 'relevant' | 'learn'>;
+  private entry?: EntryRunner;
 
   constructor(
     private readonly store: Store,
@@ -223,6 +279,10 @@ export class Plans {
   /** The rules a plan carries, and the Curator told of what the owner answered. */
   useKnowledge(knowledge: Pick<Knowledge, 'relevant' | 'learn'>) {
     this.knowledge = knowledge;
+  }
+
+  useEntrySync(entry: EntryRunner) {
+    this.entry = entry;
   }
 
   async settings(action: unknown): Promise<PlanSettings> {
@@ -447,6 +507,114 @@ export class Plans {
   }
 
   /**
+   * A read of the boards becomes the plan itself: the moves are what the Reviewer reads, and
+   * nothing moves until the plan is approved. An open plan that already says the same is kept;
+   * the plan its author was asked to redo takes the new read; any other open one ends. Without
+   * a Reviewer the plan goes straight to the owner, and the automatic switch never applies.
+   */
+  async openForEntrySync(input: {
+    sync: EntrySync;
+    requester?: string;
+    sessionId?: string;
+  }): Promise<{ plan: Plan; unchanged: boolean }> {
+    const config = await this.settings('entry_sync');
+    const all = await this.profiles.profiles();
+    const exists = (id?: string) =>
+      id && all.some((profile) => profile.id === id) ? id : undefined;
+    const reviewer = exists(config.reviewerProfileId);
+    const author =
+      exists(config.authorProfileId) ??
+      exists(input.requester) ??
+      all.find((profile) => profile.name.trim().toLowerCase() === FALLBACK_AUTHOR.entry_sync)?.id;
+    const signature = entrySignature(input.sync);
+    const original = entryPlanText(input.sync);
+    const state = reviewer ? 'em_revisao' : 'aguardando_po';
+    const now = new Date(this.clock());
+    // Found before the transaction: opening the author's conversation writes on its own.
+    const session = author
+      ? author === input.requester && input.sessionId
+        ? input.sessionId
+        : (await this.sessions.gatewaySession(author)).id
+      : null;
+
+    const result = await this.store.transaction('plans', async (tx) => {
+      const open = await openEntryPlans(tx);
+      const same = open.find(
+        (row) =>
+          ['em_revisao', 'aguardando_po'].includes(row.state) &&
+          row.entrySync &&
+          entrySignature(row.entrySync) === signature,
+      );
+
+      if (same) return { id: same.id, unchanged: true };
+
+      const redo = open.find((row) => ['escrevendo', 'devolvido'].includes(row.state));
+
+      for (const row of open) {
+        if (row.id === redo?.id) continue;
+        await updatePlan(tx, row.id, {
+          state: 'recusado',
+          note: 'Substituído por uma leitura mais nova da Entrada.',
+          updatedAt: now,
+        });
+      }
+
+      if (redo) {
+        await updatePlan(tx, redo.id, {
+          entrySync: input.sync,
+          original,
+          revised: null,
+          reviewerProfileId: reviewer ?? null,
+          state,
+          updatedAt: now,
+        });
+
+        return { id: redo.id, unchanged: false };
+      }
+
+      const created = randomUUID();
+
+      await insertPlan(tx, {
+        id: created,
+        action: 'entry_sync',
+        entrySync: input.sync,
+        authorProfileId: author ?? null,
+        authorSessionId: session,
+        reviewerProfileId: reviewer ?? null,
+        original,
+        findings: [],
+        rounds: 0,
+        state,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return { id: created, unchanged: false };
+    });
+
+    const plan = await this.get(result.id);
+
+    if (!result.unchanged) {
+      if (plan.state === 'em_revisao') await this.askReview(plan);
+      else await this.tellOwner(plan);
+    }
+
+    return { plan, unchanged: result.unchanged };
+  }
+
+  /** Open entry sync plans end when a newer read finds nothing to move. */
+  async closeEntrySync(note: string): Promise<number> {
+    const now = new Date(this.clock());
+    const open = await openEntryPlans(this.store.db);
+
+    for (const row of open) {
+      await updatePlan(this.store.db, row.id, { state: 'recusado', note, updatedAt: now });
+    }
+
+    return open.length;
+  }
+
+  /**
    * The owner applied or discarded a held proposal from the Prioritization page: that is the
    * owner's decision on its plan, which ends with it.
    */
@@ -487,7 +655,9 @@ export class Plans {
         ? proposal
           ? `Priorização #${proposal.number}`
           : 'Priorização removida'
-        : (prototype?.title ?? 'Protótipo removido');
+        : row.action === 'entry_sync'
+          ? `Entrada e épicos (${row.entrySync?.moves.length ?? 0} movimento(s))`
+          : (prototype?.title ?? 'Protótipo removido');
     const state = planStateSchema.parse(row.state);
     const author = row.authorProfileId ? people.get(row.authorProfileId) : undefined;
     const reviewer = row.reviewerProfileId ? people.get(row.reviewerProfileId) : undefined;
@@ -515,6 +685,7 @@ export class Plans {
             },
           }
         : {}),
+      ...(row.entrySync ? { entrySync: row.entrySync } : {}),
       ...(row.pautaId ? { pautaId: row.pautaId } : {}),
       ...(row.authorProfileId ? { authorProfileId: row.authorProfileId } : {}),
       ...(author ? { authorName: author } : {}),
@@ -574,6 +745,12 @@ export class Plans {
         throw new GatewayError(
           409,
           `Plan #${row.number} is a prioritization: its plan is the proposed order; propose it again with propose_priorities`,
+        );
+      }
+      if (row.action === 'entry_sync') {
+        throw new GatewayError(
+          409,
+          `Plan #${row.number} is an entry sync: its plan is the list of moves; read the boards again with propose_entry_sync`,
         );
       }
       if (!['escrevendo', 'devolvido'].includes(row.state)) {
@@ -664,7 +841,9 @@ export class Plans {
     const lines =
       plan.action === 'priority'
         ? await this.priorityReview(plan, rules)
-        : this.prototypeReview(plan, rules);
+        : plan.action === 'entry_sync'
+          ? this.entryReview(plan, rules)
+          : this.prototypeReview(plan, rules);
     const text = lines.filter((line) => line !== '').join('\n');
     const prototype = plan.prototypeId ? await prototypeOf(this.store.db, plan.prototypeId) : null;
     const known = await this.rulesFor({
@@ -681,6 +860,22 @@ export class Plans {
       `plan:${plan.id}:review:${plan.rounds + 1}:${Date.parse(plan.updatedAt)}`,
       config.reviewerModel,
     ).catch(() => {});
+  }
+
+  private entryReview(plan: Plan, rules: string[]) {
+    return [
+      `[Plano #${plan.number} para revisar] Ação: movimentos da Entrada e dos épicos da Sigma, lidos por ${plan.authorName ?? 'a Atena'}. Volta ${plan.rounds + 1}.`,
+      `Revise com review_plan (planId ${plan.id}). Confira cada movimento contra as regras do Moabe e as correções abaixo. Devolva o plano mais curto e os achados, cada um com a fonte:`,
+      '- divergência: o movimento contradiz uma regra (épico nunca vai para Aceito nem sai de Bloqueado; task nunca se move; pedido só se move pelo épico de que depende; Em execução só quando o épico saiu de A fazer; Concluído só com a validação aprovada pelo Moabe) ou uma correção do Moabe;',
+      '- regra sensível: o movimento avisa o suporte (a coluna da Entrada aparece no Geral) de algo que o Moabe ainda não confirmou, ou o card toca faturamento, fiscal (Tipos e Natureza), dado de cliente, preço, permissão ou dado em produção;',
+      '- lacuna: falta informação para confirmar o movimento (motivo sem fonte).',
+      'Com qualquer achado, não aprove. Você não move nada: aprovado, a Atena move os cards listados, não o seu texto. Pedido parado sem épico não se move: é para o Moabe decidir.',
+      rules.length
+        ? `\n## Correções recentes do Moabe nestes movimentos (barre o erro repetido)\n${rules.join('\n')}`
+        : '',
+      '\n## Plano',
+      plan.original ?? '',
+    ];
   }
 
   private prototypeReview(plan: Plan, rules: string[]) {
@@ -762,7 +957,9 @@ export class Plans {
           findingLines(plan.findings),
           plan.action === 'priority'
             ? 'Corrija propondo a ordem de novo com propose_priorities (mesma coluna); o plano segue com a proposta nova. Lacuna vira pergunta ao Moabe no resumo, nunca invenção. O plano revisado está em read_plan.'
-            : `Corrija com write_plan (planId ${plan.id}). Lacuna vira pergunta ao Moabe dentro do plano, nunca invenção. O plano revisado está em read_plan.`,
+            : plan.action === 'entry_sync'
+              ? 'Leia os boards de novo com propose_entry_sync, passando em skip cada card que não deve mover, com o motivo; o plano segue com a leitura nova. O plano revisado está em read_plan.'
+              : `Corrija com write_plan (planId ${plan.id}). Lacuna vira pergunta ao Moabe dentro do plano, nunca invenção. O plano revisado está em read_plan.`,
         ].join('\n'),
         `devolvido:${plan.rounds}`,
       );
@@ -789,8 +986,12 @@ export class Plans {
   private async tellOwner(plan: Plan) {
     const verdict = plan.findings.length
       ? `${plan.findings.length} achado(s) depois de ${plan.rounds} volta(s):\n${findingLines(plan.findings)}`
-      : 'o Revisor aprovou.';
+      : plan.reviewerProfileId
+        ? 'o Revisor aprovou.'
+        : 'sem Revisor configurado, confira você.';
     const failed = plan.state === 'aguardando_po' && plan.note?.startsWith(APPLY_FAILED);
+    // The moves are short and the owner answers in the chat: they go with the message.
+    const moves = plan.action === 'entry_sync' && !failed ? `\n\n${plan.original ?? ''}` : '';
 
     const answer = `Responda "ok plano ${plan.number}" ou "corrige plano ${plan.number}: motivo"`;
     // The chat gets the gist and the command; the findings are read in the panel or asked for.
@@ -799,14 +1000,16 @@ export class Plans {
         ? 'A aplicação falhou.'
         : plan.findings.length
           ? `${plan.findings.length} achado(s).`
-          : 'O Revisor aprovou.'
-    }\n${answer}.`;
+          : plan.reviewerProfileId
+            ? 'O Revisor aprovou.'
+            : 'Sem Revisor configurado, confira você.'
+    }\n${answer}.${moves}`;
 
     await this.owner?.(
       clip(
-        `Plano #${plan.number} esperando você: ${what(plan)}. ${failed ? plan.note : verdict}\n${answer}, ou abra Planos no painel.`,
+        `Plano #${plan.number} esperando você: ${what(plan)}. ${failed ? plan.note : verdict}\n${answer}, ou abra Planos no painel.${moves}`,
       ),
-      short,
+      clip(short),
     ).catch(() => {});
   }
 
@@ -820,11 +1023,34 @@ export class Plans {
       await this.target?.release(plan.prototypeId, plan.prototypeVersion);
     }
 
-    if (plan.action === 'priority' && plan.priorityProposalId && this.board) {
+    const runs =
+      (plan.action === 'priority' && plan.priorityProposalId && this.board) ||
+      (plan.action === 'entry_sync' && plan.entrySync && this.entry);
+
+    if (runs) {
       const via = plan.approvedBy === 'owner' ? (plan.decidedVia as Via) : 'agent';
 
       try {
-        await this.board.applyApproved(plan.priorityProposalId, via);
+        if (plan.action === 'priority' && plan.priorityProposalId) {
+          await this.board?.applyApproved(plan.priorityProposalId, via);
+        }
+
+        if (plan.action === 'entry_sync' && plan.entrySync && this.entry) {
+          const done = await this.entry.apply(plan.entrySync);
+          const failed = done.moves.filter((move) => move.result === 'falhou');
+
+          await updatePlan(this.store.db, plan.id, {
+            entrySync: done,
+            updatedAt: new Date(this.clock()),
+          });
+
+          if (failed.length) {
+            throw new GatewayError(
+              502,
+              failed.map((move) => `"${move.title}": ${move.resultNote ?? ''}`).join('; '),
+            );
+          }
+        }
       } catch (failure) {
         const message = failure instanceof Error ? failure.message : String(failure);
 
@@ -858,6 +1084,14 @@ export class Plans {
       await this.tellAuthor(
         done,
         `[Plano #${done.number}] O Revisor aprovou e a priorização é automática: a ordem foi aplicada no Work.`,
+        'executado',
+      );
+    }
+
+    if (done.action === 'entry_sync' && done.approvedBy === 'automatico') {
+      await this.tellAuthor(
+        done,
+        `[Plano #${done.number}] O Revisor aprovou e os movimentos da Entrada são automáticos: ${Plans.entryOutcome(done)}`,
         'executado',
       );
     }
@@ -931,7 +1165,9 @@ export class Plans {
       plan,
       plan.action === 'priority'
         ? `[Plano #${plan.number}] O Moabe devolveu a priorização: ${reason}\nProponha a ordem de novo com propose_priorities (mesma coluna); o plano segue com a proposta nova.`
-        : `[Plano #${plan.number}] O Moabe devolveu: ${reason}\nReescreva com write_plan (planId ${plan.id}). O plano atual está em read_plan.`,
+        : plan.action === 'entry_sync'
+          ? `[Plano #${plan.number}] O Moabe devolveu os movimentos da Entrada: ${reason}\nLeia os boards de novo com propose_entry_sync, passando em skip cada card que não deve mover, com o motivo.`
+          : `[Plano #${plan.number}] O Moabe devolveu: ${reason}\nReescreva com write_plan (planId ${plan.id}). O plano atual está em read_plan.`,
       `moabe:${Date.parse(plan.updatedAt)}`,
     );
     await this.teach(plan, reason);
@@ -1018,9 +1254,9 @@ export class Plans {
       kind,
       via,
       action:
-        action === 'priority'
-          ? CORRECTION_PREFIX.priority
-          : `${CORRECTION_PREFIX[action]}${prototype?.application ?? 'plano'}`,
+        action === 'prototype'
+          ? `${CORRECTION_PREFIX[action]}${prototype?.application ?? 'plano'}`
+          : CORRECTION_PREFIX[action],
       original: `Plano #${row.number}: ${(row.revised ?? row.original ?? '').slice(0, 3000)}`,
       ...(note ? { note } : {}),
     });
@@ -1033,7 +1269,27 @@ export class Plans {
       : this.giveBack({ number: reply.number }, { reason: reply.reason ?? '' }, 'channel');
   }
 
+  /** "3 movimento(s) feito(s), 1 pulado(s): …" for an entry sync that ran. */
+  static entryOutcome(plan: Plan) {
+    const moves = plan.entrySync?.moves ?? [];
+    const done = moves.filter((move) => move.result === 'feito').length;
+    const left = moves.filter((move) => move.result === 'pulado');
+    const skipped = left.map((move) => `"${move.title}" (${move.resultNote ?? ''})`).join('; ');
+
+    return `${done} movimento(s) feito(s)${left.length ? `, ${left.length} pulado(s): ${skipped}` : ''}.`;
+  }
+
   static notice(plan: Plan) {
+    if (plan.action === 'entry_sync') {
+      if (plan.state === 'executado') {
+        return `[Plano #${plan.number}] O Moabe aprovou os movimentos da Entrada: ${Plans.entryOutcome(plan)}`;
+      }
+      if (plan.state === 'aguardando_po') {
+        return `[Plano #${plan.number}] O Moabe aprovou os movimentos da Entrada, mas nem todos foram feitos. ${plan.note ?? ''}`;
+      }
+      return `[Plano #${plan.number}] O Moabe devolveu os movimentos da Entrada ao autor: ${plan.note ?? ''}`;
+    }
+
     if (plan.action === 'priority') {
       if (plan.state === 'executado') {
         return `[Plano #${plan.number}] O Moabe aprovou o plano da ${plan.title}; a ordem foi aplicada no Work.`;
