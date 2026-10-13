@@ -1,0 +1,593 @@
+import { HttpResponse, http } from 'msw';
+import type {
+  KnowledgeProposal,
+  KnowledgeRule,
+  KnowledgeSettings,
+  Plan,
+  PlanSettings,
+  PriorityProposal,
+  Routines,
+  Screen,
+  Validation,
+} from '../lib/api';
+import { at } from './conversations';
+import { ids } from './fixtures';
+
+/**
+ * The product owner's pages (Validações, Planos, Rotinas, Priorização, Telas, Conhecimento)
+ * with believable work in them: long notes, long links, a plan with questions, a refusal with
+ * its comment draft. Synthetic from end to end, like the rest of the fixtures.
+ */
+const id = (index: number) => `b21a0000-0000-4000-8000-${String(index).padStart(12, '0')}`;
+
+const work = 'https://work.example.com/w/sistemas/b/epics?activity=';
+const longPreview =
+  'https://pr-1834-faturamento-filtro-por-loja-e-periodo.preview.dev.example.com/vendas/faturamento/listagem?loja=251&periodo=2026-10-01..2026-10-31&ordem=valor_desc';
+
+export const validations: Validation[] = [
+  {
+    id: id(1),
+    number: 14,
+    epicWorkId: '88412',
+    epicTitle: 'Faturamento: filtro por loja e período na listagem, com totais por loja no rodapé',
+    epicUrl: `${work}88412`,
+    previewUrl: longPreview,
+    prototypeUrl: 'https://draw.example.com/prototipos/faturamento-filtro-loja-periodo/v3',
+    pauta: 'Gestores não conseguem ver o faturamento de uma loja só',
+    items: [
+      { text: 'O filtro de loja lista só as lojas do usuário logado.' },
+      {
+        text: 'Ao escolher um período maior que 31 dias, a tela avisa e não carrega a listagem inteira de uma vez, para não travar o navegador em lojas com muito movimento.',
+      },
+      { text: 'O botão Limpar volta loja e período ao padrão (loja do usuário, mês atual).' },
+    ],
+    tasks: [
+      { id: '88413', title: 'Filtro de loja e período na listagem', checklist: [] },
+      { id: '88414', title: 'Totais por loja no rodapé', checklist: [] },
+    ],
+    notes: [
+      'Tester (Ana): passei os três itens no preview com o usuário 3433 (251 BH Shopping). O filtro de loja mostrou só a 251, como esperado. Vou deixar registrado que, com período de 45 dias, o aviso apareceu, mas a listagem ainda carregou por trás do aviso e demorou uns 12 segundos; não sei se isso conta como falha do item 2 ou se é aceitável, então deixo para você decidir na validação. O Limpar funcionou.',
+      'Lucas: subi o ajuste do rodapé no mesmo PR, os totais agora somam só as lojas filtradas.',
+      'Tester (Ana): conferido o rodapé depois do ajuste, ok.',
+    ],
+    state: 'aberta',
+    commented: false,
+    returns: [],
+    createdAt: at(60 * 5),
+    updatedAt: at(60 * 2),
+  },
+  {
+    id: id(2),
+    number: 12,
+    epicWorkId: '88290',
+    epicTitle: 'Cores de Aparelhos: listagem com Exibição Dinâmica ao lado de Ocultar Filtro',
+    epicUrl: `${work}88290`,
+    previewUrl:
+      'https://pr-1812-cores-de-aparelhos-exibicao-dinamica.preview.dev.example.com/cadastros/cores-de-aparelhos',
+    pauta: 'Padronizar as listagens de cadastro do ERP',
+    items: [
+      {
+        text: 'Exibição Dinâmica fica à direita, junto do Ocultar Filtro.',
+        result: 'passou',
+      },
+      {
+        text: 'As colunas escolhidas na Exibição Dinâmica ficam salvas ao voltar para a tela.',
+        result: 'falhou',
+        reason:
+          'Escolhi só Nome e Código, saí para Marcas e voltei: as colunas voltaram todas. Repeti em aba anônima e aconteceu o mesmo.',
+        taskId: '88291',
+      },
+    ],
+    tasks: [{ id: '88291', title: 'Exibição Dinâmica na listagem de Cores', checklist: [] }],
+    notes: ['Tester (Ana): passou nos dois itens no meu teste; não testei voltar de outra tela.'],
+    state: 'reprovada',
+    commented: false,
+    comment: {
+      state: 'rascunho',
+      body: '@Lucas @Ana Reprovado no item 2: as colunas escolhidas na Exibição Dinâmica não ficam salvas. Escolhi só Nome e Código, saí para Marcas e voltei, e as colunas voltaram todas (também em aba anônima). O item 1 passou.',
+    },
+    returns: [],
+    decidedVia: 'panel',
+    decidedAt: at(60),
+    createdAt: at(60 * 30),
+    updatedAt: at(60),
+  },
+  {
+    id: id(3),
+    number: 11,
+    epicWorkId: '88101',
+    epicTitle: 'Tipos e Natureza: tela nova só de leitura',
+    epicUrl: `${work}88101`,
+    items: [{ text: 'A tela abre sem botões de gravar.', result: 'passou' }],
+    tasks: [{ id: '88102', title: 'Tela de leitura', checklist: [] }],
+    notes: [],
+    state: 'aprovada',
+    commented: true,
+    comment: {
+      state: 'publicado',
+      body: 'Aprovado. A tela abre só para leitura, como combinado.',
+      publishedAt: at(60 * 48),
+    },
+    returns: [],
+    decidedVia: 'channel',
+    decidedAt: at(60 * 48),
+    createdAt: at(60 * 72),
+    updatedAt: at(60 * 48),
+  },
+];
+
+const reviewer = ids.miku;
+const author = ids.zero;
+
+const revisedPrototype = `## O que vou desenhar
+Listagem de Faturamento no layout do erp-novo, com o filtro de loja e período no topo e a Exibição Dinâmica à direita, junto do Ocultar Filtro.
+
+## De onde veio
+- Pauta: gestores não conseguem ver o faturamento de uma loja só.
+- Regra #12 (toda listagem do ERP): um filtro rápido só.
+- Regra #31: até 5 lojas, linha por loja; acima, resumo.
+
+## O que assumi
+- O período padrão é o mês atual.
+- O usuário logado é 3433 José Moabe (251 BH Shopping).
+
+## Entrega
+Três quadros: listagem, filtro aberto, rodapé com totais.`;
+
+export const plans: Plan[] = [
+  {
+    id: id(11),
+    number: 7,
+    action: 'prototype',
+    title: 'Faturamento: filtro por loja e período',
+    application: 'erp-novo',
+    authorProfileId: author,
+    authorName: 'Zero Two',
+    reviewerProfileId: reviewer,
+    reviewerName: 'Miku',
+    original: revisedPrototype.replace('Três quadros', 'Quatro quadros, um deles com gráfico'),
+    revised: revisedPrototype,
+    findings: [
+      {
+        kind: 'divergencia',
+        text: 'O plano do autor previa um gráfico no topo da listagem; a regra #44 diz que listagem não tem quadros de indicadores no topo.',
+        source: 'Regra #44 (toda listagem do ERP)',
+      },
+      {
+        kind: 'lacuna',
+        text: 'Não está dito se o rodapé soma só as lojas filtradas ou todas as lojas do usuário.',
+        source: '',
+      },
+    ],
+    questions: [
+      'O rodapé soma só as lojas filtradas, ou todas as lojas do usuário mesmo com o filtro?',
+      'Período maior que 31 dias: só avisa, ou bloqueia a busca até o usuário reduzir?',
+      'O gestor com mais de 5 lojas vê o resumo já aberto ou recolhido?',
+    ],
+    rounds: 2,
+    state: 'aguardando_po',
+    note: 'Tirar o gráfico do topo; listagem não leva indicadores.',
+    createdAt: at(60 * 6),
+    updatedAt: at(40),
+  },
+  {
+    id: id(12),
+    number: 8,
+    action: 'entry_sync',
+    title: 'Entrada segue o épico (leitura das 9h)',
+    authorProfileId: ids.ichigo,
+    authorName: 'Ichigo',
+    original: 'Dois movimentos e um pedido parado.',
+    revised: 'Dois movimentos e um pedido parado. Nenhuma regra sensível.',
+    entrySync: {
+      moves: [
+        {
+          workId: '88412',
+          title: 'Faturamento: filtro por loja e período na listagem',
+          board: 'epics',
+          from: 'Em andamento',
+          to: 'Em revisão',
+          fromStatusId: 's1',
+          toStatusId: 's2',
+          reason: 'todas as tasks estão em Aceito',
+          url: `${work}88412`,
+        },
+        {
+          workId: '77120',
+          title: 'Pedido do suporte: relatório de faturamento por loja com período livre',
+          board: 'entrada',
+          from: 'Priorizado',
+          to: 'Em desenvolvimento',
+          fromStatusId: 's3',
+          toStatusId: 's4',
+          reason: 'o épico ligado entrou em andamento',
+          url: 'https://work.example.com/w/sistemas/b/entrada-sigma?activity=77120&origem=suporte&referencia=chamado-2026-10-0451',
+        },
+      ],
+      stale: [
+        {
+          workId: '76001',
+          title: 'Ajustar impressão do pedido de compra',
+          days: 23,
+          url: 'https://work.example.com/w/sistemas/b/entrada-sigma?activity=76001',
+        },
+      ],
+      skipped: [
+        {
+          workId: '77001',
+          title: 'Cadastro de marcas',
+          to: 'Concluído',
+          reason: 'você recusou esse movimento no plano #5',
+        },
+      ],
+      readAt: at(60 * 3),
+    },
+    findings: [],
+    questions: [],
+    rounds: 0,
+    state: 'aguardando_po',
+    createdAt: at(60 * 3),
+    updatedAt: at(60 * 3),
+  },
+  {
+    id: id(13),
+    number: 6,
+    action: 'priority',
+    title: 'Ordem do Aprovado da semana 42',
+    authorProfileId: ids.ichigo,
+    authorName: 'Ichigo',
+    reviewerProfileId: reviewer,
+    reviewerName: 'Miku',
+    priority: {
+      number: 9,
+      summary: 'Loja parada primeiro, depois o que o suporte marcou como urgente.',
+      cards: [
+        {
+          workId: '77120',
+          title: 'Relatório de faturamento por loja',
+          reason: 'três lojas sem fechar o mês',
+          raise: true,
+        },
+        { workId: '76001', title: 'Impressão do pedido de compra', raise: false },
+      ],
+    },
+    revised: 'Ordem mantida; motivo do segundo card faltando.',
+    findings: [],
+    rounds: 1,
+    state: 'em_revisao',
+    createdAt: at(60 * 20),
+    updatedAt: at(60 * 19),
+  },
+  {
+    id: id(14),
+    number: 4,
+    action: 'prototype',
+    title: 'Cores de Aparelhos',
+    application: 'erp-novo',
+    authorName: 'Zero Two',
+    reviewerName: 'Miku',
+    original: 'Listagem padrão.',
+    revised: 'Listagem padrão, com Exibição Dinâmica.',
+    findings: [],
+    rounds: 1,
+    state: 'executado',
+    approvedBy: 'owner',
+    executedAt: at(60 * 50),
+    createdAt: at(60 * 70),
+    updatedAt: at(60 * 50),
+  },
+];
+
+const planSettings: Record<PlanSettings['action'], PlanSettings> = {
+  prototype: {
+    action: 'prototype',
+    automatic: false,
+    maxRounds: 2,
+    authorProfileId: author,
+    reviewerProfileId: reviewer,
+    reviewerModel: { providerId: ids.anthropic, modelId: 'claude-opus-5-5' },
+  },
+  priority: { action: 'priority', automatic: false, maxRounds: 1, reviewerProfileId: reviewer },
+  entry_sync: { action: 'entry_sync', automatic: true, maxRounds: 0 },
+};
+
+export const routines: Routines = {
+  actions: [
+    {
+      action: 'prototype',
+      automatic: false,
+      reviewer: true,
+      executed: 9,
+      clean: 4,
+      lastCorrectionAt: at(60 * 24 * 3),
+    },
+    { action: 'priority', automatic: false, reviewer: true, executed: 3, clean: 3 },
+    { action: 'entry_sync', automatic: true, reviewer: false, executed: 12, clean: 12 },
+  ],
+  questionsPerWeek: [
+    { week: '2026-09-21', plans: 4, questions: 15, average: 3.75 },
+    { week: '2026-09-28', plans: 6, questions: 14, average: 2.33 },
+    { week: '2026-10-05', plans: 5, questions: 7, average: 1.4 },
+  ],
+  waiting: plans.filter((plan) => plan.state === 'aguardando_po'),
+  schedules: [
+    {
+      id: id(21),
+      profileId: ids.zero,
+      profileName: 'Zero Two',
+      name: 'Olhar validações no Work',
+      instruction: 'Traga os épicos com stts::awaiting-po.',
+      sessionId: id(22),
+      cron: '0 8-19 * * 1-5',
+      timeZone: 'America/Sao_Paulo',
+      enabled: true,
+      nextRunAt: at(-30),
+      lastRunAt: at(30),
+      createdBy: 'owner',
+      createdAt: at(60 * 24 * 20),
+      updatedAt: at(60 * 24 * 2),
+    },
+    {
+      id: id(23),
+      profileId: ids.ichigo,
+      profileName: 'Ichigo',
+      name: 'Propor a ordem do Aprovado',
+      instruction: 'Proponha a ordem da semana.',
+      sessionId: id(24),
+      cron: '0 8 * * 1',
+      timeZone: 'America/Sao_Paulo',
+      enabled: false,
+      lastRunAt: at(60 * 24 * 7),
+      lastError:
+        'O Work respondeu 503 ao ler o board Aprovado (https://work.example.com/api/v2/boards/aprovado-sigma/activities?limit=200); a rotina tenta de novo na próxima.',
+      createdBy: 'agent',
+      createdAt: at(60 * 24 * 30),
+      updatedAt: at(60 * 24 * 7),
+    },
+  ],
+};
+
+export const priorityCriteria = {
+  text: 'Loja parada primeiro.\nDepois o que o suporte marcou como urgente.\nEm empate, o pedido mais antigo na Entrada.',
+  updatedAt: at(60 * 24 * 6),
+};
+
+export const priorityProposals: PriorityProposal[] = [
+  {
+    id: id(31),
+    number: 9,
+    state: 'proposta',
+    workspaceId: 'sistemas',
+    boardId: 'aprovado',
+    statusId: 'aprovado',
+    summary:
+      '**Loja parada primeiro.** Três lojas não fecham o mês sem o relatório por loja; depois o pedido de compra, que o suporte marcou como urgente na sexta.',
+    cards: [
+      {
+        workId: '77120',
+        title: 'Relatório de faturamento por loja com período livre e totais no rodapé',
+        reason:
+          'Três lojas (251, 260, 312) não conseguem fechar o mês sem ver o faturamento separado; o suporte abriu quatro chamados na última semana.',
+        raise: true,
+      },
+      {
+        workId: '76001',
+        title: 'Impressão do pedido de compra',
+        reason: 'urgente para o suporte',
+        raise: false,
+      },
+      { workId: '75500', title: 'Cadastro de marcas: busca por código', raise: false },
+    ],
+    current: [
+      { workId: '76001', title: 'Impressão do pedido de compra' },
+      { workId: '75500', title: 'Cadastro de marcas: busca por código' },
+    ],
+    proposedBy: 'Ichigo',
+    planNumber: 6,
+    createdAt: at(60 * 20),
+  },
+  {
+    id: id(32),
+    number: 8,
+    state: 'aplicada',
+    workspaceId: 'sistemas',
+    boardId: 'aprovado',
+    statusId: 'aprovado',
+    summary: 'Cores de Aparelhos antes de Marcas.\nO resto mantido.',
+    cards: [],
+    current: [],
+    adjusted: true,
+    proposedBy: 'Ichigo',
+    decidedVia: 'panel',
+    decidedAt: at(60 * 24 * 6),
+    createdAt: at(60 * 24 * 7),
+  },
+  {
+    id: id(33),
+    number: 7,
+    state: 'descartada',
+    workspaceId: 'sistemas',
+    boardId: 'aprovado',
+    statusId: 'aprovado',
+    summary: 'Marcas primeiro.',
+    cards: [],
+    current: [],
+    note: 'Marcas não é prioridade este mês; o suporte não tem chamado aberto sobre isso e o time está fechando o faturamento.',
+    proposedBy: 'Ichigo',
+    decidedAt: at(60 * 24 * 13),
+    createdAt: at(60 * 24 * 14),
+  },
+];
+
+export const screens: Screen[] = [
+  {
+    id: id(41),
+    application: 'erp-novo',
+    route: '/vendas/faturamento/listagem-de-faturamento-por-loja-e-periodo-com-totais',
+    menuPath: 'Vendas › Faturamento › Listagem',
+    title: 'Faturamento',
+    squad: 'Sigma',
+    state: 'draft',
+    sheet: {
+      today: [
+        { text: 'Lista as notas do mês atual de todas as lojas do usuário.', source: 'screen' },
+        {
+          text: 'Os filtros ficam num painel à esquerda, recolhível pelo botão Ocultar Filtro; a busca só roda ao clicar em Pesquisar.',
+          source: 'screen',
+        },
+        { text: 'A rota chama /api/faturamento?loja=&inicio=&fim=.', source: 'code' },
+      ],
+      requirements: [
+        { text: 'Um usuário só vê as lojas a que tem acesso.', source: 'code' },
+        { text: 'O total do rodapé soma o que está filtrado.', source: 'unknown' },
+      ],
+      questions: [
+        {
+          text: 'Ações desta tela reproduzem na tela antiga em produção? Não testei nenhuma.',
+          source: 'unknown',
+        },
+      ],
+      problems: [],
+    },
+    workUrl: 'https://work.example.com/w/sistemas/d/mapa-de-telas-erp-novo-faturamento-listagem',
+    prints: [],
+    mappedAt: at(60 * 24),
+    createdAt: at(60 * 24 * 9),
+    updatedAt: at(60 * 24),
+  },
+  {
+    id: id(42),
+    application: 'erp-novo',
+    route: '/cadastros/cores-de-aparelhos',
+    menuPath: 'Cadastros › Aparelhos › Cores',
+    title: 'Cores de Aparelhos',
+    state: 'reviewed',
+    prints: [],
+    createdAt: at(60 * 24 * 9),
+    updatedAt: at(60 * 24 * 2),
+  },
+  {
+    id: id(43),
+    application: 'app-gestores',
+    route: '/vendas',
+    menuPath: '',
+    title: 'Vendas',
+    state: 'listed',
+    prints: [],
+    createdAt: at(60 * 24 * 9),
+    updatedAt: at(60 * 24 * 9),
+  },
+];
+
+export const knowledgeRules: KnowledgeRule[] = [
+  {
+    id: id(51),
+    number: 12,
+    code: 'L-01',
+    text: 'Toda listagem do ERP tem um filtro rápido só; o resto fica no painel de filtros.',
+    scope: { kind: 'tipo_de_tela', screen: 'listagem', application: 'ERP' },
+    source: { kind: 'decisao', ref: 'Pauta padrão de telas', date: '2026-09-21' },
+    sensitive: false,
+    state: 'ativa',
+    createdAt: at(60 * 24 * 20),
+    updatedAt: at(60 * 24 * 20),
+  },
+  {
+    id: id(52),
+    number: 31,
+    text: 'App Gestores: até 5 lojas, uma linha por loja; acima de 5, um resumo. Vale para qualquer cargo, nunca "diretoria". Exceção só registrada aqui, com a pauta que a pediu e a data, e só depois do OK do PO em Validações ou no chat.',
+    scope: { kind: 'aplicacao', application: 'App Gestores' },
+    source: {
+      kind: 'correcao',
+      ref: 'https://work.example.com/w/sistemas/b/epics?activity=87001&comentario=correcao-regra-lojas',
+      date: '2026-09-30',
+    },
+    sensitive: false,
+    state: 'ativa',
+    replaces: 18,
+    createdAt: at(60 * 24 * 12),
+    updatedAt: at(60 * 24 * 12),
+  },
+  {
+    id: id(53),
+    number: 40,
+    text: 'Faturamento novo: nenhuma ação é executada em teste; reproduz na tela antiga em produção.',
+    scope: { kind: 'tela', screen: 'Faturamento', application: 'ERP' },
+    source: { kind: 'manual', ref: '' },
+    sensitive: true,
+    state: 'pendente',
+    createdAt: at(60 * 24),
+    updatedAt: at(60 * 24),
+  },
+];
+
+export const knowledgeProposals: KnowledgeProposal[] = [
+  {
+    id: id(61),
+    number: 5,
+    kind: 'mudar',
+    ruleNumber: 12,
+    ruleText: 'Toda listagem do ERP tem um filtro rápido só; o resto fica no painel de filtros.',
+    text: 'Toda listagem do ERP tem um filtro rápido só; o resto fica no painel de filtros, e a Exibição Dinâmica fica à direita, junto do Ocultar Filtro.',
+    scope: { kind: 'tipo_de_tela', screen: 'listagem', application: 'ERP' },
+    sensitive: false,
+    reason:
+      'Você respondeu no plano #7 que a Exibição Dinâmica sempre fica ao lado do Ocultar Filtro; com abas, o pop-up configura cada aba.',
+    source: { kind: 'plano', ref: 'plano #7', date: '2026-10-13' },
+    state: 'aguardando_po',
+    proposedBy: 'Miku',
+    createdAt: at(30),
+  },
+  {
+    id: id(62),
+    number: 4,
+    kind: 'incluir',
+    text: 'Tipos e Natureza: não gravar em produção.',
+    scope: { kind: 'tela', screen: 'Tipos e Natureza' },
+    sensitive: true,
+    reason: 'Correção sua na validação #11.',
+    source: { kind: 'validacao', ref: 'validação #11' },
+    state: 'aplicada',
+    appliedBy: 'owner',
+    createdAt: at(60 * 24 * 2),
+  },
+];
+
+const knowledgeSettings: KnowledgeSettings = {
+  automatic: false,
+  sensitiveAlwaysAsks: true,
+  curatorProfileId: reviewer,
+};
+
+const ok = <T>(value: T) => HttpResponse.json(value as never);
+
+/** Reads answer from the data above; every write succeeds and changes nothing. */
+export const atenaHandlers = [
+  http.get('*/v1/validations', () => ok(validations)),
+  http.post('*/v1/validations/*', () => ok(validations[0])),
+  http.patch('*/v1/validations/*', () => ok(validations[0])),
+  http.get('*/v1/plans', () => ok(plans)),
+  http.post('*/v1/plans/*', () => ok(plans[0])),
+  http.get('*/v1/plan-settings/:action', ({ params }) =>
+    ok(planSettings[params.action as PlanSettings['action']]),
+  ),
+  http.put('*/v1/plan-settings/:action', ({ params }) =>
+    ok(planSettings[params.action as PlanSettings['action']]),
+  ),
+  http.post('*/v1/entry-sync/run', () =>
+    ok({ moves: 0, stale: 0, skipped: 0, unchanged: true, message: 'Nada mudou.' }),
+  ),
+  http.get('*/v1/routines', () => ok(routines)),
+  http.get('*/v1/priorities/criteria', () => ok(priorityCriteria)),
+  http.put('*/v1/priorities/criteria', () => ok(priorityCriteria)),
+  http.get('*/v1/priorities', () => ok(priorityProposals)),
+  http.post('*/v1/priorities/*', () => ok(priorityProposals[0])),
+  http.get('*/v1/screens', () => ok(screens)),
+  http.post('*/v1/screens/*', () => ok(screens[0])),
+  http.get('*/v1/knowledge', () => ok(knowledgeRules)),
+  http.patch('*/v1/knowledge/*', () => ok(knowledgeRules[0])),
+  http.get('*/v1/knowledge-proposals', () => ok(knowledgeProposals)),
+  http.post('*/v1/knowledge-proposals/*', () => ok(knowledgeProposals[0])),
+  http.get('*/v1/knowledge-settings', () => ok(knowledgeSettings)),
+  http.put('*/v1/knowledge-settings', () => ok(knowledgeSettings)),
+];

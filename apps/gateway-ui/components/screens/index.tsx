@@ -1,12 +1,12 @@
 'use client';
 
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, LayoutTemplate } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import type { Screen } from '../../lib/api';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
-import { Badge, Button, Empty, SectionHeading } from '../ui';
+import { Badge, Button, Empty, ResourceRow, SectionHeading } from '../ui';
 
 type State = Screen['state'];
 type Sheet = NonNullable<Screen['sheet']>;
@@ -84,14 +84,13 @@ export function Screens({ api }: SectionProps) {
         title="Telas"
         description="O mapa do sistema: cada tela listada do código e do menu, a ficha que a Atena escreveu ao percorrê-la, e a sua revisão."
       />
-      <div className="application-tabs" role="tablist">
+      <div className="owner-tabs" role="tablist" aria-label="Filtrar as telas pela situação">
         {(['all', ...states] as const).map((item) => (
           <button
             key={item}
             type="button"
             role="tab"
             aria-selected={filter === item}
-            className={filter === item ? 'active' : ''}
             onClick={() => setFilter(item)}
           >
             {item === 'all'
@@ -100,33 +99,42 @@ export function Screens({ api }: SectionProps) {
           </button>
         ))}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
       {list && !visible.length ? (
         <Empty title="Nenhuma tela aqui">
           A Atena lista as telas a partir das rotas do código e do menu do sistema; elas aparecem
           aqui.
         </Empty>
       ) : (
-        <div className="prototype-list">
+        <div className="resource-list">
           {visible.map((item) => (
-            <button
+            <ResourceRow
               key={item.id}
-              type="button"
-              className="prototype-row"
-              onClick={() => show(item.id)}
-            >
-              <strong>{item.title}</strong>
-              <span>
-                <Badge tone={stateTone[item.state]}>{stateLabel[item.state]}</Badge>
-                <Badge dot={false}>{item.application}</Badge>
-                {item.squad && <Badge dot={false}>Squad proposto: {item.squad}</Badge>}
-                {item.prints.length > 0 && <Badge dot={false}>{item.prints.length} prints</Badge>}
-              </span>
-              <small>
-                {item.menuPath ? `${item.menuPath} · ` : ''}
-                <code>{item.route}</code>
-              </small>
-            </button>
+              id={`screen-${item.id}`}
+              icon={<LayoutTemplate size={20} strokeWidth={1.6} />}
+              name={item.title}
+              badges={
+                <>
+                  <Badge tone={stateTone[item.state]}>{stateLabel[item.state]}</Badge>
+                  <Badge dot={false}>{item.application}</Badge>
+                </>
+              }
+              description={item.menuPath || 'Fora do menu'}
+              facts={[
+                item.route,
+                ...(item.squad ? [`Squad proposto: ${item.squad}`] : []),
+                ...(item.prints.length ? [`${item.prints.length} prints`] : []),
+              ]}
+              actions={
+                <Button variant="secondary" onClick={() => show(item.id)}>
+                  Abrir ficha
+                </Button>
+              }
+            />
           ))}
         </div>
       )}
@@ -165,36 +173,39 @@ function ScreenSheet({
     <>
       <SectionHeading
         title={screen.title}
-        description={[screen.menuPath, screen.route, screen.application]
-          .filter(Boolean)
-          .join(' · ')}
+        description={[screen.menuPath, screen.application].filter(Boolean).join(' · ')}
         action={
-          <Button variant="quiet" onClick={back}>
+          <Button variant="secondary" onClick={back}>
             <ArrowLeft size={16} />
-            Telas
+            Todas as telas
           </Button>
         }
       />
-      {error && <p className="error">{error}</p>}
-      <p className="prototype-buttons">
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="owner-meta">
         <Badge tone={stateTone[screen.state]}>{stateLabel[screen.state]}</Badge>
         {screen.squad && <Badge dot={false}>Squad proposto: {screen.squad}</Badge>}
+        <code>{screen.route}</code>
         {screen.mappedAt && <small>Mapeada em {date(screen.mappedAt)}</small>}
         {screen.reviewedAt && <small>Revisada em {date(screen.reviewedAt)}</small>}
         {screen.workUrl && (
-          <a href={screen.workUrl} target="_blank" rel="noreferrer">
-            Documento no Work
+          <a className="text-button" href={screen.workUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={14} /> Documento no Work
           </a>
         )}
-      </p>
+      </div>
 
       {screen.sheet ? (
-        <section className="pauta-chain">
+        <div className="screen-sheet">
           {sections.map(({ key, title }) => (
-            <div key={key}>
+            <section key={key} aria-label={title}>
               <h3>{title}</h3>
               {screen.sheet?.[key].length ? (
-                <ul className="screen-items">
+                <ul>
                   {screen.sheet[key].map((item) => (
                     <li key={item.text}>
                       {item.text}{' '}
@@ -205,29 +216,32 @@ function ScreenSheet({
                   ))}
                 </ul>
               ) : (
-                <p className="note">Nada anotado.</p>
+                <p className="note my-0">Nada anotado.</p>
               )}
-            </div>
+            </section>
           ))}
-        </section>
+        </div>
       ) : (
-        <p className="note">Esta tela ainda não tem ficha.</p>
+        <Empty title="Sem ficha ainda">
+          A Atena escreve a ficha quando percorre a tela; ela aparece aqui para você revisar.
+        </Empty>
       )}
 
       {screen.prints.length > 0 && (
-        <section className="screen-prints">
+        <div className="screen-gallery">
           {screen.prints.map((name) => (
             <Print key={name} screenId={screen.id} name={name} api={api} />
           ))}
-        </section>
+        </div>
       )}
 
       {screen.state === 'draft' && (
-        <footer className="prototype-actions">
+        <div className="section-row mt-6">
+          <p className="text-xs">Leu a ficha e confere com a tela? Marque para seguir.</p>
           <Button busy={busy} disabled={busy} onClick={() => void review()}>
             <Check size={16} /> Marcar como revisada
           </Button>
-        </footer>
+        </div>
       )}
     </>
   );

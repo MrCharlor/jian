@@ -5,6 +5,7 @@
 @import "./styles/controls.css";
 @import "./styles/conversations.css";
 @import "./styles/resources.css";
+@import "./styles/owner-pages.css";
 
 @layer base {
   /* Scrollbars that belong to the panel: thin, no track, a rounded thumb in the ink at low

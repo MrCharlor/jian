@@ -1,12 +1,13 @@
 'use client';
 
+import { AlarmClock, FileCheck, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { Routines as RoutinesView } from '../../lib/api';
 import { date } from '../../lib/format';
 import { actionLabel, planStateLabel, planTitle } from '../plans/index';
 import type { SectionProps } from '../props';
-import { Badge, Empty, SectionHeading } from '../ui';
+import { Badge, Empty, MoreText, ResourceRow, SectionHeading } from '../ui';
 
 /**
  * Everything that runs on its own: every agent's schedules, the plans waiting for the owner,
@@ -41,137 +42,158 @@ export function Routines({ api }: SectionProps) {
         title="Rotinas"
         description="O que roda sozinho: as agendas de todos os agentes, os planos esperando você, quantas rodadas cada ação foi sem correção e quantas perguntas cada plano fez."
       />
-      {error && <p className="error">{error}</p>}
-
-      <h3>Ações com plano</h3>
-      <div className="request-list">
-        {view?.actions.map((action) => (
-          <article className="request-card" key={action.action}>
-            <header>
-              <div className="grow">
-                <h4>
-                  {actionLabel[action.action]}{' '}
-                  <Badge tone={action.automatic ? 'accent' : 'neutral'}>
-                    {action.automatic ? 'Automático' : 'Espera seu OK'}
-                  </Badge>{' '}
-                  {!action.reviewer && (
-                    <Badge tone="warn">
-                      {action.action === 'entry_sync'
-                        ? 'Sem Revisor: vem direto para você'
-                        : 'Sem Revisor: sem plano'}
-                    </Badge>
-                  )}
-                </h4>
-                <small>
-                  {action.executed} plano(s) executado(s) · {action.clean} seguido(s) sem correção
-                  {action.lastCorrectionAt
-                    ? ` · última correção ${date(action.lastCorrectionAt)}`
-                    : ''}
-                </small>
-              </div>
-            </header>
-          </article>
-        ))}
-      </div>
-
-      <h3>Perguntas por plano</h3>
-      {view && !view.questionsPerWeek.length ? (
-        <p className="note">
-          Nenhum plano escrito nas últimas 8 semanas. A média deve cair conforme a base de
-          Conhecimento aprende.
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
         </p>
-      ) : (
-        <div className="table-scroll">
-          <table className="quality-table">
-            <thead>
-              <tr>
-                <th>Semana de</th>
-                <th>Planos</th>
-                <th>Perguntas</th>
-                <th>Média</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view?.questionsPerWeek.map((week) => (
-                <tr key={week.week}>
-                  <td>{week.week.split('-').reverse().join('/')}</td>
-                  <td>{week.plans}</td>
-                  <td>{week.questions}</td>
-                  <td>
-                    <Badge tone={week.average > 3 ? 'warn' : 'neutral'}>
-                      {week.average.toLocaleString('pt-BR')}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       )}
 
-      <h3>Planos esperando você ({view?.waiting.length ?? 0})</h3>
-      {view && !view.waiting.length ? (
-        <p className="note">Nenhum. Os planos ficam em Planos.</p>
-      ) : (
-        <ul>
-          {view?.waiting.map((plan) => (
-            <li key={plan.id}>
-              <Link href="/plans">
-                #{plan.number} · {planTitle(plan)}
-              </Link>{' '}
-              <Badge tone="accent">{planStateLabel[plan.state]}</Badge>{' '}
-              <small>
-                {plan.findings.length
-                  ? `${plan.findings.length} achado(s)`
-                  : plan.reviewerProfileId
-                    ? 'aprovado pelo Revisor'
-                    : 'sem Revisor'}
-              </small>
-            </li>
-          ))}
-        </ul>
-      )}
+      {view && (
+        <>
+          <section className="row-group" aria-labelledby="routines-waiting">
+            <h2 id="routines-waiting">
+              Planos esperando você <Badge dot={false}>{view.waiting.length}</Badge>
+            </h2>
+            {view.waiting.length ? (
+              <div className="resource-list">
+                {view.waiting.map((plan) => (
+                  <ResourceRow
+                    key={plan.id}
+                    id={`routine-plan-${plan.id}`}
+                    icon={<FileCheck size={20} strokeWidth={1.6} />}
+                    name={`#${plan.number} · ${planTitle(plan)}`}
+                    badges={<Badge tone="accent">{planStateLabel[plan.state]}</Badge>}
+                    description={actionLabel[plan.action]}
+                    facts={[
+                      plan.findings.length
+                        ? `${plan.findings.length} achado(s) do Revisor`
+                        : plan.reviewerProfileId
+                          ? 'Aprovado pelo Revisor'
+                          : 'Sem Revisor',
+                      date(plan.updatedAt),
+                    ]}
+                    actions={
+                      <Link className="button secondary" href="/plans">
+                        Abrir em Planos
+                      </Link>
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="note">Nenhum. Os planos ficam em Planos.</p>
+            )}
+          </section>
 
-      <h3>Agendas</h3>
-      {view && !view.schedules.length ? (
-        <Empty title="Nenhuma agenda">Os agentes ainda não têm rotina agendada.</Empty>
-      ) : (
-        <div className="table-scroll">
-          <table className="quality-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Perfil</th>
-                <th>Quando</th>
-                <th>Ligada</th>
-                <th>Última vez</th>
-                <th>Último erro</th>
-                <th>Próxima</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view?.schedules.map((schedule) => (
-                <tr key={schedule.id}>
-                  <td>{schedule.name}</td>
-                  <td>{schedule.profileName}</td>
-                  <td>
-                    <code>{schedule.cron ?? (schedule.at ? date(schedule.at) : '')}</code>
-                  </td>
-                  <td>
-                    <Badge tone={schedule.enabled ? 'good' : 'neutral'}>
-                      {schedule.enabled ? 'Sim' : 'Não'}
-                    </Badge>
-                  </td>
-                  <td>{schedule.lastRunAt ? date(schedule.lastRunAt) : '-'}</td>
-                  <td>
-                    {schedule.lastError ? <span className="error">{schedule.lastError}</span> : '-'}
-                  </td>
-                  <td>{schedule.nextRunAt ? date(schedule.nextRunAt) : '-'}</td>
-                </tr>
+          <section className="row-group" aria-labelledby="routines-actions">
+            <h2 id="routines-actions">Ações com plano</h2>
+            <p>Quantas rodadas cada ação foi sem correção sua: o sinal para ligar o Automático.</p>
+            <div className="resource-list">
+              {view.actions.map((action) => (
+                <ResourceRow
+                  key={action.action}
+                  id={`routine-action-${action.action}`}
+                  icon={<Workflow size={20} strokeWidth={1.6} />}
+                  name={actionLabel[action.action]}
+                  badges={
+                    <>
+                      <Badge tone={action.automatic ? 'accent' : 'neutral'}>
+                        {action.automatic ? 'Automático' : 'Espera seu OK'}
+                      </Badge>
+                      {!action.reviewer && (
+                        <Badge tone="warn">
+                          {action.action === 'entry_sync'
+                            ? 'Sem Revisor: vem direto para você'
+                            : 'Sem Revisor: sem plano'}
+                        </Badge>
+                      )}
+                    </>
+                  }
+                  description={`${action.clean} seguido(s) sem correção, de ${action.executed} executado(s).`}
+                  facts={
+                    action.lastCorrectionAt
+                      ? [`Última correção ${date(action.lastCorrectionAt)}`]
+                      : ['Nenhuma correção ainda']
+                  }
+                />
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </section>
+
+          <section className="row-group" aria-labelledby="routines-questions">
+            <h2 id="routines-questions">Perguntas por plano</h2>
+            <p>A média deve cair conforme a base de Conhecimento aprende.</p>
+            {view.questionsPerWeek.length ? (
+              <div className="owner-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Semana de</th>
+                      <th>Planos</th>
+                      <th>Perguntas</th>
+                      <th>Média</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {view.questionsPerWeek.map((week) => (
+                      <tr key={week.week}>
+                        <td>{week.week.split('-').reverse().join('/')}</td>
+                        <td className="number">{week.plans}</td>
+                        <td className="number">{week.questions}</td>
+                        <td className="number">
+                          <Badge tone={week.average > 3 ? 'warn' : 'neutral'} dot={false}>
+                            {week.average.toLocaleString('pt-BR')}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="note">Nenhum plano escrito nas últimas 8 semanas.</p>
+            )}
+          </section>
+
+          <section className="row-group" aria-labelledby="routines-schedules">
+            <h2 id="routines-schedules">
+              Agendas <Badge dot={false}>{view.schedules.length}</Badge>
+            </h2>
+            {view.schedules.length ? (
+              <div className="resource-list">
+                {view.schedules.map((schedule) => (
+                  <ResourceRow
+                    key={schedule.id}
+                    id={`routine-schedule-${schedule.id}`}
+                    icon={<AlarmClock size={20} strokeWidth={1.6} />}
+                    name={schedule.name}
+                    badges={
+                      <Badge tone={schedule.enabled ? 'good' : 'neutral'}>
+                        {schedule.enabled ? 'Ligada' : 'Desligada'}
+                      </Badge>
+                    }
+                    description={`${schedule.profileName} · ${
+                      schedule.cron ?? (schedule.at ? date(schedule.at) : 'sem horário')
+                    }`}
+                    facts={[
+                      `Última vez: ${schedule.lastRunAt ? date(schedule.lastRunAt) : 'nunca'}`,
+                      `Próxima: ${schedule.nextRunAt ? date(schedule.nextRunAt) : 'nenhuma'}`,
+                    ]}
+                    extra={
+                      schedule.lastError ? (
+                        <div className="row-error">
+                          <MoreText lines={2}>{`Último erro: ${schedule.lastError}`}</MoreText>
+                        </div>
+                      ) : undefined
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <Empty title="Nenhuma agenda">Os agentes ainda não têm rotina agendada.</Empty>
+            )}
+          </section>
+        </>
       )}
     </>
   );

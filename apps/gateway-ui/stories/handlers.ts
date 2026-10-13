@@ -1,4 +1,5 @@
 import { delay, HttpResponse, http } from 'msw';
+import { atenaHandlers } from './atena';
 import { lastMessageOf } from './conversations';
 import * as data from './fixtures';
 
@@ -55,6 +56,7 @@ const decisions = (configured: boolean) => ({
 });
 
 export const handlers = [
+  ...atenaHandlers,
   http.get('*/v1/profiles/:profileId/work', ({ params }) =>
     ok(byProfile(data.work, String(params.profileId))),
   ),

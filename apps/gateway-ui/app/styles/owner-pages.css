@@ -1,0 +1,348 @@
+/* biome-ignore-all lint/style/noDescendingSpecificity: Each page part keeps its states next to it; the selectors do not overlap. */
+/*
+ * The product owner's pages (Validações, Planos, Rotinas, Priorização, Telas, Conhecimento),
+ * drawn with the same pieces as Providers and Channels: row groups under small headings,
+ * request cards whose content keeps the card's padding, and nothing that runs past its box.
+ */
+@layer components {
+  /* A long word or link breaks inside its box instead of pushing out of it. */
+  .request-card,
+  .resource-row,
+  .disclosure,
+  .owner-callout,
+  .owner-table {
+    overflow-wrap: anywhere;
+  }
+  .request-list > .request-card {
+    @apply my-0;
+  }
+  .request-card h4 {
+    @apply min-w-0;
+  }
+  .request-card > header > .grow {
+    @apply min-w-0;
+  }
+  /* Everything between the header and the footer, at the header's padding. */
+  .request-body {
+    @apply grid min-w-0 gap-5 px-5 pt-4;
+  }
+  .request-body:last-child {
+    @apply pb-5;
+  }
+  .request-body > * {
+    @apply min-w-0;
+  }
+  .request-body .field {
+    @apply mb-0;
+  }
+  .request-body h5 {
+    @apply mb-2 text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+  .request-body ol,
+  .request-body ul {
+    @apply grid gap-2 pl-5 text-sm text-ink;
+  }
+  .request-body ol {
+    @apply list-decimal;
+  }
+  .request-body ul {
+    @apply list-disc;
+  }
+  .request-body li::marker {
+    @apply text-muted;
+  }
+  .request-card > footer {
+    @apply justify-end gap-3;
+  }
+  .request-card > footer > p {
+    @apply min-w-0 basis-60;
+  }
+  .request-card > footer > .button:first-of-type {
+    @apply ml-auto;
+  }
+  /* The links of a card (the epic, the preview, the prototype), wrapping as one line of facts. */
+  .request-links {
+    @apply flex flex-wrap gap-x-4 gap-y-1;
+  }
+  .request-links a {
+    @apply min-w-0;
+  }
+  /* What a card says about itself: not a field, a note at the margin. */
+  .owner-callout {
+    @apply rounded-sm border-l-2 border-line bg-canvas px-4 py-3 text-sm text-ink;
+  }
+  .owner-callout > strong {
+    @apply mb-1.5 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+  .owner-callout.warn {
+    @apply border-warn bg-warn-soft;
+  }
+  .owner-callout.warn > strong {
+    @apply text-warn;
+  }
+  .owner-callout.accent {
+    @apply border-accent;
+  }
+  .owner-callout.good {
+    @apply border-good bg-good-soft;
+  }
+  .owner-callout.good > strong {
+    @apply text-good;
+  }
+  .owner-callout ol,
+  .owner-callout ul {
+    @apply mt-1;
+  }
+  /* The block the owner acts on first in a card, such as the refusal comment to publish. */
+  .owner-focus {
+    @apply grid gap-4 rounded-sm border border-accent bg-canvas p-4;
+  }
+  .owner-focus > header h5 {
+    @apply mb-1 text-ink;
+  }
+  .owner-focus > header p {
+    @apply text-xs;
+  }
+  .owner-focus-actions {
+    @apply flex flex-wrap items-center justify-end gap-2;
+  }
+  /* A secondary block of a card: a return card draft, a settings card's fields. */
+  .owner-block {
+    @apply grid gap-4 rounded-sm border border-line p-4;
+  }
+  .owner-block > h5 {
+    @apply mb-0;
+  }
+  .owner-fields {
+    @apply grid gap-x-5 gap-y-4 sm:grid-cols-2;
+  }
+  .owner-fields.knowledge-filters {
+    @apply mt-3 mb-4 lg:grid-cols-4;
+  }
+  .owner-fields > .wide {
+    @apply sm:col-span-2;
+  }
+  /* Rows grouped under a small heading, with the list or the cards below it. */
+  .row-group > h2 {
+    @apply flex flex-wrap items-center gap-2;
+  }
+  .row-group > .request-list,
+  .row-group > .resource-list,
+  .row-group > .owner-table,
+  .row-group > .empty,
+  .row-group > .disclosure {
+    @apply mt-3;
+  }
+  .row-group > .note {
+    @apply mt-2 mb-0;
+  }
+  .page-toolbar {
+    @apply mb-8 flex flex-wrap items-end gap-4;
+  }
+  .page-toolbar > .field {
+    @apply mb-0 w-full max-w-xs;
+  }
+  .page-toolbar + .row-group {
+    @apply mt-0;
+  }
+  .section-heading + .row-group,
+  .form-error + .row-group {
+    @apply mt-0;
+  }
+  .row-group + .disclosure,
+  .disclosure + .row-group {
+    @apply mt-10;
+  }
+  /* Long text cut at a few lines, with "ver mais" under it. */
+  .more-text {
+    @apply grid min-w-0 justify-items-start gap-1;
+  }
+  .more-text-body {
+    @apply w-full min-w-0 whitespace-pre-wrap;
+  }
+  .more-text[data-open="false"] .more-text-body {
+    max-height: calc(var(--more-lines, 4) * 1.625em);
+    overflow: hidden;
+  }
+  .more-text[data-open="false"][data-long="true"] .more-text-body {
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  }
+  .more-text .text-button {
+    @apply py-0.5;
+  }
+  .more-text-body .markdown,
+  .more-text-body > div {
+    white-space: normal;
+  }
+  /* An on/off setting with its name and what it does. */
+  .switch-field {
+    @apply flex items-start justify-between gap-6;
+  }
+  .switch-field strong {
+    @apply block text-sm font-medium;
+  }
+  .switch-field p {
+    @apply mt-1 text-xs leading-relaxed text-muted;
+  }
+  .switch-field .switch {
+    @apply mt-0.5;
+  }
+  /* Settings closed under the list they serve. */
+  .disclosure {
+    @apply rounded-sm border border-line bg-surface;
+  }
+  .disclosure > summary {
+    @apply flex list-none items-center gap-4 px-5 py-4;
+  }
+  .disclosure > summary::-webkit-details-marker {
+    display: none;
+  }
+  .disclosure > summary strong {
+    @apply block text-sm font-semibold;
+  }
+  .disclosure > summary small {
+    @apply mt-0.5 block text-xs text-muted;
+  }
+  .disclosure > summary .grow {
+    @apply min-w-0;
+  }
+  .disclosure > summary .disclosure-chevron {
+    @apply text-muted transition-transform;
+  }
+  .disclosure[open] > summary .disclosure-chevron {
+    @apply rotate-180;
+  }
+  .disclosure[open] > summary {
+    @apply border-b border-line;
+  }
+  .disclosure-body {
+    @apply grid gap-4 p-5;
+  }
+  .disclosure-body > .request-card {
+    @apply bg-canvas;
+  }
+  /* A plain table in a card, scrolling sideways on a phone rather than squeezing. */
+  .owner-table {
+    @apply overflow-x-auto rounded-sm border border-line bg-surface;
+  }
+  .owner-table table {
+    @apply w-full border-collapse text-sm;
+  }
+  .owner-table th {
+    @apply whitespace-nowrap border-b border-line px-4 py-3 text-left text-xs font-medium text-muted;
+  }
+  .owner-table td {
+    @apply border-b border-line px-4 py-3 align-top;
+  }
+  .owner-table tr:last-child td {
+    @apply border-b-0;
+  }
+  .owner-table td.number {
+    @apply text-right tabular-nums;
+  }
+  /* Tabs that filter a list: a quiet underline, as the panel's own segmented controls. */
+  .owner-tabs {
+    @apply mb-6 flex gap-1 overflow-x-auto border-b border-line;
+  }
+  .owner-tabs button {
+    @apply -mb-px shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:text-ink;
+  }
+  .owner-tabs button[aria-selected="true"] {
+    @apply border-accent text-ink;
+  }
+  /* The answers to a validation, item by item. */
+  .request-body ol.validation-list {
+    @apply list-none gap-0 rounded-sm border border-line pl-0;
+  }
+  .validation-list > li {
+    @apply grid gap-3 border-b border-line px-4 py-4 last:border-b-0;
+  }
+  .validation-list > li > p {
+    @apply text-sm text-ink;
+  }
+  .validation-list > li > p b {
+    @apply mr-1.5 text-muted;
+  }
+  .validation-buttons {
+    @apply flex flex-wrap gap-2;
+  }
+  .validation-buttons .button {
+    @apply min-h-9 px-3;
+  }
+  .validation-buttons .button[aria-pressed="false"] {
+    @apply border-line bg-surface text-muted;
+  }
+  /* Two texts side by side, the original and the reviewed one; one under the other on a phone. */
+  .owner-columns {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+  .owner-columns > div {
+    @apply min-w-0 rounded-sm border border-line p-4;
+  }
+  .owner-columns .markdown,
+  .owner-columns p {
+    @apply text-sm text-ink;
+  }
+  /* The proposed order of the column, card by card, moved by the arrows or by dragging. */
+  .priority-board {
+    @apply grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)];
+  }
+  .priority-board > div {
+    @apply min-w-0 rounded-sm border border-line p-4;
+  }
+  .priority-board ol.priority-order {
+    @apply list-none pl-0;
+  }
+  .priority-board .priority-item {
+    @apply grid cursor-grab grid-cols-[1.75rem_minmax(0,1fr)_auto] items-start gap-2 rounded-sm border border-line bg-surface p-3;
+  }
+  .priority-board .priority-item.dragging {
+    @apply opacity-50;
+  }
+  .priority-board .priority-item > b {
+    @apply text-right text-muted;
+  }
+  .priority-board .priority-item small {
+    @apply mt-1 block text-muted;
+  }
+  .priority-board .priority-item nav {
+    @apply flex gap-0.5;
+  }
+  .priority-board .priority-item nav .button {
+    @apply min-h-8 px-1.5;
+  }
+  /* A screen's sheet: one card per part, as many side by side as fit. */
+  .screen-sheet {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+  .screen-sheet > section {
+    @apply min-w-0 rounded-sm border border-line bg-surface p-5;
+  }
+  .screen-sheet h3 {
+    @apply mb-3 text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+  .screen-sheet ul {
+    @apply grid list-disc gap-2 pl-5 text-sm text-ink;
+  }
+  .screen-sheet li::marker {
+    @apply text-muted;
+  }
+  .screen-gallery {
+    @apply mt-4 grid gap-4 sm:grid-cols-2;
+  }
+  .screen-gallery figure {
+    @apply m-0 grid min-w-0 gap-2;
+  }
+  .screen-gallery img {
+    @apply w-full rounded-sm border border-line;
+  }
+  .screen-gallery figcaption {
+    @apply text-xs text-muted;
+  }
+  .owner-meta {
+    @apply mb-6 flex flex-wrap items-center gap-2;
+  }
+  .owner-meta small {
+    @apply text-muted;
+  }
+}
