@@ -70,6 +70,8 @@ export const priorityProposalSchema = z.strictObject({
   error: z.string().optional(),
   note: z.string().optional(),
   proposedBy: z.string().optional(),
+  /** The plan that holds the proposal until the Reviewer and the owner let it through. */
+  planNumber: z.number().int().positive().optional(),
   decidedVia: z.enum(['panel', 'channel', 'api', 'agent']).optional(),
   decidedAt: z.iso.datetime().optional(),
   createdAt: z.iso.datetime(),

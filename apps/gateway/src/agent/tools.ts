@@ -694,7 +694,7 @@ export const TOOL_GROUPS = {
   },
   plans: {
     summary:
-      'write the plan you were asked for before an action (a prototype), review a plan as the Reviewer, and read a plan back by id or number',
+      'write the plan you were asked for before an action (a prototype), review a plan as the Reviewer (a prototype or a prioritization), and read a plan back by id or number',
     tools: ['write_plan', 'review_plan', 'read_plan'],
   },
   draw: {
@@ -937,12 +937,13 @@ function priorityTools(
           ...(item.adjusted !== undefined ? { adjusted: item.adjusted } : {}),
           ...(item.note ? { note: item.note } : {}),
           ...(item.error ? { error: item.error } : {}),
+          ...(item.planNumber ? { planNumber: item.planNumber } : {}),
         })),
       }),
     }),
     propose_priorities: tool({
       description:
-        'Propose the order of a board column, top first, with a reason per card; mark raise for a card of the source column that should come up into it. The column is read when you propose; a card of it you leave out goes last. The owner sees today’s order beside yours, adjusts and applies it. Nothing moves on the board yet.',
+        'Propose the order of a board column, top first, with a reason per card; mark raise for a card of the source column that should come up into it. The column is read when you propose; a card of it you leave out goes last. The owner sees today’s order beside yours, adjusts and applies it. Nothing moves on the board yet. When the answer carries a planNumber, your proposal is Plano #N: the Reviewer checks it, and once it is approved the order is applied for you; do not call apply_priorities for it. If the plan comes back with findings, fix them and propose again (same column).',
       inputSchema: priorityProposalInputSchema,
       execute: async (input) =>
         priorities.propose(input, {
@@ -953,7 +954,7 @@ function priorityTools(
     }),
     apply_priorities: tool({
       description:
-        'Reorder the board as an open proposal says, by its number: only that column, only the cards out of place. Use it when the owner told you to apply it.',
+        'Reorder the board as an open proposal says, by its number: only that column, only the cards out of place. Use it when the owner told you to apply it. A proposal held by a plan (planNumber) is applied when its plan is approved, not with this.',
       inputSchema: z.object({ number: z.number().int().positive() }),
       execute: async ({ number }) => priorities.apply({ number }, {}, 'agent'),
     }),

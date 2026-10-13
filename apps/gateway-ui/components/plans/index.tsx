@@ -46,11 +46,35 @@ const ORDER: PlanState[] = [
 
 const OPEN = new Set<PlanState>(['escrevendo', 'em_revisao', 'devolvido', 'aguardando_po']);
 
-/** Plans written before a prototype: the original beside the Reviewer's, and the owner's OK. */
+type Action = Plan['action'];
+
+const ACTIONS: Action[] = ['prototype', 'priority'];
+
+export const actionLabel: Record<Action, string> = {
+  prototype: 'Protótipo',
+  priority: 'Priorização',
+};
+
+const actionHint: Record<Action, { direct: string; author: string }> = {
+  prototype: {
+    direct: 'Sem Revisor, o protótipo é gerado direto, sem plano.',
+    author: 'Vazio: o agente que pediu, ou o Subaru.',
+  },
+  priority: {
+    direct: 'Sem Revisor, a proposta vai direto para a página Priorização, como antes.',
+    author: 'Vazio: o agente que propôs a ordem, ou o Otto.',
+  },
+};
+
+/**
+ * Plans written before a prototype or a prioritization: the original beside the Reviewer's,
+ * and the owner's OK.
+ */
 export function Plans({ api, data }: SectionProps) {
   const [list, setList] = useState<Plan[]>();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [action, setAction] = useState<Action | ''>('');
 
   const load = useCallback(
     () =>
@@ -85,20 +109,35 @@ export function Plans({ api, data }: SectionProps) {
 
   const groups = ORDER.map((state) => ({
     state,
-    items: (list ?? []).filter((plan) => plan.state === state),
+    items: (list ?? []).filter(
+      (plan) => plan.state === state && (!action || plan.action === action),
+    ),
   })).filter((group) => group.items.length);
 
   return (
     <>
       <SectionHeading
         title="Planos"
-        description="Antes de um protótipo, o agente escreve o plano e o Revisor confere contra as suas regras e correções. Aprove para executar, ou devolva com o motivo."
+        description="Antes de um protótipo ou de uma priorização, o agente escreve o plano e o Revisor confere contra as suas regras e correções. Aprove para executar, ou devolva com o motivo."
       />
-      <ActionSettings api={api} data={data} />
+      <Field label="Ação">
+        <select value={action} onChange={(event) => setAction(event.target.value as Action | '')}>
+          <option value="">Todas</option>
+          {ACTIONS.map((item) => (
+            <option key={item} value={item}>
+              {actionLabel[item]}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {ACTIONS.filter((item) => !action || item === action).map((item) => (
+        <ActionSettings key={item} action={item} api={api} data={data} />
+      ))}
       {error && <p className="error">{error}</p>}
       {list && !list.length ? (
         <Empty title="Nenhum plano ainda">
-          Os planos aparecem aqui quando houver um Revisor configurado e alguém pedir um protótipo.
+          Os planos aparecem aqui quando houver um Revisor configurado e alguém pedir um protótipo
+          ou propuser uma priorização.
         </Empty>
       ) : (
         groups.map((group) => (
@@ -137,7 +176,7 @@ function PlanCard({
       <header>
         <div className="grow">
           <h4>
-            #{plan.number} · Protótipo "{plan.title}"{' '}
+            #{plan.number} · {plan.action === 'priority' ? plan.title : `Protótipo "${plan.title}"`}{' '}
             <Badge tone={stateTone[plan.state]}>{planStateLabel[plan.state]}</Badge>
           </h4>
           <small>
@@ -149,7 +188,7 @@ function PlanCard({
         </div>
       </header>
 
-      {plan.note && <p className="note">Seu último comentário: {plan.note}</p>}
+      {plan.note && <p className="note">Último comentário: {plan.note}</p>}
 
       {plan.findings.length > 0 && (
         <div className="epic-problems">
@@ -169,10 +208,26 @@ function PlanCard({
       )}
 
       <div className="plan-texts">
-        <div>
-          <h5>Plano do autor</h5>
-          <pre className="request-quote">{plan.original ?? 'Ainda não escrito.'}</pre>
-        </div>
+        {plan.priority ? (
+          <div>
+            <h5>Ordem proposta</h5>
+            <ol>
+              {plan.priority.cards.map((card) => (
+                <li key={card.workId}>
+                  {card.title} {card.raise && <Badge tone="warn">Sobe do Aprovado</Badge>}
+                  <br />
+                  <small>{card.reason ?? 'Sem motivo do agente'}</small>
+                </li>
+              ))}
+            </ol>
+            <p className="note">{plan.priority.summary}</p>
+          </div>
+        ) : (
+          <div>
+            <h5>Plano do autor</h5>
+            <pre className="request-quote">{plan.original ?? 'Ainda não escrito.'}</pre>
+          </div>
+        )}
         <div>
           <h5>Revisado</h5>
           <pre className="request-quote">{plan.revised ?? 'Ainda não revisado.'}</pre>
@@ -214,25 +269,29 @@ function PlanCard({
 }
 
 /** Per action: who writes, who reviews, how many returns, and whether it runs without the OK. */
-function ActionSettings({ api, data }: Pick<SectionProps, 'api' | 'data'>) {
+function ActionSettings({
+  action,
+  api,
+  data,
+}: Pick<SectionProps, 'api' | 'data'> & { action: Action }) {
   const [settings, setSettings] = useState<PlanSettings>();
   const [profiles, setProfiles] = useState<Array<{ id: string; name: string }>>([]);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     void api
-      .planSettings('prototype')
+      .planSettings(action)
       .then(setSettings)
       .catch(() => setMessage('A configuração não carregou.'));
     void api
       .profiles()
       .then((items) => setProfiles(items.map(({ id, name }) => ({ id, name }))))
       .catch(() => {});
-  }, [api]);
+  }, [api, action]);
 
   const save = (patch: Parameters<typeof api.updatePlanSettings>[1]) =>
     api
-      .updatePlanSettings('prototype', patch)
+      .updatePlanSettings(action, patch)
       .then((saved) => {
         setSettings(saved);
         setMessage('Salvo.');
@@ -248,10 +307,10 @@ function ActionSettings({ api, data }: Pick<SectionProps, 'api' | 'data'>) {
     <article className="request-card">
       <header>
         <div className="grow">
-          <h4>Protótipo</h4>
+          <h4>{actionLabel[action]}</h4>
           <small>
-            Sem Revisor, o protótipo é gerado direto, sem plano. O modelo do Revisor é o do perfil
-            dele, a não ser que você escolha um aqui.
+            {actionHint[action].direct} O modelo do Revisor é o do perfil dele, a não ser que você
+            escolha um aqui.
           </small>
         </div>
         <Switch
@@ -261,12 +320,12 @@ function ActionSettings({ api, data }: Pick<SectionProps, 'api' | 'data'>) {
         />
       </header>
       <div className="settings-fields">
-        <Field label="Autor" hint="Vazio: o agente que pediu, ou o Subaru.">
+        <Field label="Autor" hint={actionHint[action].author}>
           <select
             value={settings.authorProfileId ?? ''}
             onChange={(event) => void save({ authorProfileId: event.target.value || null })}
           >
-            <option value="">Quem pediu</option>
+            <option value="">{action === 'priority' ? 'Quem propôs' : 'Quem pediu'}</option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.name}
@@ -279,7 +338,7 @@ function ActionSettings({ api, data }: Pick<SectionProps, 'api' | 'data'>) {
             value={settings.reviewerProfileId ?? ''}
             onChange={(event) => void save({ reviewerProfileId: event.target.value || null })}
           >
-            <option value="">Nenhum (gera direto)</option>
+            <option value="">Nenhum (sem plano)</option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.name}

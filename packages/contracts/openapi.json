@@ -25318,7 +25318,8 @@
                       "action": {
                         "type": "string",
                         "enum": [
-                          "prototype"
+                          "prototype",
+                          "priority"
                         ]
                       },
                       "prototypeId": {
@@ -25336,6 +25337,56 @@
                       },
                       "application": {
                         "type": "string"
+                      },
+                      "priorityProposalId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "priority": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "cards": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "workId": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "raise": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "workId",
+                                "title",
+                                "raise"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "number",
+                          "summary",
+                          "cards"
+                        ],
+                        "additionalProperties": false
                       },
                       "pautaId": {
                         "type": "string",
@@ -25686,7 +25737,8 @@
                     "action": {
                       "type": "string",
                       "enum": [
-                        "prototype"
+                        "prototype",
+                        "priority"
                       ]
                     },
                     "prototypeId": {
@@ -25704,6 +25756,56 @@
                     },
                     "application": {
                       "type": "string"
+                    },
+                    "priorityProposalId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "priority": {
+                      "type": "object",
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "cards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "raise": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "raise"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "summary",
+                        "cards"
+                      ],
+                      "additionalProperties": false
                     },
                     "pautaId": {
                       "type": "string",
@@ -26053,7 +26155,8 @@
                     "action": {
                       "type": "string",
                       "enum": [
-                        "prototype"
+                        "prototype",
+                        "priority"
                       ]
                     },
                     "prototypeId": {
@@ -26071,6 +26174,56 @@
                     },
                     "application": {
                       "type": "string"
+                    },
+                    "priorityProposalId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "priority": {
+                      "type": "object",
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "cards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "raise": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "raise"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "summary",
+                        "cards"
+                      ],
+                      "additionalProperties": false
                     },
                     "pautaId": {
                       "type": "string",
@@ -26441,7 +26594,8 @@
                     "action": {
                       "type": "string",
                       "enum": [
-                        "prototype"
+                        "prototype",
+                        "priority"
                       ]
                     },
                     "prototypeId": {
@@ -26459,6 +26613,56 @@
                     },
                     "application": {
                       "type": "string"
+                    },
+                    "priorityProposalId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "priority": {
+                      "type": "object",
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "cards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "raise": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "raise"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "summary",
+                        "cards"
+                      ],
+                      "additionalProperties": false
                     },
                     "pautaId": {
                       "type": "string",
@@ -26825,7 +27029,8 @@
                     "action": {
                       "type": "string",
                       "enum": [
-                        "prototype"
+                        "prototype",
+                        "priority"
                       ]
                     },
                     "prototypeId": {
@@ -26843,6 +27048,56 @@
                     },
                     "application": {
                       "type": "string"
+                    },
+                    "priorityProposalId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "priority": {
+                      "type": "object",
+                      "properties": {
+                        "number": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "cards": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "workId": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "raise": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "workId",
+                              "title",
+                              "raise"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "number",
+                        "summary",
+                        "cards"
+                      ],
+                      "additionalProperties": false
                     },
                     "pautaId": {
                       "type": "string",
@@ -27167,7 +27422,8 @@
             "schema": {
               "type": "string",
               "enum": [
-                "prototype"
+                "prototype",
+                "priority"
               ]
             }
           }
@@ -27183,7 +27439,8 @@
                     "action": {
                       "type": "string",
                       "enum": [
-                        "prototype"
+                        "prototype",
+                        "priority"
                       ]
                     },
                     "automatic": {
@@ -27436,7 +27693,8 @@
             "schema": {
               "type": "string",
               "enum": [
-                "prototype"
+                "prototype",
+                "priority"
               ]
             }
           }
@@ -27524,7 +27782,8 @@
                     "action": {
                       "type": "string",
                       "enum": [
-                        "prototype"
+                        "prototype",
+                        "priority"
                       ]
                     },
                     "automatic": {
@@ -27883,7 +28142,8 @@
                           "action": {
                             "type": "string",
                             "enum": [
-                              "prototype"
+                              "prototype",
+                              "priority"
                             ]
                           },
                           "prototypeId": {
@@ -27901,6 +28161,56 @@
                           },
                           "application": {
                             "type": "string"
+                          },
+                          "priorityProposalId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "priority": {
+                            "type": "object",
+                            "properties": {
+                              "number": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "summary": {
+                                "type": "string"
+                              },
+                              "cards": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "workId": {
+                                      "type": "string"
+                                    },
+                                    "title": {
+                                      "type": "string"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "raise": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "workId",
+                                    "title",
+                                    "raise"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "number",
+                              "summary",
+                              "cards"
+                            ],
+                            "additionalProperties": false
                           },
                           "pautaId": {
                             "type": "string",
@@ -28040,7 +28350,8 @@
                           "action": {
                             "type": "string",
                             "enum": [
-                              "prototype"
+                              "prototype",
+                              "priority"
                             ]
                           },
                           "automatic": {
@@ -28827,6 +29138,11 @@
                       "proposedBy": {
                         "type": "string"
                       },
+                      "planNumber": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
                       "decidedVia": {
                         "type": "string",
                         "enum": [
@@ -29199,6 +29515,11 @@
                     "proposedBy": {
                       "type": "string"
                     },
+                    "planNumber": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
                     "decidedVia": {
                       "type": "string",
                       "enum": [
@@ -29564,6 +29885,11 @@
                     },
                     "proposedBy": {
                       "type": "string"
+                    },
+                    "planNumber": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
                     },
                     "decidedVia": {
                       "type": "string",

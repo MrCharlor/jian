@@ -10,6 +10,8 @@ import {
 import { desc, eq, sql } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
+import { type PlanRow, plansOfProposals } from '../plans/repository.js';
+import type { Plans } from '../plans/service.js';
 import type { Quality } from '../quality/service.js';
 import type { Store } from '../storage/database.js';
 import { priorityCriteria, priorityProposals } from '../storage/schema.js';
@@ -19,12 +21,14 @@ type Row = typeof priorityProposals.$inferSelect;
 type Via = NonNullable<PriorityProposal['decidedVia']>;
 type Titled = { workId: string; title: string };
 
+const OPEN_PLAN = new Set(['escrevendo', 'em_revisao', 'devolvido', 'aguardando_po']);
+
 /** The automation the owner's adjustments are counted against in Quality. */
 export const PRIORITY_AUTOMATION = 'priorizacao';
 
 const CRITERIA_ID = 'owner';
 
-function present(row: Row): PriorityProposal {
+function present(row: Row, plan?: PlanRow): PriorityProposal {
   return {
     id: row.id,
     number: row.number,
@@ -41,6 +45,7 @@ function present(row: Row): PriorityProposal {
     ...(row.error ? { error: row.error } : {}),
     ...(row.note ? { note: row.note } : {}),
     ...(row.proposedBy ? { proposedBy: row.proposedBy } : {}),
+    ...(plan ? { planNumber: plan.number } : {}),
     ...(row.decidedVia ? { decidedVia: row.decidedVia as Via } : {}),
     ...(row.decidedAt ? { decidedAt: row.decidedAt.toISOString() } : {}),
     createdAt: row.createdAt.toISOString(),
@@ -54,8 +59,11 @@ const numbered = (cards: Titled[]) =>
  * The order of the column the team pulls from. An agent proposes it with a reason per card;
  * the owner adjusts and applies it, and the board is reordered — only that column, and only
  * the cards out of place. What the owner changed is a correction the agent learns from.
+ * With a Reviewer set for prioritization (B18), a proposal is held by a plan until the
+ * Reviewer and the owner (or the automatic switch) let it through.
  */
 export class Priorities {
+  private planner?: Pick<Plans, 'wanted' | 'openForPriority' | 'settle'>;
   private remember?: (profileId: string, key: string, content: string) => Promise<unknown>;
   private notify?: (
     profileId: string,
@@ -82,6 +90,17 @@ export class Priorities {
   /** Swaps how boards are reached; tests hand in a board held in memory. */
   useBoards(open: BoardOpener) {
     this.open = open;
+  }
+
+  usePlanner(planner: Pick<Plans, 'wanted' | 'openForPriority' | 'settle'>) {
+    this.planner = planner;
+  }
+
+  /** The plan still open on a proposal, which the agent cannot apply past. */
+  private async holder(proposalId: string) {
+    const plan = (await plansOfProposals(this.store.db, [proposalId])).get(proposalId);
+
+    return plan && OPEN_PLAN.has(plan.state) ? plan : undefined;
   }
 
   async criteria(): Promise<PriorityCriteria> {
@@ -111,8 +130,12 @@ export class Priorities {
       .from(priorityProposals)
       .orderBy(desc(priorityProposals.createdAt))
       .limit(30);
+    const held = await plansOfProposals(
+      this.store.db,
+      rows.map((row) => row.id),
+    );
 
-    return rows.map(present);
+    return rows.map((row) => present(row, held.get(row.id)));
   }
 
   private async row(which: { id: string } | { number: number }): Promise<Row> {
@@ -129,13 +152,16 @@ export class Priorities {
   }
 
   async get(which: { id: string } | { number: number }): Promise<PriorityProposal> {
-    return present(await this.row(which));
+    const row = await this.row(which);
+
+    return present(row, (await plansOfProposals(this.store.db, [row.id])).get(row.id));
   }
 
   /**
    * Records an agent's order. The column is read now, so the owner sees today's order beside
    * the proposal; a card of the column the agent left out goes last, without a reason. Opening
-   * a new proposal closes the one still open, since only the latest one is current.
+   * a new proposal closes the one still open, since only the latest one is current. With a
+   * Reviewer set for prioritization, the proposal becomes a plan and waits for it.
    */
   async propose(
     input: unknown,
@@ -173,7 +199,7 @@ export class Priorities {
       if (!seen.has(item.id)) cards.push({ workId: item.id, title: item.title, raise: false });
     }
 
-    return this.store.transaction('priority_proposals', async (tx) => {
+    const proposal = await this.store.transaction('priority_proposals', async (tx) => {
       const [top] = await tx
         .select({ max: sql<number>`coalesce(max(${priorityProposals.number}), 0)` })
         .from(priorityProposals);
@@ -206,23 +232,73 @@ export class Priorities {
 
       return present(assertFound(row, 'Priority proposal'));
     });
+
+    if (!(await this.planner?.wanted('priority', by.profileId))) return proposal;
+
+    await this.planner?.openForPriority({
+      proposalId: proposal.id,
+      profileId: by.profileId,
+      sessionId: by.sessionId,
+    });
+
+    return this.get({ id: proposal.id });
+  }
+
+  /** The order of an approved plan, applied as proposed. */
+  async applyApproved(proposalId: string, via: Via) {
+    return this.apply({ id: proposalId }, {}, via, { approved: true });
+  }
+
+  /** A refused plan ends its proposal; the refusal is already a correction of the plan. */
+  async close(proposalId: string, note: string) {
+    const row = await this.row({ id: proposalId });
+
+    if (row.state !== 'proposta') return this.get({ id: proposalId });
+
+    await this.store.db
+      .update(priorityProposals)
+      .set({ state: 'descartada', note, decidedAt: new Date(this.clock()) })
+      .where(eq(priorityProposals.id, proposalId));
+
+    if (row.profileId && row.sessionId) {
+      await this.notify?.(
+        row.profileId,
+        row.sessionId,
+        `[Priorização #${row.number} descartada] ${note}`,
+        `priorities:${row.id}`,
+      ).catch(() => {});
+    }
+
+    return this.get({ id: proposalId });
   }
 
   /**
    * Reorders the column as the owner left it. The column is read again: a card that came into
    * it since the proposal goes last, a card that left both columns stops everything before any
    * move. A move that fails leaves the proposal open with the error, to be tried again.
+   * A proposal held by an open plan is not the agent's to apply; the owner applying it from
+   * the panel is the owner's OK, and the plan ends with it.
    */
   async apply(
     which: { id: string } | { number: number },
     input: unknown,
     via: Via,
+    options: { approved?: boolean } = {},
   ): Promise<PriorityProposal> {
     const { order } = priorityApplySchema.parse(input ?? {});
     const row = await this.row(which);
 
     if (row.state !== 'proposta') {
       throw new GatewayError(409, `Priority proposal #${row.number} is already ${row.state}`);
+    }
+
+    const plan = options.approved ? undefined : await this.holder(row.id);
+
+    if (plan && via === 'agent') {
+      throw new GatewayError(
+        409,
+        `Priority proposal #${row.number} waits for plan #${plan.number}; it is applied when the plan is approved`,
+      );
     }
 
     if (!row.profileId) {
@@ -296,6 +372,8 @@ export class Priorities {
       ).catch(() => {});
     }
 
+    if (plan && via !== 'agent') await this.planner?.settle(row.id, 'executado', via);
+
     return this.get({ id: row.id });
   }
 
@@ -331,6 +409,10 @@ export class Priorities {
           `priorities:${row.id}`,
         ).catch(() => {});
       }
+    }
+
+    if (via !== 'agent' && (await this.holder(id))) {
+      await this.planner?.settle(id, 'recusado', via, note ?? 'Descartada na página Priorização.');
     }
 
     return this.get({ id });

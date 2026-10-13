@@ -1335,6 +1335,10 @@ export const plans = pgTable(
     action: text('action').notNull(),
     prototypeId: uuid('prototype_id').references(() => prototypes.id, { onDelete: 'set null' }),
     prototypeVersion: integer('prototype_version'),
+    /** The proposed order a prioritization plan holds until it is approved. */
+    priorityProposalId: uuid('priority_proposal_id').references(() => priorityProposals.id, {
+      onDelete: 'set null',
+    }),
     pautaId: uuid('pauta_id'),
     authorProfileId: uuid('author_profile_id').references(() => profiles.id, {
       onDelete: 'set null',
@@ -1361,5 +1365,6 @@ export const plans = pgTable(
   (table) => [
     index('plans_state').on(table.state, table.updatedAt.desc()),
     index('plans_prototype').on(table.prototypeId, table.prototypeVersion),
+    index('plans_priority').on(table.priorityProposalId),
   ],
 );

@@ -1,7 +1,15 @@
 import type { Plan } from '@jian/contracts';
-import { and, desc, eq, gt, like, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, like, ne, sql } from 'drizzle-orm';
 import type { Queryable } from '../storage/database.js';
-import { applications, corrections, plans, profiles, prototypes } from '../storage/schema.js';
+import {
+  applications,
+  corrections,
+  plans,
+  priorityCriteria,
+  priorityProposals,
+  profiles,
+  prototypes,
+} from '../storage/schema.js';
 
 export type PlanRow = typeof plans.$inferSelect;
 
@@ -97,12 +105,74 @@ export async function recentCorrections(db: Queryable, prefix: string, limit = 1
       automation: corrections.automation,
       kind: corrections.kind,
       note: corrections.note,
+      corrected: corrections.corrected,
       createdAt: corrections.createdAt,
     })
     .from(corrections)
     .where(like(corrections.automation, `${prefix}%`))
     .orderBy(desc(corrections.createdAt))
     .limit(limit);
+}
+
+/** The proposed order a prioritization plan is about. */
+export async function proposalOf(db: Queryable, proposalId: string) {
+  const [row] = await db
+    .select()
+    .from(priorityProposals)
+    .where(eq(priorityProposals.id, proposalId))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/**
+ * What the Reviewer weighs a proposed order against: the owner's criteria and the latest
+ * proposals the owner decided, with what was applied and why one was discarded.
+ */
+export async function priorityHistory(db: Queryable, exceptId: string, limit = 4) {
+  const [criteria] = await db.select().from(priorityCriteria).limit(1);
+  const past = await db
+    .select()
+    .from(priorityProposals)
+    .where(and(ne(priorityProposals.id, exceptId), ne(priorityProposals.state, 'proposta')))
+    .orderBy(desc(priorityProposals.createdAt))
+    .limit(limit);
+
+  return { criteria: criteria?.text ?? '', past };
+}
+
+/** The plans open on these proposals, and the number of the latest one of each. */
+export async function plansOfProposals(db: Queryable, proposalIds: string[]) {
+  if (!proposalIds.length) return new Map<string, PlanRow>();
+
+  const rows = await db
+    .select()
+    .from(plans)
+    .where(inArray(plans.priorityProposalId, proposalIds))
+    .orderBy(desc(plans.createdAt));
+  const found = new Map<string, PlanRow>();
+
+  for (const row of rows) {
+    if (row.priorityProposalId && !found.has(row.priorityProposalId)) {
+      found.set(row.priorityProposalId, row);
+    }
+  }
+
+  return found;
+}
+
+/** Prioritization plans still open: a new proposal ends or takes over them. */
+export async function openPriorityPlans(db: Queryable) {
+  return db
+    .select()
+    .from(plans)
+    .where(
+      and(
+        eq(plans.action, 'priority'),
+        inArray(plans.state, ['escrevendo', 'em_revisao', 'devolvido', 'aguardando_po']),
+      ),
+    )
+    .orderBy(desc(plans.createdAt));
 }
 
 export async function countExecuted(db: Queryable, action: string, after?: Date) {

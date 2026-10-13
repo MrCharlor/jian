@@ -1,12 +1,14 @@
 import { z } from 'zod';
+import { priorityCardSchema } from './priorities.js';
 import { modelSelectionSchema } from './providers.js';
 import { scheduleRecordSchema } from './schedules.js';
 
 /**
  * A plan written before an action runs, read by the Reviewer and, unless the action is
- * automatic, approved by the owner. Only prototypes plan for now; prioritization comes next.
+ * automatic, approved by the owner: a prototype before it is drawn, and the order of the
+ * column the team pulls from before it is applied on the board.
  */
-export const planActionSchema = z.enum(['prototype']);
+export const planActionSchema = z.enum(['prototype', 'priority']);
 
 export const planStateSchema = z.enum([
   'escrevendo',
@@ -64,6 +66,15 @@ export const planRecordSchema = z.strictObject({
   prototypeVersion: z.number().int().positive().optional(),
   title: z.string(),
   application: z.string().optional(),
+  /** The proposed order a prioritization plan applies once approved. */
+  priorityProposalId: z.uuid().optional(),
+  priority: z
+    .strictObject({
+      number: z.number().int().positive(),
+      summary: z.string(),
+      cards: z.array(priorityCardSchema),
+    })
+    .optional(),
   pautaId: z.uuid().optional(),
   authorProfileId: z.uuid().optional(),
   authorName: z.string().optional(),
@@ -92,7 +103,7 @@ export const planSettingsSchema = z.strictObject({
   automatic: z.boolean(),
   /** Times a plan goes back to its author before it waits for the owner with the findings. */
   maxRounds: z.number().int().min(0).max(5),
-  /** Absent: the agent that asked for the action, or Subaru. */
+  /** Absent: the agent that asked for the action or proposed the order, or Subaru. */
   authorProfileId: z.uuid().optional(),
   reviewerProfileId: z.uuid().optional(),
   /** Absent: the Reviewer's own model, as its profile sets it. */

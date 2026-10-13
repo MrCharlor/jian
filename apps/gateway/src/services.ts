@@ -162,8 +162,8 @@ export function buildServices({
       await runs.submit(profileId, owner.id, { text, requestKey: `validation:${Date.now()}` });
   });
   runs.useValidations(validations);
-  // Prototypes plan first once a Reviewer is set (B18); the author and the Reviewer are told in
-  // their own conversations, and the owner in the one the validations use.
+  // Prototypes and prioritizations plan first once a Reviewer is set (B18); the author and the
+  // Reviewer are told in their own conversations, and the owner in the one the validations use.
   const plans = new Plans(store, profiles, sessions, quality, clock);
   plans.useAgents((profileId, sessionId, text, requestKey, model) =>
     runs.submit(profileId, sessionId, { text, requestKey, ...(model ? { model } : {}) }),
@@ -178,6 +178,8 @@ export function buildServices({
   });
   plans.usePrototypes(prototypes);
   prototypes.usePlanner(plans);
+  plans.usePriorities(priorities);
+  priorities.usePlanner(plans);
   runs.usePlans(plans);
   epics.useAgents({
     remember: (profileId, key, content) =>

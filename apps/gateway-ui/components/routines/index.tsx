@@ -4,13 +4,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { Routines as RoutinesView } from '../../lib/api';
 import { date } from '../../lib/format';
-import { planStateLabel } from '../plans/index';
+import { actionLabel, planStateLabel } from '../plans/index';
 import type { SectionProps } from '../props';
 import { Badge, Empty, SectionHeading } from '../ui';
-
-const actionLabel: Record<RoutinesView['actions'][number]['action'], string> = {
-  prototype: 'Protótipo',
-};
 
 /**
  * Everything that runs on its own: every agent's schedules, the plans waiting for the owner,
@@ -58,7 +54,7 @@ export function Routines({ api }: SectionProps) {
                   <Badge tone={action.automatic ? 'accent' : 'neutral'}>
                     {action.automatic ? 'Automático' : 'Espera seu OK'}
                   </Badge>{' '}
-                  {!action.reviewer && <Badge tone="warn">Sem Revisor: gera direto</Badge>}
+                  {!action.reviewer && <Badge tone="warn">Sem Revisor: sem plano</Badge>}
                 </h4>
                 <small>
                   {action.executed} plano(s) executado(s) · {action.clean} seguido(s) sem correção
@@ -80,7 +76,8 @@ export function Routines({ api }: SectionProps) {
           {view?.waiting.map((plan) => (
             <li key={plan.id}>
               <Link href="/plans">
-                #{plan.number} · Protótipo "{plan.title}"
+                #{plan.number} ·{' '}
+                {plan.action === 'priority' ? plan.title : `Protótipo "${plan.title}"`}
               </Link>{' '}
               <Badge tone="accent">{planStateLabel[plan.state]}</Badge>{' '}
               <small>

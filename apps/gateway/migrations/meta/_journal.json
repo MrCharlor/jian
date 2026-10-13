@@ -428,6 +428,13 @@
       "when": 1792586400000,
       "tag": "0060_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792672800000,
+      "tag": "0061_plan_priority",
+      "breakpoints": true
     }
   ]
 }

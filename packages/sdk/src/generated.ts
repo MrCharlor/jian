@@ -13882,12 +13882,24 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
                         title: string;
                         application?: string;
+                        /** Format: uuid */
+                        priorityProposalId?: string;
+                        priority?: {
+                            number: number;
+                            summary: string;
+                            cards: {
+                                workId: string;
+                                title: string;
+                                reason?: string;
+                                raise: boolean;
+                            }[];
+                        };
                         /** Format: uuid */
                         pautaId?: string;
                         /** Format: uuid */
@@ -14047,12 +14059,24 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
                         title: string;
                         application?: string;
+                        /** Format: uuid */
+                        priorityProposalId?: string;
+                        priority?: {
+                            number: number;
+                            summary: string;
+                            cards: {
+                                workId: string;
+                                title: string;
+                                reason?: string;
+                                raise: boolean;
+                            }[];
+                        };
                         /** Format: uuid */
                         pautaId?: string;
                         /** Format: uuid */
@@ -14212,12 +14236,24 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
                         title: string;
                         application?: string;
+                        /** Format: uuid */
+                        priorityProposalId?: string;
+                        priority?: {
+                            number: number;
+                            summary: string;
+                            cards: {
+                                workId: string;
+                                title: string;
+                                reason?: string;
+                                raise: boolean;
+                            }[];
+                        };
                         /** Format: uuid */
                         pautaId?: string;
                         /** Format: uuid */
@@ -14383,12 +14419,24 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
                         title: string;
                         application?: string;
+                        /** Format: uuid */
+                        priorityProposalId?: string;
+                        priority?: {
+                            number: number;
+                            summary: string;
+                            cards: {
+                                workId: string;
+                                title: string;
+                                reason?: string;
+                                raise: boolean;
+                            }[];
+                        };
                         /** Format: uuid */
                         pautaId?: string;
                         /** Format: uuid */
@@ -14554,12 +14602,24 @@ export interface operations {
                         id: string;
                         number: number;
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         /** Format: uuid */
                         prototypeId?: string;
                         prototypeVersion?: number;
                         title: string;
                         application?: string;
+                        /** Format: uuid */
+                        priorityProposalId?: string;
+                        priority?: {
+                            number: number;
+                            summary: string;
+                            cards: {
+                                workId: string;
+                                title: string;
+                                reason?: string;
+                                raise: boolean;
+                            }[];
+                        };
                         /** Format: uuid */
                         pautaId?: string;
                         /** Format: uuid */
@@ -14702,7 +14762,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                action: "prototype";
+                action: "prototype" | "priority";
             };
             cookie?: never;
         };
@@ -14716,7 +14776,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         automatic: boolean;
                         maxRounds: number;
                         /** Format: uuid */
@@ -14839,7 +14899,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                action: "prototype";
+                action: "prototype" | "priority";
             };
             cookie?: never;
         };
@@ -14871,7 +14931,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        action: "prototype";
+                        action: "prototype" | "priority";
                         automatic: boolean;
                         maxRounds: number;
                         /** Format: uuid */
@@ -15034,12 +15094,24 @@ export interface operations {
                             id: string;
                             number: number;
                             /** @enum {string} */
-                            action: "prototype";
+                            action: "prototype" | "priority";
                             /** Format: uuid */
                             prototypeId?: string;
                             prototypeVersion?: number;
                             title: string;
                             application?: string;
+                            /** Format: uuid */
+                            priorityProposalId?: string;
+                            priority?: {
+                                number: number;
+                                summary: string;
+                                cards: {
+                                    workId: string;
+                                    title: string;
+                                    reason?: string;
+                                    raise: boolean;
+                                }[];
+                            };
                             /** Format: uuid */
                             pautaId?: string;
                             /** Format: uuid */
@@ -15076,7 +15148,7 @@ export interface operations {
                         }[];
                         actions: {
                             /** @enum {string} */
-                            action: "prototype";
+                            action: "prototype" | "priority";
                             automatic: boolean;
                             reviewer: boolean;
                             executed: number;
@@ -15484,6 +15556,7 @@ export interface operations {
                         error?: string;
                         note?: string;
                         proposedBy?: string;
+                        planNumber?: number;
                         /** @enum {string} */
                         decidedVia?: "panel" | "channel" | "api" | "agent";
                         /** Format: date-time */
@@ -15646,6 +15719,7 @@ export interface operations {
                         error?: string;
                         note?: string;
                         proposedBy?: string;
+                        planNumber?: number;
                         /** @enum {string} */
                         decidedVia?: "panel" | "channel" | "api" | "agent";
                         /** Format: date-time */
@@ -15808,6 +15882,7 @@ export interface operations {
                         error?: string;
                         note?: string;
                         proposedBy?: string;
+                        planNumber?: number;
                         /** @enum {string} */
                         decidedVia?: "panel" | "channel" | "api" | "agent";
                         /** Format: date-time */

@@ -28,8 +28,11 @@ import {
   findPlan,
   insertPlan,
   listPlanRows,
+  openPriorityPlans,
   type PlanRow,
+  priorityHistory,
   profileNames,
+  proposalOf,
   prototypeOf,
   recentCorrections,
   updatePlan,
@@ -50,7 +53,15 @@ export type PlanTarget = {
   refuse(prototypeId: string, version: number, reason: string): Promise<void>;
 };
 
+/** How the order is applied on the board, and how a refused plan ends its proposal. */
+export type PriorityTarget = {
+  applyApproved(proposalId: string, via: 'panel' | 'channel' | 'api' | 'agent'): Promise<unknown>;
+  close(proposalId: string, note: string): Promise<unknown>;
+};
+
 type Via = 'panel' | 'channel' | 'api';
+
+type ProposalRow = NonNullable<Awaited<ReturnType<typeof proposalOf>>>;
 
 /** A run's text is capped at 8000 characters; the rest of a plan is read with read_plan. */
 const MESSAGE_LIMIT = 7800;
@@ -59,8 +70,42 @@ const OPEN_STATES = new Set(['escrevendo', 'em_revisao', 'devolvido', 'aguardand
 
 const DEFAULTS: Omit<PlanSettings, 'action'> = { automatic: false, maxRounds: 2 };
 
-/** The automation name corrections of an action are kept under, as Quality names them. */
-const CORRECTION_PREFIX: Record<PlanAction, string> = { prototype: 'prototipo:' };
+/**
+ * The automation name corrections of an action are kept under, as Quality names them:
+ * `prototipo:<application>` for a prototype, `priorizacao` for the order of the board.
+ */
+const CORRECTION_PREFIX: Record<PlanAction, string> = {
+  prototype: 'prototipo:',
+  priority: 'priorizacao',
+};
+
+/** How a plan's note starts when the approved order could not be applied on the board. */
+const APPLY_FAILED = 'Não aplicou no Work:';
+
+/** Who writes the plan when no author is set and the requester is gone. */
+const FALLBACK_AUTHOR: Record<PlanAction, string> = { prototype: 'subaru', priority: 'otto' };
+
+const what = (plan: Pick<Plan, 'action' | 'title'>) =>
+  plan.action === 'priority' ? `${plan.title} (ordem do Priorizado)` : `protótipo "${plan.title}"`;
+
+/** A proposed order as the Reviewer and the owner read it: one numbered line per card. */
+function priorityPlanText(proposal: ProposalRow) {
+  const today = proposal.current.map((card, index) => `${index + 1}. ${card.title}`);
+
+  return [
+    `Priorização #${proposal.number}, proposta por ${proposal.proposedBy ?? 'um agente'}.`,
+    `Resumo: ${proposal.summary}`,
+    '',
+    '## Ordem proposta',
+    ...proposal.cards.map(
+      (card, index) =>
+        `${index + 1}. ${card.title}${card.raise ? ' (sobe do Aprovado)' : ''}: ${card.reason ?? 'sem motivo (o agente não citou; fica no fim)'}`,
+    ),
+    '',
+    '## Ordem de hoje no Work',
+    ...(today.length ? today : ['(coluna vazia)']),
+  ].join('\n');
+}
 
 const KIND_LABEL: Record<PlanFinding['kind'], string> = {
   divergencia: 'divergência',
@@ -92,6 +137,7 @@ export class Plans {
   private submit?: Submit;
   private owner?: (text: string) => Promise<unknown>;
   private target?: PlanTarget;
+  private board?: PriorityTarget;
 
   constructor(
     private readonly store: Store,
@@ -114,6 +160,10 @@ export class Plans {
 
   usePrototypes(target: PlanTarget) {
     this.target = target;
+  }
+
+  usePriorities(board: PriorityTarget) {
+    this.board = board;
   }
 
   async settings(action: unknown): Promise<PlanSettings> {
@@ -177,7 +227,7 @@ export class Plans {
     const author =
       exists(config.authorProfileId) ??
       exists(requester) ??
-      all.find((profile) => profile.name.trim().toLowerCase() === 'subaru')?.id;
+      all.find((profile) => profile.name.trim().toLowerCase() === FALLBACK_AUTHOR[action])?.id;
 
     return reviewer && author ? { config, reviewer, author } : undefined;
   }
@@ -249,9 +299,124 @@ export class Plans {
     return plan;
   }
 
+  /**
+   * A proposed order becomes the plan itself: its cards and reasons are what the Reviewer
+   * reads, and the board is left as it is until the plan is approved. The plan its author was
+   * asked to redo takes the new proposal and goes back to the Reviewer; any other open
+   * prioritization plan ends, since its proposal was just replaced.
+   */
+  async openForPriority(input: {
+    proposalId: string;
+    profileId: string;
+    sessionId?: string;
+  }): Promise<Plan | undefined> {
+    const people = await this.people('priority', input.profileId);
+
+    if (!people) return undefined;
+
+    const proposal = assertFound(
+      await proposalOf(this.store.db, input.proposalId),
+      'Priority proposal',
+    );
+    const original = priorityPlanText(proposal);
+    const now = new Date(this.clock());
+
+    const id = await this.store.transaction('plans', async (tx) => {
+      const open = await openPriorityPlans(tx);
+      const redo = open.find(
+        (row) =>
+          row.authorProfileId === input.profileId &&
+          ['escrevendo', 'devolvido'].includes(row.state),
+      );
+
+      for (const row of open) {
+        if (row.id === redo?.id) continue;
+        await updatePlan(tx, row.id, {
+          state: 'recusado',
+          note: `Substituído pela priorização #${proposal.number}.`,
+          updatedAt: now,
+        });
+      }
+
+      if (redo) {
+        await updatePlan(tx, redo.id, {
+          priorityProposalId: proposal.id,
+          original,
+          state: 'em_revisao',
+          updatedAt: now,
+        });
+
+        return redo.id;
+      }
+
+      const session =
+        people.author === input.profileId && input.sessionId
+          ? input.sessionId
+          : (await this.sessions.gatewaySession(people.author)).id;
+      const created = randomUUID();
+
+      await insertPlan(tx, {
+        id: created,
+        action: 'priority',
+        priorityProposalId: proposal.id,
+        authorProfileId: people.author,
+        authorSessionId: session,
+        reviewerProfileId: people.reviewer,
+        original,
+        findings: [],
+        rounds: 0,
+        state: 'em_revisao',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      return created;
+    });
+
+    const plan = await this.get(id);
+
+    await this.askReview(plan);
+
+    return plan;
+  }
+
+  /**
+   * The owner applied or discarded a held proposal from the Prioritization page: that is the
+   * owner's decision on its plan, which ends with it.
+   */
+  async settle(
+    proposalId: string,
+    outcome: 'executado' | 'recusado',
+    via: Via,
+    note?: string,
+  ): Promise<void> {
+    const now = new Date(this.clock());
+
+    for (const row of await openPriorityPlans(this.store.db)) {
+      if (row.priorityProposalId !== proposalId) continue;
+      await updatePlan(this.store.db, row.id, {
+        state: outcome,
+        ...(outcome === 'executado' ? { approvedBy: 'owner', executedAt: now } : {}),
+        ...(note ? { note } : {}),
+        decidedVia: via,
+        decidedAt: now,
+        updatedAt: now,
+      });
+    }
+  }
+
   private async view(row: PlanRow, names?: Map<string, string>): Promise<Plan> {
     const people = names ?? (await profileNames(this.store.db));
     const prototype = row.prototypeId ? await prototypeOf(this.store.db, row.prototypeId) : null;
+    const proposal = row.priorityProposalId
+      ? await proposalOf(this.store.db, row.priorityProposalId)
+      : null;
+    const title =
+      row.action === 'priority'
+        ? proposal
+          ? `Priorização #${proposal.number}`
+          : 'Priorização removida'
+        : (prototype?.title ?? 'Protótipo removido');
     const state = planStateSchema.parse(row.state);
     const author = row.authorProfileId ? people.get(row.authorProfileId) : undefined;
     const reviewer = row.reviewerProfileId ? people.get(row.reviewerProfileId) : undefined;
@@ -262,8 +427,23 @@ export class Plans {
       action: planActionSchema.parse(row.action),
       ...(row.prototypeId ? { prototypeId: row.prototypeId } : {}),
       ...(row.prototypeVersion ? { prototypeVersion: row.prototypeVersion } : {}),
-      title: prototype?.title ?? 'Protótipo removido',
+      title,
       ...(prototype ? { application: prototype.application } : {}),
+      ...(row.priorityProposalId ? { priorityProposalId: row.priorityProposalId } : {}),
+      ...(proposal
+        ? {
+            priority: {
+              number: proposal.number,
+              summary: proposal.summary,
+              cards: proposal.cards.map((card) => ({
+                workId: card.workId,
+                title: card.title,
+                ...(card.reason ? { reason: card.reason } : {}),
+                raise: card.raise,
+              })),
+            },
+          }
+        : {}),
       ...(row.pautaId ? { pautaId: row.pautaId } : {}),
       ...(row.authorProfileId ? { authorProfileId: row.authorProfileId } : {}),
       ...(author ? { authorName: author } : {}),
@@ -318,6 +498,12 @@ export class Plans {
       if (row.authorProfileId !== by.profileId) {
         throw new GatewayError(403, `Plan #${row.number} is not yours to write`);
       }
+      if (row.action === 'priority') {
+        throw new GatewayError(
+          409,
+          `Plan #${row.number} is a prioritization: its plan is the proposed order; propose it again with propose_priorities`,
+        );
+      }
       if (!['escrevendo', 'devolvido'].includes(row.state)) {
         throw new GatewayError(
           409,
@@ -343,12 +529,54 @@ export class Plans {
   private async curation(action: PlanAction) {
     const rows = await recentCorrections(this.store.db, CORRECTION_PREFIX[action]);
 
+    // An order the owner adjusted has no words, only the order applied: that is the lesson.
+    const said = (row: (typeof rows)[number]) =>
+      row.note ??
+      (typeof row.corrected === 'string' ? `ajustou a ordem para:\n${row.corrected}` : undefined);
+
     return rows
-      .filter((row) => row.note)
+      .filter((row) => said(row))
       .map(
         (row) =>
-          `- ${row.createdAt.toISOString().slice(0, 10)} (${row.automation}): ${row.note?.slice(0, 400)}`,
+          `- ${row.createdAt.toISOString().slice(0, 10)} (${row.automation}): ${said(row)?.slice(0, 400)}`,
       );
+  }
+
+  /** The prioritization the Reviewer reads: the proposed order first, then what it weighs. */
+  private async priorityReview(plan: Plan, rules: string[]) {
+    const history = plan.priorityProposalId
+      ? await priorityHistory(this.store.db, plan.priorityProposalId)
+      : { criteria: '', past: [] };
+    const past = history.past.map((item) => {
+      const order = (item.applied ?? item.cards)
+        .slice(0, 12)
+        .map((card, index) => `${index + 1}. ${card.title}`)
+        .join('; ');
+      const how =
+        item.state === 'aplicada'
+          ? item.adjusted
+            ? 'aplicada com ajuste do Moabe'
+            : 'aplicada'
+          : `descartada${item.note ? `: ${item.note}` : ''}`;
+
+      return `- #${item.number} (${item.createdAt.toISOString().slice(0, 10)}, ${how}): ${order}`;
+    });
+
+    return [
+      `[Plano #${plan.number} para revisar] Ação: ${what(plan)}, proposta por ${plan.authorName ?? 'um agente'}. Volta ${plan.rounds + 1}.`,
+      `Revise com review_plan (planId ${plan.id}). Leia contra as regras do Moabe: memórias, os critérios de priorização, as priorizações anteriores e as decisões das pautas. Devolva o plano mais curto e os achados, cada um com a fonte:`,
+      '- divergência: contradiz uma regra, os critérios, uma decisão anterior de prioridade (o que o Moabe ajustou, descartou ou decidiu na pauta) ou o pedido;',
+      '- regra sensível: muda a posição de um card que o Moabe já fixou, ou depende de decisão de produto como cliente ou diretoria; ou toca faturamento, fiscal (Tipos e Natureza), dado de cliente (CPF, LGPD), preço, permissão ou dado em produção;',
+      '- lacuna: falta informação para ordenar sem inventar (card sem motivo, motivo sem fonte).',
+      'Com qualquer achado, não aprove. Você não executa nada: aprovado, a Atena aplica no Work a ordem proposta, não o seu texto.',
+      '\n## Plano',
+      plan.original ?? '',
+      history.criteria ? `\n## Critérios do Moabe\n${history.criteria.slice(0, 2000)}` : '',
+      past.length ? `\n## Priorizações anteriores\n${past.join('\n')}` : '',
+      rules.length
+        ? `\n## Correções recentes do Moabe na priorização (barre o erro repetido)\n${rules.join('\n')}`
+        : '',
+    ];
   }
 
   private async askReview(plan: Plan) {
@@ -359,7 +587,24 @@ export class Plans {
 
     const session = await this.sessions.gatewaySession(row.reviewerProfileId);
     const rules = await this.curation(plan.action);
-    const text = [
+    const lines =
+      plan.action === 'priority'
+        ? await this.priorityReview(plan, rules)
+        : this.prototypeReview(plan, rules);
+    const text = lines.filter((line) => line !== '').join('\n');
+
+    await this.submit(
+      row.reviewerProfileId,
+      session.id,
+      clip(text),
+      // The rounds start again when the owner gives a plan back: the time keeps the key new.
+      `plan:${plan.id}:review:${plan.rounds + 1}:${Date.parse(plan.updatedAt)}`,
+      config.reviewerModel,
+    ).catch(() => {});
+  }
+
+  private prototypeReview(plan: Plan, rules: string[]) {
+    return [
       `[Plano #${plan.number} para revisar] Ação: protótipo "${plan.title}"${plan.application ? ` (${plan.application})` : ''}, escrito por ${plan.authorName ?? 'um agente'}. Volta ${plan.rounds + 1}.`,
       `Revise com review_plan (planId ${plan.id}). Leia contra as regras do Moabe: memórias, preferencias-do-po.md, padrao-telas.md e as decisões da pauta. Devolva o plano mais curto e os achados, cada um com a fonte:`,
       '- divergência: contradiz uma regra, uma decisão ou o pedido;',
@@ -371,17 +616,7 @@ export class Plans {
         : '',
       '\n## Plano',
       plan.original ?? '',
-    ]
-      .filter((line) => line !== '')
-      .join('\n');
-
-    await this.submit(
-      row.reviewerProfileId,
-      session.id,
-      clip(text),
-      `plan:${plan.id}:review:${plan.rounds + 1}`,
-      config.reviewerModel,
-    ).catch(() => {});
+    ];
   }
 
   /**
@@ -441,7 +676,9 @@ export class Plans {
         [
           `[Plano #${plan.number}] O Revisor devolveu (volta ${plan.rounds} de ${config.maxRounds}). Achados:`,
           findingLines(plan.findings),
-          `Corrija com write_plan (planId ${plan.id}). Lacuna vira pergunta ao Moabe dentro do plano, nunca invenção. O plano revisado está em read_plan.`,
+          plan.action === 'priority'
+            ? 'Corrija propondo a ordem de novo com propose_priorities (mesma coluna); o plano segue com a proposta nova. Lacuna vira pergunta ao Moabe no resumo, nunca invenção. O plano revisado está em read_plan.'
+            : `Corrija com write_plan (planId ${plan.id}). Lacuna vira pergunta ao Moabe dentro do plano, nunca invenção. O plano revisado está em read_plan.`,
         ].join('\n'),
         `devolvido:${plan.rounds}`,
       );
@@ -469,18 +706,47 @@ export class Plans {
     const verdict = plan.findings.length
       ? `${plan.findings.length} achado(s) depois de ${plan.rounds} volta(s):\n${findingLines(plan.findings)}`
       : 'o Revisor aprovou.';
+    const failed = plan.state === 'aguardando_po' && plan.note?.startsWith(APPLY_FAILED);
 
     await this.owner?.(
       clip(
-        `Plano #${plan.number} esperando você: protótipo "${plan.title}". ${verdict}\nResponda "ok plano ${plan.number}" ou "corrige plano ${plan.number}: motivo", ou abra Planos no painel.`,
+        `Plano #${plan.number} esperando você: ${what(plan)}. ${failed ? plan.note : verdict}\nResponda "ok plano ${plan.number}" ou "corrige plano ${plan.number}: motivo", ou abra Planos no painel.`,
       ),
     ).catch(() => {});
   }
 
-  /** Runs the action the plan is for; the prototype then goes to the generator's queue. */
-  private async execute(plan: Plan) {
+  /**
+   * Runs the action the plan is for: the prototype goes to the generator's queue, the order is
+   * applied on the board. An order the board refused leaves the plan waiting for the owner with
+   * the error, to be approved again; the owner who approved in the panel sees the error.
+   */
+  private async execute(plan: Plan, rethrow = false) {
     if (plan.prototypeId && plan.prototypeVersion) {
       await this.target?.release(plan.prototypeId, plan.prototypeVersion);
+    }
+
+    if (plan.action === 'priority' && plan.priorityProposalId && this.board) {
+      const via = plan.approvedBy === 'owner' ? (plan.decidedVia as Via) : 'agent';
+
+      try {
+        await this.board.applyApproved(plan.priorityProposalId, via);
+      } catch (failure) {
+        const message = failure instanceof Error ? failure.message : String(failure);
+
+        await updatePlan(this.store.db, plan.id, {
+          state: 'aguardando_po',
+          note: `${APPLY_FAILED} ${message}`.slice(0, 2000),
+          updatedAt: new Date(this.clock()),
+        });
+
+        if (rethrow) throw failure;
+
+        const waiting = await this.get(plan.id);
+
+        if (plan.approvedBy !== 'owner') await this.tellOwner(waiting);
+
+        return waiting;
+      }
     }
 
     const now = new Date(this.clock());
@@ -491,7 +757,17 @@ export class Plans {
       updatedAt: now,
     });
 
-    return this.get(plan.id);
+    const done = await this.get(plan.id);
+
+    if (done.action === 'priority' && done.approvedBy === 'automatico') {
+      await this.tellAuthor(
+        done,
+        `[Plano #${done.number}] O Revisor aprovou e a priorização é automática: a ordem foi aplicada no Work.`,
+        'executado',
+      );
+    }
+
+    return done;
   }
 
   private async openRow(which: { id: string } | { number: number }, tx: Queryable) {
@@ -526,7 +802,8 @@ export class Plans {
       return row.id;
     });
 
-    return this.execute(await this.get(id));
+    // In a chat the decision is told to the agent; the panel and the API show the error.
+    return this.execute(await this.get(id), via !== 'channel');
   }
 
   /**
@@ -557,7 +834,9 @@ export class Plans {
 
     await this.tellAuthor(
       plan,
-      `[Plano #${plan.number}] O Moabe devolveu: ${reason}\nReescreva com write_plan (planId ${plan.id}). O plano atual está em read_plan.`,
+      plan.action === 'priority'
+        ? `[Plano #${plan.number}] O Moabe devolveu a priorização: ${reason}\nProponha a ordem de novo com propose_priorities (mesma coluna); o plano segue com a proposta nova.`
+        : `[Plano #${plan.number}] O Moabe devolveu: ${reason}\nReescreva com write_plan (planId ${plan.id}). O plano atual está em read_plan.`,
       `moabe:${Date.parse(plan.updatedAt)}`,
     );
 
@@ -594,6 +873,13 @@ export class Plans {
       );
     }
 
+    if (plan.priorityProposalId) {
+      await this.board?.close(
+        plan.priorityProposalId,
+        `Plano #${plan.number} recusado pelo PO${reason ? `: ${reason}` : ''}`,
+      );
+    }
+
     return plan;
   }
 
@@ -608,10 +894,15 @@ export class Plans {
 
     if (!row.authorProfileId) return;
 
+    const action = planActionSchema.parse(row.action);
+
     await this.quality?.record(tx, row.authorProfileId, {
       kind,
       via,
-      action: `${CORRECTION_PREFIX[planActionSchema.parse(row.action)]}${prototype?.application ?? 'plano'}`,
+      action:
+        action === 'priority'
+          ? CORRECTION_PREFIX.priority
+          : `${CORRECTION_PREFIX[action]}${prototype?.application ?? 'plano'}`,
       original: `Plano #${row.number}: ${(row.revised ?? row.original ?? '').slice(0, 3000)}`,
       ...(note ? { note } : {}),
     });
@@ -625,6 +916,16 @@ export class Plans {
   }
 
   static notice(plan: Plan) {
+    if (plan.action === 'priority') {
+      if (plan.state === 'executado') {
+        return `[Plano #${plan.number}] O Moabe aprovou o plano da ${plan.title}; a ordem foi aplicada no Work.`;
+      }
+      if (plan.state === 'aguardando_po') {
+        return `[Plano #${plan.number}] O Moabe aprovou a ${plan.title}, mas a ordem não foi aplicada. ${plan.note ?? ''}`;
+      }
+      return `[Plano #${plan.number}] O Moabe devolveu a ${plan.title} ao autor: ${plan.note ?? ''}`;
+    }
+
     return plan.state === 'executado'
       ? `[Plano #${plan.number}] O Moabe aprovou o plano de "${plan.title}"; o protótipo entrou na fila.`
       : `[Plano #${plan.number}] O Moabe devolveu o plano de "${plan.title}" ao autor: ${plan.note ?? ''}`;

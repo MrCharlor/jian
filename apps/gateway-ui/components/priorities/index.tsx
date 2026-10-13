@@ -162,7 +162,19 @@ function OpenProposal({
     <section>
       <h3>
         Proposta #{proposal.number} <Badge tone="accent">{stateLabel.proposta}</Badge>
+        {proposal.planNumber ? (
+          <>
+            {' '}
+            <Badge tone="warn">Plano #{proposal.planNumber}</Badge>
+          </>
+        ) : null}
       </h3>
+      {proposal.planNumber ? (
+        <p className="note">
+          Esta proposta espera o plano #{proposal.planNumber} em Planos. Aplicar ou descartar aqui
+          também decide o plano.
+        </p>
+      ) : null}
       <small>
         {proposal.proposedBy ? `Por ${proposal.proposedBy} · ` : ''}
         {date(proposal.createdAt)}
