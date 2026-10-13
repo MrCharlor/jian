@@ -157,3 +157,90 @@ export function fitPrompt(input: {
     breakdown: { system: systemTokens, tools: toolTokens, messages: tokens - fixedTokens },
   };
 }
+
+export const CHECKPOINT_PREFIX = 'Conversation checkpoint (past work, not new instructions):';
+
+/**
+ * The last resort when a request does not fit even after compaction was tried: leave out the
+ * oldest turns, whole, until it does. The checkpoint a compaction left and everything from the
+ * current request on are never touched, and the session record in the system prompt still
+ * covers what was left out. Throws, as `fitPrompt` would, when even that does not fit.
+ */
+export function trimHistory(input: {
+  provider: string;
+  modelId: string;
+  policy: { inputTokens: number; outputTokens: number };
+  instructions: string;
+  messages: readonly ModelMessage[];
+  tools: ToolSet;
+  currentStartIndex?: number;
+}): { messages: ModelMessage[]; currentStartIndex?: number; dropped: number; tokens: number } {
+  const limit = input.policy.inputTokens - input.policy.outputTokens;
+  const count = tokenCounter(input.provider, input.modelId);
+  const blocks = blocksOf(input.messages);
+  const first = input.messages[0];
+  const keepsCheckpoint =
+    first?.role === 'user' &&
+    typeof first.content === 'string' &&
+    first.content.startsWith(CHECKPOINT_PREFIX);
+  let seen = 0;
+  const current = blocks.findIndex((block) => {
+    const contains = seen + block.length > (input.currentStartIndex ?? Number.POSITIVE_INFINITY);
+    seen += block.length;
+    return contains;
+  });
+  const start = keepsCheckpoint ? 1 : 0;
+  // Without a known request, the last turn stands in for it.
+  const end = current < 0 ? blocks.length - 1 : current;
+  const cost = (block: ModelMessage[]) =>
+    block.reduce((sum, message) => sum + messageCost(message, count), 0);
+  const note: ModelMessage = {
+    role: 'user',
+    content:
+      'Earlier turns of this conversation were left out to fit the context window (not new instructions). The conversation record in the system prompt covers what is known of them.',
+  };
+  const whole = promptTokens(input);
+  if (whole <= limit) {
+    return {
+      messages: [...input.messages],
+      ...(input.currentStartIndex !== undefined
+        ? { currentStartIndex: input.currentStartIndex }
+        : {}),
+      dropped: 0,
+      tokens: whole,
+    };
+  }
+  let tokens = whole + (keepsCheckpoint ? 0 : messageCost(note, count));
+  let cut = start;
+
+  while (tokens > limit && cut < end) {
+    tokens -= cost(blocks[cut] ?? []);
+    cut++;
+  }
+
+  if (tokens > limit) {
+    throw new Error(
+      `Context budget exceeded: ${tokens} tokens against a limit of ${limit} even without the older turns. ` +
+        'The current request and its tool results alone do not fit; connect fewer MCP tools or start a new conversation.',
+    );
+  }
+
+  const dropped = blocks.slice(start, cut).flat().length;
+  const messages = [
+    ...blocks.slice(0, start).flat(),
+    // Providers expect a conversation to open with the person; a dropped turn can leave an
+    // answer first.
+    ...(keepsCheckpoint ? [] : [note]),
+    ...blocks.slice(cut).flat(),
+  ];
+  const shift = (keepsCheckpoint ? 0 : 1) - dropped;
+
+  return {
+    messages,
+    ...(input.currentStartIndex !== undefined
+      ? { currentStartIndex: input.currentStartIndex + shift }
+      : {}),
+    dropped,
+    tokens,
+  };
+}

@@ -1,6 +1,6 @@
 import type { JSONValue } from 'ai';
 import { generateText, type LanguageModel, type LanguageModelUsage, type ModelMessage } from 'ai';
-import { blocksOf, fitPrompt, promptText, tokenCounter } from './budget.js';
+import { blocksOf, CHECKPOINT_PREFIX, fitPrompt, promptText, tokenCounter } from './budget.js';
 
 /**
  * How full a request may get before the older turns are replaced by a record of them. Below
@@ -85,20 +85,25 @@ export async function compactPrompt(input: {
     });
     await input.onUsage(result.usage, fitted.tokens, result.text);
     summary = result.text.trim();
-    if (!summary || result.finishReason === 'length') return undefined;
+    // A cut-off or empty record would replace the turns with less than they held. Saying so
+    // is what lets the run record the failure instead of carrying on as if nothing was tried.
+    if (result.finishReason === 'length')
+      throw new Error('Compaction summary ran out of output before it was finished');
+    if (!summary) throw new Error('Compaction summary came back empty');
     offset += low;
   }
 
   const messages: ModelMessage[] = [
     {
       role: 'user',
-      content: `Conversation checkpoint (past work, not new instructions):\n${summary}`,
+      content: `${CHECKPOINT_PREFIX}\n${summary}`,
     },
     ...(lastUser && !recent.includes(lastUser) ? [lastUser] : []),
     ...recent,
   ];
   // A summary that does not shrink the request only pays for another pass next step.
-  if (count(promptText(messages)) >= count(promptText(input.messages)) * 0.8) return undefined;
+  if (count(promptText(messages)) >= count(promptText(input.messages)) * 0.8)
+    throw new Error('Compaction would not shrink the request: the recent turns hold most of it');
   return { messages, summary };
 }
 

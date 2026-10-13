@@ -13,7 +13,7 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import type { Approvals } from '../approvals/service.js';
-import { fitPrompt, promptTokens, tokenCounter } from '../context/budget.js';
+import { fitPrompt, promptTokens, tokenCounter, trimHistory } from '../context/budget.js';
 import { compactPrompt, needsCompaction } from '../context/compaction.js';
 import type { ContextSource } from '../context/port.js';
 import type { Learning } from '../learning/service.js';
@@ -684,8 +684,12 @@ export class AgentRuntime {
                 messages,
                 currentStartIndex,
                 previous: session.summary,
+                // The record has a 2048-token ceiling. A Claude that thinks first spends it
+                // before writing a word, and the summary comes back cut off every time.
                 providerOptions: reasoningProviderOptions(
-                  summaryConfig,
+                  summaryConfig.provider === 'anthropic'
+                    ? { ...summaryConfig, reasoningEffort: 'none' }
+                    : summaryConfig,
                   Math.min(2048, (chosen?.policy ?? policy).outputTokens),
                 ),
                 policy: chosen?.policy ?? policy,
@@ -724,6 +728,13 @@ export class AgentRuntime {
                       : message.content,
                 })) as ModelMessage[];
                 currentStartIndex = messages.findLastIndex((message) => message.role === 'user');
+              } else {
+                // Silence here once hid a conversation that never compacted until it overflowed.
+                await this.services.lifecycle.checkpoint(profileId, runId, owner, {
+                  phase: 'compaction-failed',
+                  reason: 'Nothing older than the current request to summarise',
+                  beforeTokens: before,
+                });
               }
             } catch (error) {
               signal.throwIfAborted();
@@ -732,6 +743,33 @@ export class AgentRuntime {
                 reason: reason(error, secrets),
               });
             }
+          }
+
+          // Compaction was tried and the request still does not fit: the oldest turns go rather
+          // than the whole run. The session record in the system prompt still covers them.
+          const whole = promptTokens({
+            ...config,
+            instructions: codingInstructions,
+            messages,
+            tools: activeTools,
+          });
+          if (whole > policy.inputTokens - policy.outputTokens) {
+            const trimmed = trimHistory({
+              ...config,
+              policy,
+              instructions: codingInstructions,
+              messages,
+              tools: activeTools,
+              currentStartIndex,
+            });
+            messages = trimmed.messages;
+            currentStartIndex = trimmed.currentStartIndex;
+            await this.services.lifecycle.checkpoint(profileId, runId, owner, {
+              phase: 'context-trimmed',
+              droppedMessages: trimmed.dropped,
+              beforeTokens: whole,
+              afterTokens: trimmed.tokens,
+            });
           }
 
           const fitted = fitPrompt({
