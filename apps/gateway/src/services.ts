@@ -4,8 +4,9 @@ import { Contexts } from './context/service.js';
 import type { Clock } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
 import { boardRooms, Drawings } from './drawings/service.js';
+import { EntrySync } from './entry/service.js';
 import { Epics } from './epics/service.js';
-import { SIGMA_EPICS, SIGMA_VALIDATION } from './epics/target.js';
+import { SIGMA_ENTRY, SIGMA_EPICS, SIGMA_VALIDATION } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
 import { Learning } from './learning/service.js';
@@ -56,6 +57,7 @@ export type Services = {
   validations: Validations;
   screens: Screens;
   plans: Plans;
+  entrySync: EntrySync;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -180,6 +182,10 @@ export function buildServices({
   prototypes.usePlanner(plans);
   plans.usePriorities(priorities);
   priorities.usePlanner(plans);
+  // The Entrada follows the epics (B20): a read of the boards is always a plan.
+  const entrySync = new EntrySync(store, workClients, workProfile, SIGMA_ENTRY, clock);
+  entrySync.usePlanner(plans);
+  plans.useEntrySync(entrySync);
   runs.usePlans(plans);
   epics.useAgents({
     remember: (profileId, key, content) =>
@@ -220,6 +226,7 @@ export function buildServices({
     validations,
     screens: new Screens(store, applications, clock),
     plans,
+    entrySync,
     drawings: new Drawings(
       store,
       drawBoard

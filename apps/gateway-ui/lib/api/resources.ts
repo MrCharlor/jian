@@ -145,6 +145,7 @@ export const resourceCalls = (client: Client) => ({
   updatePlanSettings: (action: PlanSettings['action'], body: PlanSettingsPatch) =>
     result(client.PUT('/v1/plan-settings/{action}', { params: { path: { action } }, body })),
   routines: () => result(client.GET('/v1/routines')),
+  runEntrySync: () => result(client.POST('/v1/entry-sync/run', { body: { skip: [] } })),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

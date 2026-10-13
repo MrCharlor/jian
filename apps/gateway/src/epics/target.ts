@@ -49,3 +49,59 @@ export const SIGMA_VALIDATION = {
   returnedLabel: 'f1183a66-7b43-4c67-bed9-22181f0fbdf1',
   previewFieldId: '368ac481-2c90-4d91-8651-b1e42c232b79',
 };
+
+/** Where the requests of a squad wait and which columns the entry sync reads and moves. */
+export type EntryTarget = {
+  webUrl: string;
+  workspaceId: string;
+  /** The squad's Entrada: one request per card, often a mirror of a support card. */
+  entryBoardId: string;
+  epicsBoardId: string;
+  tasksBoardId: string;
+  /** The Entrada columns by the names the board shows; their ids are read on the board. */
+  entryColumns: { prioritized: string; running: string; blocked: string; done: string };
+  /**
+   * The start of each Entrada column id, as the team's notes record it. A column found by name
+   * with another id stops the sync: the board was changed and the names may no longer mean it.
+   */
+  entryColumnIds: Partial<Record<keyof EntryTarget['entryColumns'], string>>;
+  /** The epic and task columns by name; both boards share them. */
+  workColumns: { todo: string; blocked: string; doing: string; review: string; accepted: string };
+  /** The id of the epics' "to do" column, already known to the epic drafts. */
+  todoStatusId?: string;
+  /** Days a request may wait in Priorizado with no epic before the owner hears of it. */
+  staleDays: number;
+};
+
+/**
+ * The Sigma Entrada (13/10/2026). The column names and id starts come from vx-work-fluxo.md;
+ * the full ids are read from the board each time, never written here.
+ */
+export const SIGMA_ENTRY: EntryTarget = {
+  webUrl: SIGMA_EPICS.webUrl,
+  workspaceId: SIGMA_EPICS.workspaceId,
+  entryBoardId: '194a22a4-8df9-4693-bc37-5c2315eed624',
+  epicsBoardId: SIGMA_EPICS.boardId,
+  tasksBoardId: SIGMA_VALIDATION.tasksBoardId,
+  entryColumns: {
+    prioritized: 'Priorizado',
+    running: 'Em execução',
+    blocked: 'Bloqueado',
+    done: 'Concluído',
+  },
+  entryColumnIds: {
+    prioritized: '04b3c3f8',
+    running: 'da8fb4d4',
+    blocked: '90d65b0e',
+    done: '22a4b02e',
+  },
+  workColumns: {
+    todo: 'A fazer',
+    blocked: 'Bloqueado',
+    doing: 'Em andamento',
+    review: 'Em revisão',
+    accepted: 'Aceito',
+  },
+  todoStatusId: SIGMA_EPICS.todoStatusId,
+  staleDays: 7,
+};

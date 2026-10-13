@@ -435,6 +435,13 @@
       "when": 1792672800000,
       "tag": "0061_plan_priority",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792932000000,
+      "tag": "0064_plan_entry_sync",
+      "breakpoints": true
     }
   ]
 }
