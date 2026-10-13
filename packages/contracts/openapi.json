@@ -53407,11 +53407,19 @@
                         "setting",
                         "host"
                       ]
+                    },
+                    "ownerNotices": {
+                      "type": "string",
+                      "enum": [
+                        "panel",
+                        "panel_and_channel"
+                      ]
                     }
                   },
                   "required": [
                     "timeZone",
-                    "timeZoneSource"
+                    "timeZoneSource",
+                    "ownerNotices"
                   ],
                   "additionalProperties": false
                 }
@@ -53614,11 +53622,15 @@
                     ],
                     "minLength": 1,
                     "maxLength": 64
+                  },
+                  "ownerNotices": {
+                    "type": "string",
+                    "enum": [
+                      "panel",
+                      "panel_and_channel"
+                    ]
                   }
                 },
-                "required": [
-                  "timeZone"
-                ],
                 "additionalProperties": false
               }
             }
@@ -53641,11 +53653,19 @@
                         "setting",
                         "host"
                       ]
+                    },
+                    "ownerNotices": {
+                      "type": "string",
+                      "enum": [
+                        "panel",
+                        "panel_and_channel"
+                      ]
                     }
                   },
                   "required": [
                     "timeZone",
-                    "timeZoneSource"
+                    "timeZoneSource",
+                    "ownerNotices"
                   ],
                   "additionalProperties": false
                 }

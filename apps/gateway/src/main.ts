@@ -197,6 +197,8 @@ services.peers.useDeliveries(channels);
 services.schedules.useDeliveries(channels);
 // A completed task worker wakes its principal in the source chat, including its channel.
 services.work.useDeliveries(channels);
+// A plan or a validation waiting for the owner also reaches the owner's contacts on channels.
+services.ownerNotices.useChannels(channels);
 
 /**
  * How often due schedules are looked for, in milliseconds. A schedule set for 08:00 starts

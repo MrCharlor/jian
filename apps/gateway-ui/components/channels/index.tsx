@@ -9,6 +9,7 @@ import type { SectionProps } from '../props';
 import { Badge, Button, Confirm, Field, Secret, SectionHeading } from '../ui';
 import { Conversations } from './conversations';
 import { kinds } from './kinds';
+import { OwnerNotices } from './owner-notices';
 import { Pairing } from './pairing';
 
 export function Channels(props: SectionProps) {
@@ -225,6 +226,7 @@ export function Channels(props: SectionProps) {
             </article>
           );
         })}
+        <OwnerNotices {...props} />
       </div>
       {pairing && (
         <Pairing

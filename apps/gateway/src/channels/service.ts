@@ -1183,7 +1183,14 @@ export class Channels {
           .update(JSON.stringify([channel.id, contact.chatId, contact.actorId, requestKey]))
           .digest('hex'),
       },
-      { activity: 'channel', ...(group ? { group } : {}), ...(author ? { author } : {}) },
+      {
+        activity: 'channel',
+        // A contact the owner marked as speaking for them answers plans, validations and
+        // approvals from the chat as the panel does; anyone else's "ok plano 3" is just words.
+        ...(contact.owner && contact.scope === 'direct' ? { ownerMessage: true } : {}),
+        ...(group ? { group } : {}),
+        ...(author ? { author } : {}),
+      },
     );
 
     // An API caller has nowhere to be answered; its answer is forwarded to the owner instead,
@@ -1642,6 +1649,59 @@ export class Channels {
     });
 
     return true;
+  }
+
+  /**
+   * A notice from the gateway itself, given as written to every contact marked as the owner on
+   * a channel of this profile that can send. No run: the text is the message. It also joins
+   * that contact's conversation, so the agent reads what the owner is answering. Returns how
+   * many contacts it went to.
+   */
+  async tellOwners(profileId: string, text: string): Promise<number> {
+    return this.services.store.transaction(profileId, async (tx) => {
+      const contacts = await listContacts(tx, profileId);
+      let told = 0;
+
+      for (const contact of contacts) {
+        if (!contact.owner || contact.status !== 'approved' || contact.scope !== 'direct') continue;
+        if (!contact.sessionId) continue;
+
+        const home = await findChannel(tx, contact.channelId);
+
+        if (!home || home.revokedAt || !this.registry.get(home.type).send) continue;
+
+        const connection = await findConnection(tx, contact.channelId);
+        const now = new Date().toISOString();
+
+        await insertMessage(tx, {
+          id: randomUUID(),
+          profileId,
+          sessionId: contact.sessionId,
+          role: 'assistant',
+          content: text,
+          createdAt: now,
+        });
+        await recordEvent(tx, Date.now, profileId, 'session.message', {
+          sessionId: contact.sessionId,
+        });
+        await insertDelivery(tx, {
+          id: randomUUID(),
+          profileId,
+          channelId: contact.channelId,
+          chatId: contact.chatId,
+          notice: text,
+          status: 'pending',
+          createdAt: now,
+          updatedAt: now,
+          remoteMessageIds: [],
+          saidCount: 0,
+          ...(connection ? { connectionGeneration: connection.generation } : {}),
+        });
+        told += 1;
+      }
+
+      return told;
+    });
   }
 
   private async claimDelivery(delivery: DeliveryRecord): Promise<boolean> {

@@ -9,6 +9,7 @@ it('prefers the configured zone without discarding a saved zone needed for rollb
   expect(await services.settings.read()).toEqual({
     timeZone: 'Asia/Tokyo',
     timeZoneSource: 'setting',
+    ownerNotices: 'panel_and_channel',
   });
   expect(await new Settings(services.store).timeZone()).toBe('America/Sao_Paulo');
 });

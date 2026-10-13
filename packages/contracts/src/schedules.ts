@@ -100,18 +100,28 @@ export const scheduleRunSchema = z.strictObject({
   createdAt: z.string(),
 });
 
+export const ownerNoticesSchema = z.enum(['panel', 'panel_and_channel']);
+
 /** Settings of the whole installation, shared by every profile. */
 export const gatewaySettingsSchema = z.strictObject({
   /** The zone the agents read the time in and schedules default to. */
   timeZone: z.string(),
   /** `host` while nobody chose one: the zone of the machine the gateway runs on. */
   timeZoneSource: z.enum(['setting', 'host']),
+  /**
+   * Where the gateway's own notices to the owner go (a plan waiting, epics to validate): the
+   * panel conversation only, or also every contact marked as the owner on a channel that can
+   * send. With no owner contact the second reaches the panel alone, so it is the default.
+   */
+  ownerNotices: ownerNoticesSchema,
 });
 
 export const gatewaySettingsPatchSchema = z.strictObject({
-  // A name sets it; null goes back to the machine's own zone.
-  timeZone: timeZoneSchema.nullable(),
+  // A name sets it; null goes back to the machine's own zone. Left out, it stays as it is.
+  timeZone: timeZoneSchema.nullable().optional(),
+  ownerNotices: ownerNoticesSchema.optional(),
 });
 
 export type ScheduleRun = z.infer<typeof scheduleRunSchema>;
 export type GatewaySettings = z.infer<typeof gatewaySettingsSchema>;
+export type OwnerNotices = z.infer<typeof ownerNoticesSchema>;

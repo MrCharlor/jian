@@ -135,7 +135,7 @@ const findingLines = (findings: PlanFinding[]) =>
  */
 export class Plans {
   private submit?: Submit;
-  private owner?: (text: string) => Promise<unknown>;
+  private owner?: (text: string, short?: string) => Promise<unknown>;
   private target?: PlanTarget;
   private board?: PriorityTarget;
 
@@ -154,7 +154,7 @@ export class Plans {
   }
 
   /** Where "Plano #N esperando você" is said: the owner's own conversation. */
-  useOwner(owner: (text: string) => Promise<unknown>) {
+  useOwner(owner: (text: string, short?: string) => Promise<unknown>) {
     this.owner = owner;
   }
 
@@ -708,10 +708,21 @@ export class Plans {
       : 'o Revisor aprovou.';
     const failed = plan.state === 'aguardando_po' && plan.note?.startsWith(APPLY_FAILED);
 
+    const answer = `Responda "ok plano ${plan.number}" ou "corrige plano ${plan.number}: motivo"`;
+    // The chat gets the gist and the command; the findings are read in the panel or asked for.
+    const short = `Plano #${plan.number} esperando você: ${what(plan)}. ${
+      failed
+        ? 'A aplicação falhou.'
+        : plan.findings.length
+          ? `${plan.findings.length} achado(s).`
+          : 'O Revisor aprovou.'
+    }\n${answer}.`;
+
     await this.owner?.(
       clip(
-        `Plano #${plan.number} esperando você: ${what(plan)}. ${failed ? plan.note : verdict}\nResponda "ok plano ${plan.number}" ou "corrige plano ${plan.number}: motivo", ou abra Planos no painel.`,
+        `Plano #${plan.number} esperando você: ${what(plan)}. ${failed ? plan.note : verdict}\n${answer}, ou abra Planos no painel.`,
       ),
+      short,
     ).catch(() => {});
   }
 

@@ -119,7 +119,7 @@ const fieldText = (value: unknown) =>
  * approval, a draft the owner publishes for a refusal. Return cards come only when asked for.
  */
 export class Validations {
-  private notify?: (text: string) => Promise<unknown>;
+  private notify?: (text: string, short?: string) => Promise<unknown>;
   private lastScan = 0;
   private scanning?: Promise<{ prepared: number[]; reviewed: number }>;
 
@@ -132,7 +132,7 @@ export class Validations {
     private readonly clock: Clock = Date.now,
   ) {}
 
-  useOwner(notify: (text: string) => Promise<unknown>) {
+  useOwner(notify: (text: string, short?: string) => Promise<unknown>) {
     this.notify = notify;
   }
 
@@ -277,7 +277,17 @@ export class Validations {
     ];
 
     if (lines.length) {
-      await this.notify?.(`[Validação] ${lines.join('\n')}`).catch(() => {});
+      // The chat has no panel to open: it carries the answer the owner can give from there.
+      const answer = prepared.length
+        ? [
+            `Responda "aprovado ${prepared[0]}", "reprovado ${prepared[0]}: motivo" ou "reprovado ${prepared[0]} com retorno: motivo".`,
+          ]
+        : [];
+
+      await this.notify?.(
+        `[Validação] ${lines.join('\n')}`,
+        `[Validação] ${[...lines, ...answer].join('\n')}`,
+      ).catch(() => {});
     }
 
     return { prepared, reviewed: problems.length };

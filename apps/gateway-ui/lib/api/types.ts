@@ -41,6 +41,7 @@ export type Plan = JsonResponse<'listPlans', 200>[number];
 export type PlanState = Plan['state'];
 export type PlanSettings = JsonResponse<'getPlanSettings', 200>;
 export type PlanSettingsPatch = RequestBody<'updatePlanSettings'>;
+export type GatewaySettingsPatch = RequestBody<'updateSettings'>;
 export type Routines = JsonResponse<'getRoutines', 200>;
 export type EpicDraft = JsonResponse<'listEpicDrafts', 200>[number];
 export type EpicDraftPatch = RequestBody<'updateEpicDraft'>;

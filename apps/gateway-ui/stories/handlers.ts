@@ -23,7 +23,11 @@ const taskWorker = {
   updatedAt: data.work[0].updatedAt,
 };
 
-const settings = { timeZone: 'America/Sao_Paulo', timeZoneSource: 'setting' };
+const settings = {
+  timeZone: 'America/Sao_Paulo',
+  timeZoneSource: 'setting',
+  ownerNotices: 'panel_and_channel',
+};
 
 const decisions = (configured: boolean) => ({
   provider: 'jev',
@@ -421,6 +425,9 @@ export const handlers = [
     );
   }),
   http.get('*/v1/settings', () => ok(settings)),
+  http.put('*/v1/settings', async ({ request }) =>
+    ok({ ...settings, ...((await request.json()) as object) }),
+  ),
   http.post('*/v1/profiles/:profileId/schedules/:id/run', () =>
     HttpResponse.json(data.runs[0] as never, { status: 202 }),
   ),

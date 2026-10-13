@@ -26384,6 +26384,8 @@ export interface operations {
                         timeZone: string;
                         /** @enum {string} */
                         timeZoneSource: "setting" | "host";
+                        /** @enum {string} */
+                        ownerNotices: "panel" | "panel_and_channel";
                     };
                 };
             };
@@ -26498,7 +26500,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    timeZone: string | null;
+                    timeZone?: string | null;
+                    /** @enum {string} */
+                    ownerNotices?: "panel" | "panel_and_channel";
                 };
             };
         };
@@ -26513,6 +26517,8 @@ export interface operations {
                         timeZone: string;
                         /** @enum {string} */
                         timeZoneSource: "setting" | "host";
+                        /** @enum {string} */
+                        ownerNotices: "panel" | "panel_and_channel";
                     };
                 };
             };

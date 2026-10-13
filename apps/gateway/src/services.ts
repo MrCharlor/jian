@@ -33,6 +33,7 @@ import type { GatewayVault } from './security/gateway-vault.js';
 import { createSafeFetch } from './security/outbound.js';
 import type { Vault } from './security/vault.js';
 import { Sessions } from './sessions/service.js';
+import { OwnerNotices } from './settings/owner-notices.js';
 import { Settings } from './settings/service.js';
 import { SshKeys } from './ssh/service.js';
 import { Stats } from './stats/service.js';
@@ -73,6 +74,7 @@ export type Services = {
   subscriptionUsage: SubscriptionUsageReader;
   schedules: Schedules;
   settings: Settings;
+  ownerNotices: OwnerNotices;
   lifecycle: RunLifecycle;
   contexts: Contexts;
   errands: Errands;
@@ -152,15 +154,16 @@ export function buildServices({
     quality,
     clock,
   );
-  validations.useOwner(async (text) => {
-    const profileId = await workProfile();
-    if (!profileId) return;
+  const settings = new Settings(store, timeZone);
+  // The owner hears from the gateway in the panel conversation of the profile that has the Work,
+  // and, unless the setting says otherwise, from that profile's owner contacts on its channels.
+  const ownerNotices = new OwnerNotices(settings, workProfile, async (profileId, text, key) => {
     const owner = (await sessions.sessions(profileId)).find(
       (session) => session.channel === 'gateway',
     );
-    if (owner)
-      await runs.submit(profileId, owner.id, { text, requestKey: `validation:${Date.now()}` });
+    if (owner) await runs.submit(profileId, owner.id, { text, requestKey: key });
   });
+  validations.useOwner((text, short) => ownerNotices.tell(text, 'validation', short));
   runs.useValidations(validations);
   // Prototypes and prioritizations plan first once a Reviewer is set (B18); the author and the
   // Reviewer are told in their own conversations, and the owner in the one the validations use.
@@ -168,14 +171,7 @@ export function buildServices({
   plans.useAgents((profileId, sessionId, text, requestKey, model) =>
     runs.submit(profileId, sessionId, { text, requestKey, ...(model ? { model } : {}) }),
   );
-  plans.useOwner(async (text) => {
-    const profileId = await workProfile();
-    if (!profileId) return;
-    const owner = (await sessions.sessions(profileId)).find(
-      (session) => session.channel === 'gateway',
-    );
-    if (owner) await runs.submit(profileId, owner.id, { text, requestKey: `plan:${Date.now()}` });
-  });
+  plans.useOwner((text, short) => ownerNotices.tell(text, 'plan', short));
   plans.usePrototypes(prototypes);
   prototypes.usePlanner(plans);
   plans.usePriorities(priorities);
@@ -191,7 +187,6 @@ export function buildServices({
     notify: (profileId, sessionId, text, requestKey) =>
       runs.submit(profileId, sessionId, { text, requestKey }),
   });
-  const settings = new Settings(store, timeZone);
   const decisions = new Decisions(
     store,
     gatewayVault,
@@ -261,6 +256,7 @@ export function buildServices({
     subscriptionUsage,
     schedules: new Schedules(store, profiles, sessions, runs, clock),
     settings,
+    ownerNotices,
     lifecycle: new RunLifecycle(store, runs, clock),
     contexts: new Contexts(store, runs, sessions, settings, decisions.judge),
     errands: new Errands(store, clock),
