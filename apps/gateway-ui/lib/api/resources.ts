@@ -6,6 +6,9 @@ import type {
   NewApplication,
   NewPauta,
   NewPrototype,
+  PlanSettings,
+  PlanSettingsPatch,
+  PlanState,
   ReturnDraftPatch,
   ScheduleInput,
   SchedulePatch,
@@ -122,6 +125,26 @@ export const resourceCalls = (client: Client) => ({
     ),
   reviewScreen: (screenId: string) =>
     result(client.POST('/v1/screens/{screenId}/review', { params: { path: { screenId } } })),
+  plans: (state?: PlanState) =>
+    result(client.GET('/v1/plans', { params: { query: state ? { state } : {} } })),
+  approvePlan: (planId: string) =>
+    result(client.POST('/v1/plans/{planId}/approve', { params: { path: { planId } } })),
+  returnPlan: (planId: string, reason: string) =>
+    result(
+      client.POST('/v1/plans/{planId}/return', { params: { path: { planId } }, body: { reason } }),
+    ),
+  rejectPlan: (planId: string, reason?: string) =>
+    result(
+      client.POST('/v1/plans/{planId}/reject', {
+        params: { path: { planId } },
+        body: reason ? { reason } : {},
+      }),
+    ),
+  planSettings: (action: PlanSettings['action']) =>
+    result(client.GET('/v1/plan-settings/{action}', { params: { path: { action } } })),
+  updatePlanSettings: (action: PlanSettings['action'], body: PlanSettingsPatch) =>
+    result(client.PUT('/v1/plan-settings/{action}', { params: { path: { action } }, body })),
+  routines: () => result(client.GET('/v1/routines')),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

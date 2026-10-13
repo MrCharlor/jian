@@ -2,7 +2,17 @@ import { z } from 'zod';
 import { applicationSlugSchema } from './applications.js';
 import { secretSchema } from './security.js';
 
-export const prototypeStatusSchema = z.enum(['queued', 'generating', 'ready', 'failed']);
+/**
+ * `planning` holds a version while its plan is written and reviewed (B18); the generator takes
+ * only `queued` ones, so a version waits there until the plan is approved.
+ */
+export const prototypeStatusSchema = z.enum([
+  'planning',
+  'queued',
+  'generating',
+  'ready',
+  'failed',
+]);
 
 /** A picture the owner attaches to show what the screen is about: today's screen, a sketch. */
 export const prototypePrintSchema = z.strictObject({

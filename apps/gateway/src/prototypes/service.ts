@@ -3,13 +3,15 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { type Prototype, prototypeInputSchema, prototypeRedoSchema } from '@jian/contracts';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Applications } from '../applications/service.js';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
+import { executedPlanFor } from '../plans/repository.js';
+import type { Plans } from '../plans/service.js';
 import type { Quality } from '../quality/service.js';
 import type { Store } from '../storage/database.js';
-import { applicationFiles, applications } from '../storage/schema.js';
+import { applicationFiles, applications, prototypeVersions } from '../storage/schema.js';
 import { type CloudDesigner, RESULT_MARK } from './cloud.js';
 import { claudeCode, type Generator } from './generator.js';
 import type { PrintsRepository } from './prints-repo.js';
@@ -74,6 +76,11 @@ Confira que \`${OUTPUT}\` existe e que o script não tem erro de sintaxe. Respon
 `;
 }
 
+/** The approved plan as the generator reads it: the Reviewer's version, which is the shorter. */
+function planSection(plan: { number: number; revised: string | null; original: string | null }) {
+  return `\n## Plano aprovado (#${plan.number})\nSiga este plano; ele foi revisado e aprovado antes da geração.\n${plan.revised ?? plan.original ?? ''}`;
+}
+
 /**
  * Screens drawn by Claude Code on this machine, from an application's design system and a
  * request. One generation runs at a time, in the background; every version is kept, and the
@@ -84,6 +91,7 @@ export class Prototypes {
   private notifier?: Notifier;
   private designer?: CloudDesigner;
   private prints?: Pick<PrintsRepository, 'push' | 'source'>;
+  private planner?: Pick<Plans, 'wanted' | 'openForPrototype'>;
   private readonly abort = new AbortController();
 
   constructor(
@@ -98,6 +106,42 @@ export class Prototypes {
 
   useNotifier(notifier: Notifier) {
     this.notifier = notifier;
+  }
+
+  /**
+   * With a planner, a new prototype waits for its plan to be written, reviewed and approved
+   * before it is drawn. Without one, or with no Reviewer set, it is drawn at once as before.
+   */
+  usePlanner(planner: Pick<Plans, 'wanted' | 'openForPrototype'>) {
+    this.planner = planner;
+  }
+
+  /** The plan was approved: the version joins the generator's queue. */
+  async release(id: string, number: number) {
+    await this.store.db
+      .update(prototypeVersions)
+      .set({ status: 'queued' })
+      .where(
+        and(
+          eq(prototypeVersions.prototypeId, id),
+          eq(prototypeVersions.number, number),
+          eq(prototypeVersions.status, 'planning'),
+        ),
+      );
+  }
+
+  /** The plan was refused: the version it held fails, saying why. */
+  async refuse(id: string, number: number, reason: string) {
+    await this.store.db
+      .update(prototypeVersions)
+      .set({ status: 'failed', error: reason.slice(0, 2000), finishedAt: new Date(this.clock()) })
+      .where(
+        and(
+          eq(prototypeVersions.prototypeId, id),
+          eq(prototypeVersions.number, number),
+          eq(prototypeVersions.status, 'planning'),
+        ),
+      );
   }
 
   stop() {
@@ -156,6 +200,7 @@ export class Prototypes {
 
     const id = randomUUID();
     const now = new Date(this.clock());
+    const planning = (await this.planner?.wanted('prototype', by.profileId)) ?? false;
 
     await this.store.transaction(id, async (tx) => {
       await insertPrototype(tx, {
@@ -182,8 +227,27 @@ export class Prototypes {
         });
       }
 
-      await insertVersion(tx, { prototypeId: id, number: 1, status: 'queued', createdAt: now });
+      await insertVersion(tx, {
+        prototypeId: id,
+        number: 1,
+        status: planning ? 'planning' : 'queued',
+        createdAt: now,
+      });
     });
+
+    if (planning) {
+      const plan = await this.planner
+        ?.openForPrototype({
+          prototypeId: id,
+          version: 1,
+          ...(by.profileId ? { profileId: by.profileId } : {}),
+          ...(by.kind === 'agent' ? { sessionId: by.sessionId } : {}),
+        })
+        .catch(() => undefined);
+
+      // The Reviewer went away between the two reads: the screen is drawn as before.
+      if (!plan) await this.release(id, 1);
+    }
 
     return this.view(id);
   }
@@ -195,7 +259,7 @@ export class Prototypes {
     const row = assertFound(await findPrototypeRow(this.store.db, id), 'Prototype');
     const last = current.versions.at(-1);
 
-    if (last && ['queued', 'generating'].includes(last.status)) {
+    if (last && ['planning', 'queued', 'generating'].includes(last.status)) {
       throw new GatewayError(409, `Version ${last.number} is still being made`);
     }
 
@@ -297,6 +361,7 @@ export class Prototypes {
     const current = versions.find((item) => item.number === number);
     const prints = await listPrints(this.store.db, id);
     const canvas = row.prototype.designUrl;
+    const plan = await executedPlanFor(this.store.db, id, number);
 
     return [
       `Você desenha protótipos de tela para a Atena, do Moabe Charlor (PO da VX Case). Responda em português, sem travessão.`,
@@ -314,6 +379,7 @@ export class Prototypes {
       current?.comments
         ? `\n## Comentários do PO sobre a versão anterior\n${current.comments}`
         : '',
+      plan ? planSection(plan) : '',
       paths?.length
         ? `\n## Prints\nAntes de desenhar, abra com Read cada print, que está neste repositório:\n${paths.map((path) => `- ${path}`).join('\n')}\nÉ a tela de hoje ou um rascunho do PO: ponto de partida, não cópia. O design system e as preferências do PO valem por cima do print. Se um print não abrir, siga pelo texto.`
         : prints.length
@@ -445,6 +511,7 @@ export class Prototypes {
     const current = versions.find((item) => item.number === number);
     const previous = versions.filter((item) => item.number < number && item.html).at(-1);
     const prints = await listPrints(this.store.db, id);
+    const plan = await executedPlanFor(this.store.db, id, number);
 
     await rm(folder, { recursive: true, force: true });
     await mkdir(join(folder, 'prints'), { recursive: true });
@@ -476,6 +543,7 @@ export class Prototypes {
         current?.comments
           ? `\n## Comentários do PO sobre a versão ${previous?.number ?? number - 1}\n${current.comments}`
           : '',
+        plan ? planSection(plan) : '',
         prints.length
           ? `\n## Prints\n${prints.map((print) => `- prints/${print.name}`).join('\n')}`
           : '',

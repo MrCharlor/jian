@@ -1,4 +1,5 @@
 import {
+  Activity,
   AlarmClock,
   AppWindow,
   BookOpen,
@@ -6,6 +7,7 @@ import {
   ClipboardList,
   Columns3,
   Cpu,
+  FileCheck,
   Fingerprint,
   Gauge,
   KeyRound,
@@ -38,6 +40,8 @@ export const navigation: NavigationItem[] = [
   { href: '/pautas', label: 'Pautas', icon: ClipboardList, group: 'global' },
   { href: '/board', label: 'Quadro', icon: Columns3, group: 'global' },
   { href: '/validations', label: 'Validações', icon: ClipboardCheck, group: 'global' },
+  { href: '/plans', label: 'Planos', icon: FileCheck, group: 'global' },
+  { href: '/routines', label: 'Rotinas', icon: Activity, group: 'global' },
   { href: '/screens', label: 'Telas', icon: LayoutTemplate, group: 'global' },
   { href: '/priorities', label: 'Priorização', icon: ListOrdered, group: 'global' },
   { href: '/applications', label: 'Aplicações', icon: AppWindow, group: 'global' },

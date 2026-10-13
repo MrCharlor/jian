@@ -29,6 +29,8 @@ import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
 import type { Pautas } from '../pautas/service.js';
 import type { PeerAgents } from '../peers/port.js';
+import type { Plans } from '../plans/service.js';
+import { planTools } from '../plans/tools.js';
 import type { Priorities } from '../priorities/service.js';
 import type { ProfileAdmin } from '../profiles/port.js';
 import type { Prototypes } from '../prototypes/service.js';
@@ -112,6 +114,7 @@ export type ToolServices = {
   drawings?: Pick<Drawings, 'list' | 'draw'>;
   epics?: Pick<Epics, 'draft' | 'get' | 'list'>;
   screens?: Pick<Screens, 'list' | 'saveInventory' | 'get' | 'writeSheet' | 'attachPrints'>;
+  plans?: Pick<Plans, 'write' | 'review' | 'read'>;
 };
 
 export function profileTools(
@@ -267,6 +270,7 @@ export function profileTools(
     ...(services.prototypes ? prototypeTools(services.prototypes, run) : {}),
     ...(services.pautas ? pautaTools(services.pautas, run) : {}),
     ...(services.screens ? screenTools(services.screens, run) : {}),
+    ...(services.plans ? planTools(services.plans, run) : {}),
     ...(services.priorities ? priorityTools(services.priorities, run) : {}),
     ...(services.epics
       ? {
@@ -687,6 +691,11 @@ export const TOOL_GROUPS = {
     summary:
       'map the screens of an application: record the list from its routes and menu, read one, and write its sheet (today, inferred requirements, questions, problems, each line with its source) with prints, for the owner to review',
     tools: ['list_screens', 'save_screen_inventory', 'read_screen', 'write_screen_sheet'],
+  },
+  plans: {
+    summary:
+      'write the plan you were asked for before an action (a prototype), review a plan as the Reviewer, and read a plan back by id or number',
+    tools: ['write_plan', 'review_plan', 'read_plan'],
   },
   draw: {
     summary:

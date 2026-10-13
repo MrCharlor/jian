@@ -13,6 +13,7 @@ import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
 import { Pautas } from './pautas/service.js';
 import { Peers } from './peers/service.js';
+import { Plans } from './plans/service.js';
 import { Priorities } from './priorities/service.js';
 import { workBoardOpener, workClientOpener } from './priorities/work-board.js';
 import { Profiles } from './profiles/service.js';
@@ -54,6 +55,7 @@ export type Services = {
   epics: Epics;
   validations: Validations;
   screens: Screens;
+  plans: Plans;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -160,6 +162,23 @@ export function buildServices({
       await runs.submit(profileId, owner.id, { text, requestKey: `validation:${Date.now()}` });
   });
   runs.useValidations(validations);
+  // Prototypes plan first once a Reviewer is set (B18); the author and the Reviewer are told in
+  // their own conversations, and the owner in the one the validations use.
+  const plans = new Plans(store, profiles, sessions, quality, clock);
+  plans.useAgents((profileId, sessionId, text, requestKey, model) =>
+    runs.submit(profileId, sessionId, { text, requestKey, ...(model ? { model } : {}) }),
+  );
+  plans.useOwner(async (text) => {
+    const profileId = await workProfile();
+    if (!profileId) return;
+    const owner = (await sessions.sessions(profileId)).find(
+      (session) => session.channel === 'gateway',
+    );
+    if (owner) await runs.submit(profileId, owner.id, { text, requestKey: `plan:${Date.now()}` });
+  });
+  plans.usePrototypes(prototypes);
+  prototypes.usePlanner(plans);
+  runs.usePlans(plans);
   epics.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -198,6 +217,7 @@ export function buildServices({
     epics,
     validations,
     screens: new Screens(store, applications, clock),
+    plans,
     drawings: new Drawings(
       store,
       drawBoard

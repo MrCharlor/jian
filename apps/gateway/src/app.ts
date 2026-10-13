@@ -20,6 +20,7 @@ import { registerGatewayUi } from './http/ui.js';
 import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
 import { registerPautaRoutes } from './pautas/routes.js';
+import { registerPlanRoutes } from './plans/routes.js';
 import { registerPriorityRoutes } from './priorities/routes.js';
 import { registerProfileRoutes } from './profiles/routes.js';
 import { registerPrototypeRoutes } from './prototypes/routes.js';
@@ -139,6 +140,7 @@ export function createApp(
   registerEpicRoutes(app, options);
   registerValidationRoutes(app, options);
   registerScreenRoutes(app, options);
+  registerPlanRoutes(app, options);
   registerPrototypeRoutes(app, options);
   registerPautaRoutes(app, options);
   registerPriorityRoutes(app, options);

@@ -9,6 +9,7 @@ export * from './media.js';
 export * from './operations.js';
 export * from './pautas.js';
 export * from './peers.js';
+export * from './plans.js';
 export * from './priorities.js';
 export * from './profile.js';
 export * from './prototypes.js';

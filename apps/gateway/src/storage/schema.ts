@@ -1316,3 +1316,50 @@ export const screenPrints = pgTable(
   },
   (table) => [primaryKey({ columns: [table.screenId, table.name] })],
 );
+
+type PlanFindingRow = {
+  kind: 'divergencia' | 'regra_sensivel' | 'lacuna';
+  text: string;
+  source: string;
+};
+
+/**
+ * A plan written before an action runs: the author's text, the Reviewer's shorter one and its
+ * findings, and where it stands. The number is the handle the owner answers to in a chat.
+ */
+export const plans = pgTable(
+  'plans',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    action: text('action').notNull(),
+    prototypeId: uuid('prototype_id').references(() => prototypes.id, { onDelete: 'set null' }),
+    prototypeVersion: integer('prototype_version'),
+    pautaId: uuid('pauta_id'),
+    authorProfileId: uuid('author_profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    authorSessionId: uuid('author_session_id').references(() => sessions.id, {
+      onDelete: 'set null',
+    }),
+    reviewerProfileId: uuid('reviewer_profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    original: text('original'),
+    revised: text('revised'),
+    findings: jsonb('findings').$type<PlanFindingRow[]>().notNull().default([]),
+    rounds: integer('rounds').notNull().default(0),
+    state: text('state').notNull(),
+    note: text('note'),
+    approvedBy: text('approved_by'),
+    decidedVia: text('decided_via'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    executedAt: timestamp('executed_at', { withTimezone: true }),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('plans_state').on(table.state, table.updatedAt.desc()),
+    index('plans_prototype').on(table.prototypeId, table.prototypeVersion),
+  ],
+);

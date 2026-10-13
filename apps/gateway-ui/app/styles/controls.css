@@ -1180,3 +1180,24 @@ textarea.request-edit {
   border: 1px solid var(--border, rgba(127, 127, 127, 0.25));
   border-radius: 8px;
 }
+
+.plan-texts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.plan-texts h5 {
+  margin: 0 0 4px;
+}
+
+.plan-texts pre {
+  white-space: pre-wrap;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}

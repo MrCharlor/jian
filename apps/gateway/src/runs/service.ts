@@ -7,6 +7,7 @@ import {
   parseApprovalReply,
   parseCorrectionReply,
   parseDecisionReply,
+  parsePlanReply,
   parseValidationReply,
   type Run,
   submitSchema,
@@ -18,6 +19,7 @@ import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import { bindMedia, mediaMarker } from '../media/repository.js';
 import { Pautas as DecisionNotices } from '../pautas/service.js';
+import { Plans as PlanNotices } from '../plans/service.js';
 import type { ProfileReader } from '../profiles/port.js';
 import type { ModelFallback } from '../providers/fallback.js';
 import type { ProviderSelection } from '../providers/port.js';
@@ -125,6 +127,12 @@ export class Runs {
     this.decisions = decisions;
   }
 
+  private plans?: Pick<PlanNotices, 'fromChat'>;
+
+  usePlans(plans: Pick<PlanNotices, 'fromChat'>) {
+    this.plans = plans;
+  }
+
   /** Where a late answer goes when the agent that asked has already stopped waiting. */
   async relayTo(profileId: string, runId: string, sessionId: string | null) {
     await this.store.transaction(profileId, (tx) => setRelayTo(tx, runId, sessionId));
@@ -168,9 +176,24 @@ export class Runs {
       if (decided) parsed.text = ApprovalNotices.notice(decided);
     }
 
+    // "ok plano 3" or "corrige plano 3: …" answers a plan; the agent reads what was decided.
+    const planned =
+      options.ownerMessage && this.plans && !reply && !parsed.mediaIds?.length
+        ? parsePlanReply(parsed.text)
+        : undefined;
+
+    if (planned && this.plans) {
+      const plan = await this.plans.fromChat(planned).catch((error: unknown) => {
+        if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+        throw error;
+      });
+
+      if (plan) parsed.text = PlanNotices.notice(plan);
+    }
+
     // "decisão 4: B, porque …" is the owner deciding; the agent reads the decision recorded.
     const decided =
-      options.ownerMessage && this.decisions && !reply
+      options.ownerMessage && this.decisions && !reply && !planned
         ? parseDecisionReply(parsed.text)
         : undefined;
 
@@ -191,7 +214,7 @@ export class Runs {
 
     // "aprovado" or "reprovado: motivo" answers the one validation waiting for the owner.
     const validated =
-      options.ownerMessage && this.validations && !reply && !decided
+      options.ownerMessage && this.validations && !reply && !decided && !planned
         ? parseValidationReply(parsed.text)
         : undefined;
 
@@ -207,7 +230,7 @@ export class Runs {
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of
     // the last answer here, which is how the owner sees how often this needed fixing.
     const correction =
-      options.ownerMessage && this.quality && !reply
+      options.ownerMessage && this.quality && !reply && !planned
         ? parseCorrectionReply(parsed.text)
         : undefined;
 

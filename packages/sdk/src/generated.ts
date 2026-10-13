@@ -1005,6 +1005,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plans/{planId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["approvePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plans/{planId}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["returnPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plans/{planId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["rejectPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/plan-settings/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getPlanSettings"];
+        /** @description Required permission: admin. */
+        put: operations["updatePlanSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/routines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getRoutines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/priorities/criteria": {
         parameters: {
             query?: never;
@@ -13740,6 +13860,1334 @@ export interface operations {
             };
         };
     };
+    listPlans: {
+        parameters: {
+            query?: {
+                state?: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        action: "prototype";
+                        /** Format: uuid */
+                        prototypeId?: string;
+                        prototypeVersion?: number;
+                        title: string;
+                        application?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        authorName?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerName?: string;
+                        original?: string;
+                        revised?: string;
+                        findings: {
+                            /** @enum {string} */
+                            kind: "divergencia" | "regra_sensivel" | "lacuna";
+                            text: string;
+                            /** @default  */
+                            source: string;
+                        }[];
+                        rounds: number;
+                        /** @enum {string} */
+                        state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                        note?: string;
+                        /** @enum {string} */
+                        approvedBy?: "owner" | "automatico";
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        executedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        action: "prototype";
+                        /** Format: uuid */
+                        prototypeId?: string;
+                        prototypeVersion?: number;
+                        title: string;
+                        application?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        authorName?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerName?: string;
+                        original?: string;
+                        revised?: string;
+                        findings: {
+                            /** @enum {string} */
+                            kind: "divergencia" | "regra_sensivel" | "lacuna";
+                            text: string;
+                            /** @default  */
+                            source: string;
+                        }[];
+                        rounds: number;
+                        /** @enum {string} */
+                        state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                        note?: string;
+                        /** @enum {string} */
+                        approvedBy?: "owner" | "automatico";
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        executedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    approvePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        action: "prototype";
+                        /** Format: uuid */
+                        prototypeId?: string;
+                        prototypeVersion?: number;
+                        title: string;
+                        application?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        authorName?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerName?: string;
+                        original?: string;
+                        revised?: string;
+                        findings: {
+                            /** @enum {string} */
+                            kind: "divergencia" | "regra_sensivel" | "lacuna";
+                            text: string;
+                            /** @default  */
+                            source: string;
+                        }[];
+                        rounds: number;
+                        /** @enum {string} */
+                        state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                        note?: string;
+                        /** @enum {string} */
+                        approvedBy?: "owner" | "automatico";
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        executedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    returnPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        action: "prototype";
+                        /** Format: uuid */
+                        prototypeId?: string;
+                        prototypeVersion?: number;
+                        title: string;
+                        application?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        authorName?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerName?: string;
+                        original?: string;
+                        revised?: string;
+                        findings: {
+                            /** @enum {string} */
+                            kind: "divergencia" | "regra_sensivel" | "lacuna";
+                            text: string;
+                            /** @default  */
+                            source: string;
+                        }[];
+                        rounds: number;
+                        /** @enum {string} */
+                        state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                        note?: string;
+                        /** @enum {string} */
+                        approvedBy?: "owner" | "automatico";
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        executedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    rejectPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        action: "prototype";
+                        /** Format: uuid */
+                        prototypeId?: string;
+                        prototypeVersion?: number;
+                        title: string;
+                        application?: string;
+                        /** Format: uuid */
+                        pautaId?: string;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        authorName?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerName?: string;
+                        original?: string;
+                        revised?: string;
+                        findings: {
+                            /** @enum {string} */
+                            kind: "divergencia" | "regra_sensivel" | "lacuna";
+                            text: string;
+                            /** @default  */
+                            source: string;
+                        }[];
+                        rounds: number;
+                        /** @enum {string} */
+                        state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                        note?: string;
+                        /** @enum {string} */
+                        approvedBy?: "owner" | "automatico";
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        executedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getPlanSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action: "prototype";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "prototype";
+                        automatic: boolean;
+                        maxRounds: number;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerModel?: {
+                            /** Format: uuid */
+                            providerId: string;
+                            modelId: string;
+                            /** @enum {string} */
+                            reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updatePlanSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action: "prototype";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    automatic?: boolean;
+                    maxRounds?: number;
+                    /** Format: uuid */
+                    authorProfileId?: string | null;
+                    /** Format: uuid */
+                    reviewerProfileId?: string | null;
+                    reviewerModel?: {
+                        /** Format: uuid */
+                        providerId: string;
+                        modelId: string;
+                        /** @enum {string} */
+                        reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+                    } | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        action: "prototype";
+                        automatic: boolean;
+                        maxRounds: number;
+                        /** Format: uuid */
+                        authorProfileId?: string;
+                        /** Format: uuid */
+                        reviewerProfileId?: string;
+                        reviewerModel?: {
+                            /** Format: uuid */
+                            providerId: string;
+                            modelId: string;
+                            /** @enum {string} */
+                            reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+                        };
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getRoutines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        schedules: {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            profileId: string;
+                            name: string;
+                            instruction: string;
+                            /** Format: uuid */
+                            sessionId: string;
+                            at?: string;
+                            cron?: string;
+                            timeZone: string;
+                            enabled: boolean;
+                            nextRunAt?: string;
+                            lastRunAt?: string;
+                            /** Format: uuid */
+                            lastRunId?: string;
+                            lastError?: string;
+                            /** @enum {string} */
+                            createdBy: "owner" | "agent";
+                            createdAt: string;
+                            updatedAt: string;
+                            profileName: string;
+                        }[];
+                        waiting: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            /** @enum {string} */
+                            action: "prototype";
+                            /** Format: uuid */
+                            prototypeId?: string;
+                            prototypeVersion?: number;
+                            title: string;
+                            application?: string;
+                            /** Format: uuid */
+                            pautaId?: string;
+                            /** Format: uuid */
+                            authorProfileId?: string;
+                            authorName?: string;
+                            /** Format: uuid */
+                            reviewerProfileId?: string;
+                            reviewerName?: string;
+                            original?: string;
+                            revised?: string;
+                            findings: {
+                                /** @enum {string} */
+                                kind: "divergencia" | "regra_sensivel" | "lacuna";
+                                text: string;
+                                /** @default  */
+                                source: string;
+                            }[];
+                            rounds: number;
+                            /** @enum {string} */
+                            state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
+                            note?: string;
+                            /** @enum {string} */
+                            approvedBy?: "owner" | "automatico";
+                            /** @enum {string} */
+                            decidedVia?: "panel" | "channel" | "api" | "automatico";
+                            /** Format: date-time */
+                            decidedAt?: string;
+                            /** Format: date-time */
+                            executedAt?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                        actions: {
+                            /** @enum {string} */
+                            action: "prototype";
+                            automatic: boolean;
+                            reviewer: boolean;
+                            executed: number;
+                            clean: number;
+                            /** Format: date-time */
+                            lastCorrectionAt?: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
     getPriorityCriteria: {
         parameters: {
             query?: never;
@@ -14504,7 +15952,7 @@ export interface operations {
                         versions: {
                             number: number;
                             /** @enum {string} */
-                            status: "queued" | "generating" | "ready" | "failed";
+                            status: "planning" | "queued" | "generating" | "ready" | "failed";
                             comments?: string;
                             error?: string;
                             durationMs?: number;
@@ -14674,7 +16122,7 @@ export interface operations {
                         versions: {
                             number: number;
                             /** @enum {string} */
-                            status: "queued" | "generating" | "ready" | "failed";
+                            status: "planning" | "queued" | "generating" | "ready" | "failed";
                             comments?: string;
                             error?: string;
                             durationMs?: number;
@@ -14825,7 +16273,7 @@ export interface operations {
                         versions: {
                             number: number;
                             /** @enum {string} */
-                            status: "queued" | "generating" | "ready" | "failed";
+                            status: "planning" | "queued" | "generating" | "ready" | "failed";
                             comments?: string;
                             error?: string;
                             durationMs?: number;
@@ -14982,7 +16430,7 @@ export interface operations {
                         versions: {
                             number: number;
                             /** @enum {string} */
-                            status: "queued" | "generating" | "ready" | "failed";
+                            status: "planning" | "queued" | "generating" | "ready" | "failed";
                             comments?: string;
                             error?: string;
                             durationMs?: number;
@@ -15134,7 +16582,7 @@ export interface operations {
                         versions: {
                             number: number;
                             /** @enum {string} */
-                            status: "queued" | "generating" | "ready" | "failed";
+                            status: "planning" | "queued" | "generating" | "ready" | "failed";
                             comments?: string;
                             error?: string;
                             durationMs?: number;

@@ -8,6 +8,7 @@ import type { SectionProps } from '../props';
 import { Badge, Button, Field, Modal } from '../ui';
 
 const statusLabel: Record<Prototype['versions'][number]['status'], string> = {
+  planning: 'No plano',
   queued: 'Na fila',
   generating: 'Gerando',
   ready: 'Pronta',
@@ -15,6 +16,7 @@ const statusLabel: Record<Prototype['versions'][number]['status'], string> = {
 };
 
 const statusTone = {
+  planning: 'neutral',
   queued: 'accent',
   generating: 'accent',
   ready: 'good',
@@ -84,7 +86,7 @@ export function Prototypes({
   }, [load]);
 
   const busy = (list ?? []).some((item) =>
-    item.versions.some((entry) => entry.status === 'queued' || entry.status === 'generating'),
+    item.versions.some((entry) => ['planning', 'queued', 'generating'].includes(entry.status)),
   );
 
   useEffect(() => {
