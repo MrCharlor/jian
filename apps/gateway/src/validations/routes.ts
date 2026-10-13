@@ -19,6 +19,22 @@ export function registerValidationRoutes(app: FastifyInstance, deps: { validatio
     ),
   );
 
+  app.post<{ Params: Params }>('/v1/validations/:validationId/comment', async (request) =>
+    deps.validations.publishComment(
+      { id: request.params.validationId },
+      request.body ?? {},
+      via(request.headers),
+    ),
+  );
+
+  app.post<{ Params: Params }>('/v1/validations/:validationId/comment/discard', async (request) =>
+    deps.validations.discardComment(request.params.validationId),
+  );
+
+  app.post<{ Params: Params }>('/v1/validations/:validationId/returns', async (request) =>
+    deps.validations.draftReturns({ id: request.params.validationId }),
+  );
+
   app.patch<{ Params: ReturnParams }>(
     '/v1/validations/:validationId/returns/:index',
     async (request) =>

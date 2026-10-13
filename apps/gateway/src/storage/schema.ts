@@ -1230,6 +1230,13 @@ type ReturnDraftRow = {
   linked?: boolean;
   mirrored?: boolean;
 };
+type ValidationCommentRow = {
+  body: string;
+  /** What the agent drafted, kept to tell an edit of the owner from the draft. */
+  original: string;
+  state: 'rascunho' | 'publicado' | 'descartado';
+  publishedAt?: string;
+};
 
 /** The owner's check of an epic the tester passed, and the return cards it gave. */
 export const validations = pgTable(
@@ -1251,6 +1258,7 @@ export const validations = pgTable(
     notes: jsonb('notes').$type<string[]>().notNull(),
     state: text('state').notNull(),
     commented: boolean('commented').notNull().default(false),
+    comment: jsonb('comment').$type<ValidationCommentRow>(),
     returns: jsonb('returns').$type<ReturnDraftRow[]>().notNull(),
     decidedVia: text('decided_via'),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
