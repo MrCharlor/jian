@@ -1352,6 +1352,8 @@ export const plans = pgTable(
     original: text('original'),
     revised: text('revised'),
     findings: jsonb('findings').$type<PlanFindingRow[]>().notNull().default([]),
+    /** The author's questions to the owner in its last version; null before B19 counted them. */
+    questions: jsonb('questions').$type<string[]>(),
     rounds: integer('rounds').notNull().default(0),
     state: text('state').notNull(),
     note: text('note'),
@@ -1367,4 +1369,58 @@ export const plans = pgTable(
     index('plans_prototype').on(table.prototypeId, table.prototypeVersion),
     index('plans_priority').on(table.priorityProposalId),
   ],
+);
+
+type KnowledgeScopeRow = { kind: string; application?: string; screen?: string };
+type KnowledgeSourceRow = { kind: string; ref: string; date?: string };
+
+/**
+ * The owner's rules every agent reads before asking (B19). Searched by scope and words in the
+ * gateway, which reads a few hundred rows at most; the columns are what the panel filters on.
+ */
+export const knowledge = pgTable(
+  'knowledge',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    /** The inventory's name for it ("G01"); a load skips a code already here. */
+    code: text('code').unique(),
+    text: text('text').notNull(),
+    scope: jsonb('scope').$type<KnowledgeScopeRow>().notNull(),
+    source: jsonb('source').$type<KnowledgeSourceRow>().notNull(),
+    sensitive: boolean('sensitive').notNull().default(false),
+    state: text('state').notNull(),
+    /** The number of the rule this one took the place of. */
+    replaces: integer('replaces'),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('knowledge_state').on(table.state)],
+);
+
+/** What the Curator proposes to change in the base, and what the owner made of it. */
+export const knowledgeProposals = pgTable(
+  'knowledge_proposals',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    kind: text('kind').notNull(),
+    ruleId: uuid('rule_id').references(() => knowledge.id, { onDelete: 'set null' }),
+    /** The target's text when proposed, to read beside the new one. */
+    ruleText: text('rule_text'),
+    text: text('text'),
+    scope: jsonb('scope').$type<KnowledgeScopeRow>(),
+    sensitive: boolean('sensitive').notNull().default(false),
+    reason: text('reason').notNull(),
+    source: jsonb('source').$type<KnowledgeSourceRow>().notNull(),
+    state: text('state').notNull(),
+    proposedBy: uuid('proposed_by').references(() => profiles.id, { onDelete: 'set null' }),
+    appliedBy: text('applied_by'),
+    resultId: uuid('result_id').references(() => knowledge.id, { onDelete: 'set null' }),
+    note: text('note'),
+    decidedVia: text('decided_via'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [index('knowledge_proposals_state').on(table.state, table.createdAt.desc())],
 );

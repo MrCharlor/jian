@@ -39,7 +39,7 @@ export function Routines({ api }: SectionProps) {
     <>
       <SectionHeading
         title="Rotinas"
-        description="O que roda sozinho: as agendas de todos os agentes, os planos esperando você e quantas rodadas cada ação foi sem correção."
+        description="O que roda sozinho: as agendas de todos os agentes, os planos esperando você, quantas rodadas cada ação foi sem correção e quantas perguntas cada plano fez."
       />
       {error && <p className="error">{error}</p>}
 
@@ -67,6 +67,41 @@ export function Routines({ api }: SectionProps) {
           </article>
         ))}
       </div>
+
+      <h3>Perguntas por plano</h3>
+      {view && !view.questionsPerWeek.length ? (
+        <p className="note">
+          Nenhum plano escrito nas últimas 8 semanas. A média deve cair conforme a base de
+          Conhecimento aprende.
+        </p>
+      ) : (
+        <div className="table-scroll">
+          <table className="quality-table">
+            <thead>
+              <tr>
+                <th>Semana de</th>
+                <th>Planos</th>
+                <th>Perguntas</th>
+                <th>Média</th>
+              </tr>
+            </thead>
+            <tbody>
+              {view?.questionsPerWeek.map((week) => (
+                <tr key={week.week}>
+                  <td>{week.week.split('-').reverse().join('/')}</td>
+                  <td>{week.plans}</td>
+                  <td>{week.questions}</td>
+                  <td>
+                    <Badge tone={week.average > 3 ? 'warn' : 'neutral'}>
+                      {week.average.toLocaleString('pt-BR')}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <h3>Planos esperando você ({view?.waiting.length ?? 0})</h3>
       {view && !view.waiting.length ? (

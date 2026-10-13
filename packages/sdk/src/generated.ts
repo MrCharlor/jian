@@ -1125,6 +1125,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/knowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listKnowledge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["importKnowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getKnowledge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Required permission: admin. */
+        patch: operations["updateKnowledge"];
+        trace?: never;
+    };
+    "/v1/knowledge-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listKnowledgeProposals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge-proposals/{proposalId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["approveKnowledgeProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge-proposals/{proposalId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["rejectKnowledgeProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/knowledge-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["getKnowledgeSettings"];
+        /** @description Required permission: admin. */
+        put: operations["updateKnowledgeSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/priorities/criteria": {
         parameters: {
             query?: never;
@@ -13917,6 +14038,7 @@ export interface operations {
                             /** @default  */
                             source: string;
                         }[];
+                        questions?: string[];
                         rounds: number;
                         /** @enum {string} */
                         state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
@@ -14094,6 +14216,7 @@ export interface operations {
                             /** @default  */
                             source: string;
                         }[];
+                        questions?: string[];
                         rounds: number;
                         /** @enum {string} */
                         state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
@@ -14271,6 +14394,7 @@ export interface operations {
                             /** @default  */
                             source: string;
                         }[];
+                        questions?: string[];
                         rounds: number;
                         /** @enum {string} */
                         state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
@@ -14454,6 +14578,7 @@ export interface operations {
                             /** @default  */
                             source: string;
                         }[];
+                        questions?: string[];
                         rounds: number;
                         /** @enum {string} */
                         state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
@@ -14637,6 +14762,7 @@ export interface operations {
                             /** @default  */
                             source: string;
                         }[];
+                        questions?: string[];
                         rounds: number;
                         /** @enum {string} */
                         state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
@@ -15129,6 +15255,7 @@ export interface operations {
                                 /** @default  */
                                 source: string;
                             }[];
+                            questions?: string[];
                             rounds: number;
                             /** @enum {string} */
                             state: "escrevendo" | "em_revisao" | "devolvido" | "aguardando_po" | "aprovado" | "executado" | "recusado";
@@ -15156,6 +15283,1399 @@ export interface operations {
                             /** Format: date-time */
                             lastCorrectionAt?: string;
                         }[];
+                        questionsPerWeek: {
+                            /** Format: date */
+                            week: string;
+                            plans: number;
+                            questions: number;
+                            average: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    listKnowledge: {
+        parameters: {
+            query?: {
+                q?: string;
+                application?: string;
+                screen?: string;
+                state?: "ativa" | "pendente" | "aposentada";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        code?: string;
+                        text: string;
+                        scope: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        sensitive: boolean;
+                        /** @enum {string} */
+                        state: "ativa" | "pendente" | "aposentada";
+                        replaces?: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    importKnowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: {
+                        code?: string;
+                        text: string;
+                        scope: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref?: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        /** @default false */
+                        sensitive?: boolean;
+                        /**
+                         * @default ativa
+                         * @enum {string}
+                         */
+                        state?: "ativa" | "pendente" | "aposentada";
+                        replaces?: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created: {
+                            /** Format: uuid */
+                            id: string;
+                            number: number;
+                            code?: string;
+                            text: string;
+                            scope: {
+                                /** @enum {string} */
+                                kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                                application?: string;
+                                screen?: string;
+                            };
+                            source: {
+                                /** @enum {string} */
+                                kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                                /** @default  */
+                                ref: string;
+                                /** Format: date */
+                                date?: string;
+                            };
+                            sensitive: boolean;
+                            /** @enum {string} */
+                            state: "ativa" | "pendente" | "aposentada";
+                            replaces?: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            updatedAt: string;
+                        }[];
+                        skipped: string[];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getKnowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        code?: string;
+                        text: string;
+                        scope: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        sensitive: boolean;
+                        /** @enum {string} */
+                        state: "ativa" | "pendente" | "aposentada";
+                        replaces?: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updateKnowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    text?: string;
+                    scope?: {
+                        /** @enum {string} */
+                        kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                        application?: string;
+                        screen?: string;
+                    };
+                    sensitive?: boolean;
+                    /** @enum {string} */
+                    state?: "ativa" | "pendente" | "aposentada";
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        code?: string;
+                        text: string;
+                        scope: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        sensitive: boolean;
+                        /** @enum {string} */
+                        state: "ativa" | "pendente" | "aposentada";
+                        replaces?: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    listKnowledgeProposals: {
+        parameters: {
+            query?: {
+                state?: "aguardando_po" | "aplicada" | "recusada";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        kind: "incluir" | "mudar" | "aposentar";
+                        ruleNumber?: number;
+                        ruleText?: string;
+                        text?: string;
+                        scope?: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        sensitive: boolean;
+                        reason: string;
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        /** @enum {string} */
+                        state: "aguardando_po" | "aplicada" | "recusada";
+                        proposedBy?: string;
+                        /** @enum {string} */
+                        appliedBy?: "owner" | "automatico";
+                        resultNumber?: number;
+                        note?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    approveKnowledgeProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        kind: "incluir" | "mudar" | "aposentar";
+                        ruleNumber?: number;
+                        ruleText?: string;
+                        text?: string;
+                        scope?: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        sensitive: boolean;
+                        reason: string;
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        /** @enum {string} */
+                        state: "aguardando_po" | "aplicada" | "recusada";
+                        proposedBy?: string;
+                        /** @enum {string} */
+                        appliedBy?: "owner" | "automatico";
+                        resultNumber?: number;
+                        note?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    rejectKnowledgeProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        kind: "incluir" | "mudar" | "aposentar";
+                        ruleNumber?: number;
+                        ruleText?: string;
+                        text?: string;
+                        scope?: {
+                            /** @enum {string} */
+                            kind: "geral" | "aplicacao" | "tipo_de_tela" | "tela";
+                            application?: string;
+                            screen?: string;
+                        };
+                        sensitive: boolean;
+                        reason: string;
+                        source: {
+                            /** @enum {string} */
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "manual";
+                            /** @default  */
+                            ref: string;
+                            /** Format: date */
+                            date?: string;
+                        };
+                        /** @enum {string} */
+                        state: "aguardando_po" | "aplicada" | "recusada";
+                        proposedBy?: string;
+                        /** @enum {string} */
+                        appliedBy?: "owner" | "automatico";
+                        resultNumber?: number;
+                        note?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    getKnowledgeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        automatic: boolean;
+                        sensitiveAlwaysAsks: boolean;
+                        /** Format: uuid */
+                        curatorProfileId?: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updateKnowledgeSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    automatic?: boolean;
+                    sensitiveAlwaysAsks?: boolean;
+                    /** Format: uuid */
+                    curatorProfileId?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        automatic: boolean;
+                        sensitiveAlwaysAsks: boolean;
+                        /** Format: uuid */
+                        curatorProfileId?: string;
                     };
                 };
             };

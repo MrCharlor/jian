@@ -17,6 +17,7 @@ import { registerEventRoutes } from './http/events.js';
 import { registerMetaRoutes } from './http/meta.js';
 import { configureSecurity } from './http/security.js';
 import { registerGatewayUi } from './http/ui.js';
+import { registerKnowledgeRoutes } from './knowledge/routes.js';
 import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
 import { registerPautaRoutes } from './pautas/routes.js';
@@ -141,6 +142,7 @@ export function createApp(
   registerValidationRoutes(app, options);
   registerScreenRoutes(app, options);
   registerPlanRoutes(app, options);
+  registerKnowledgeRoutes(app, options);
   registerPrototypeRoutes(app, options);
   registerPautaRoutes(app, options);
   registerPriorityRoutes(app, options);

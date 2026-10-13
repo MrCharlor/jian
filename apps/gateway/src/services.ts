@@ -8,6 +8,7 @@ import { Epics } from './epics/service.js';
 import { SIGMA_EPICS, SIGMA_VALIDATION } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
+import { Knowledge } from './knowledge/service.js';
 import { Learning } from './learning/service.js';
 import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
@@ -56,6 +57,7 @@ export type Services = {
   validations: Validations;
   screens: Screens;
   plans: Plans;
+  knowledge: Knowledge;
   quality: Quality;
   providers: Providers;
   sessions: Sessions;
@@ -168,14 +170,27 @@ export function buildServices({
   plans.useAgents((profileId, sessionId, text, requestKey, model) =>
     runs.submit(profileId, sessionId, { text, requestKey, ...(model ? { model } : {}) }),
   );
-  plans.useOwner(async (text) => {
+  // The owner reads plans and rule proposals in the conversation the validations use.
+  const tellOwner = (prefix: string) => async (text: string) => {
     const profileId = await workProfile();
     if (!profileId) return;
     const owner = (await sessions.sessions(profileId)).find(
       (session) => session.channel === 'gateway',
     );
-    if (owner) await runs.submit(profileId, owner.id, { text, requestKey: `plan:${Date.now()}` });
-  });
+    if (owner)
+      await runs.submit(profileId, owner.id, { text, requestKey: `${prefix}:${Date.now()}` });
+  };
+  plans.useOwner(tellOwner('plan'));
+  // The base every agent reads before asking (B19); the Curator learns from the owner's answers.
+  const knowledge = new Knowledge(store, profiles, sessions, clock);
+  knowledge.useAgents((profileId, sessionId, text, requestKey) =>
+    runs.submit(profileId, sessionId, { text, requestKey }),
+  );
+  knowledge.useOwner(tellOwner('knowledge'));
+  plans.useKnowledge(knowledge);
+  runs.useKnowledge(knowledge);
+  pautas.useLearner((lesson) => knowledge.learn(lesson));
+  validations.useLearner((lesson) => knowledge.learn(lesson));
   plans.usePrototypes(prototypes);
   prototypes.usePlanner(plans);
   plans.usePriorities(priorities);
@@ -220,6 +235,7 @@ export function buildServices({
     validations,
     screens: new Screens(store, applications, clock),
     plans,
+    knowledge,
     drawings: new Drawings(
       store,
       drawBoard

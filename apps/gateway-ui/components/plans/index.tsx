@@ -207,6 +207,17 @@ function PlanCard({
         </div>
       )}
 
+      {plan.questions && plan.questions.length > 0 && (
+        <div className="epic-problems">
+          <strong>Perguntas para você ({plan.questions.length})</strong>
+          <ol>
+            {plan.questions.map((question) => (
+              <li key={question}>{question}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       <div className="plan-texts">
         {plan.priority ? (
           <div>

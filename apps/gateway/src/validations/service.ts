@@ -10,6 +10,7 @@ import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { lintReturn, lintTask } from '../epics/lint.js';
 import type { EpicTarget } from '../epics/target.js';
+import type { Lesson } from '../knowledge/service.js';
 import type { WorkClient, WorkClientOpener } from '../priorities/work-board.js';
 import type { Quality } from '../quality/service.js';
 import type { Store } from '../storage/database.js';
@@ -88,6 +89,13 @@ export class Validations {
 
   useOwner(notify: (text: string) => Promise<unknown>) {
     this.notify = notify;
+  }
+
+  private learn?: (lesson: Lesson) => Promise<unknown>;
+
+  /** The knowledge base learns from what the owner wrote in a validation, through its Curator. */
+  useLearner(learn: (lesson: Lesson) => Promise<unknown>) {
+    this.learn = learn;
   }
 
   private cardUrl(id: string, board = this.target.boardId) {
@@ -415,6 +423,22 @@ export class Validations {
       .update(validations)
       .set({ commented: true })
       .where(eq(validations.id, row.id));
+
+    // Only what the owner wrote teaches: why an item failed, and the note.
+    const said = [
+      ...failed
+        .filter(({ item }) => item.reason)
+        .map(({ item }) => `- ${item.text}: ${item.reason}`),
+      ...(data.note ? [data.note] : []),
+    ];
+
+    if (said.length) {
+      await this.learn?.({
+        kind: 'validacao',
+        ref: `Validação #${row.number} (épico "${row.epicTitle}")`,
+        text: said.join('\n'),
+      }).catch(() => {});
+    }
 
     return this.get({ id: row.id });
   }

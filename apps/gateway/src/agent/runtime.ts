@@ -295,6 +295,8 @@ export class AgentRuntime {
         delete tools.generate_speech;
         delete tools.list_speech_voices;
       }
+      // Only the Curator keeps the base; every other agent just reads it.
+      if (!(await this.services.knowledge?.isCurator(profileId))) delete tools.propose_knowledge;
       if (learning) {
         for (const name of Object.keys(tools)) if (!LEARNING_TOOLS.has(name)) delete tools[name];
       }
