@@ -85,11 +85,13 @@ export function workClientOpener(
       throw new GatewayError(409, `${server.name} has no Authorization header to reach the board`);
     }
 
-    const base = `${new URL(server.url).origin}/v1/workspaces/${address.workspaceId}`;
+    const origin = new URL(server.url).origin;
+    const base = `${origin}/v1/workspaces/${address.workspaceId}`;
 
     return {
       async call(method, path, body) {
-        const response = await fetcher(`${base}${path}`, {
+        // A path of the whole API ("/v1/me") is read from the origin; every other is the workspace's.
+        const response = await fetcher(`${path.startsWith('/v1/') ? origin : base}${path}`, {
           method,
           headers: {
             Authorization: key.startsWith('Bearer ') ? key : `Bearer ${key}`,

@@ -695,13 +695,17 @@ export class Channels {
     return this.people.setOwner(profileId, contactId, owner);
   }
 
-  async receive(id: string, request: ChannelRequest) {
-    const adapter = this.registry.get(request.type);
+  /**
+   * The channel a webhook names, when the request carries that channel's token. Another sender
+   * on the same binding, such as the tracker's comments (B22), proves itself the same way.
+   */
+  async authenticate(id: string, headers: ChannelRequest['headers'], type: ChannelType = 'api') {
+    const adapter = this.registry.get(type);
     if (!adapter.webhookHeader) {
       throw new GatewayError(401, 'Channel does not accept webhooks');
     }
 
-    const token = request.headers[adapter.webhookHeader];
+    const token = headers[adapter.webhookHeader];
     const channel = await findChannel(this.services.store.db, id);
 
     if (
@@ -718,6 +722,12 @@ export class Channels {
       throw new GatewayError(400, 'Channel type mismatch');
     }
 
+    return channel;
+  }
+
+  async receive(id: string, request: ChannelRequest) {
+    const adapter = this.registry.get(request.type);
+    const channel = await this.authenticate(id, request.headers, request.type);
     const data = adapter.receive(request.payload);
 
     if (!data) {

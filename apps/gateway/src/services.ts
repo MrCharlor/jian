@@ -1,18 +1,19 @@
 import { Applications } from './applications/service.js';
 import { Approvals } from './approvals/service.js';
 import { Contexts } from './context/service.js';
-import type { Clock } from './core/clock.js';
+import { type Clock, nowIso } from './core/clock.js';
 import { Decisions } from './decisions/service.js';
 import { boardRooms, Drawings } from './drawings/service.js';
 import { EntrySync } from './entry/service.js';
 import { Epics } from './epics/service.js';
-import { SIGMA_ENTRY, SIGMA_EPICS, SIGMA_VALIDATION } from './epics/target.js';
+import { SIGMA_ENTRY, SIGMA_EPICS, SIGMA_MENTIONS, SIGMA_VALIDATION } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
 import { Knowledge } from './knowledge/service.js';
 import { Learning } from './learning/service.js';
 import { Media } from './media/service.js';
 import { Memories } from './memories/service.js';
+import { Mentions } from './mentions/service.js';
 import { Pautas } from './pautas/service.js';
 import { Peers } from './peers/service.js';
 import { Plans } from './plans/service.js';
@@ -22,6 +23,7 @@ import { Profiles } from './profiles/service.js';
 import { PrintsRepository } from './prototypes/prints-repo.js';
 import { Prototypes } from './prototypes/service.js';
 import type { ModelCatalog } from './providers/catalog-source.js';
+import { readModelDefaults } from './providers/repository.js';
 import { Providers } from './providers/service.js';
 import { SubscriptionUsageReader } from './providers/subscription-usage.js';
 import { Quality } from './quality/service.js';
@@ -57,6 +59,7 @@ export type Services = {
   drawings: Drawings;
   epics: Epics;
   validations: Validations;
+  mentions: Mentions;
   screens: Screens;
   plans: Plans;
   knowledge: Knowledge;
@@ -196,6 +199,22 @@ export function buildServices({
   entrySync.usePlanner(plans);
   plans.useEntrySync(entrySync);
   runs.usePlans(plans);
+  // Comments on the tracker answered for the owner (B22): the agent with the tracker triages and
+  // answers in conversations of its own; the high-impact ones reach the owner as plans do.
+  const mentions = new Mentions(store, workClients, workProfile, SIGMA_MENTIONS, quality, clock);
+  mentions.useAgents({
+    submit: (profileId, sessionId, text, requestKey, model) =>
+      runs.submit(profileId, sessionId, { text, requestKey, ...(model ? { model } : {}) }),
+    session: async (profileId, title) =>
+      (await sessions.sessions(profileId)).find(
+        (session) => session.channel === 'mentions' && session.title === title,
+      ) ?? sessions.createSession(profileId, { title, channel: 'mentions' }),
+    conversationModel: async (profileId) =>
+      (await readModelDefaults(store.db, profileId, nowIso(clock))).conversation ?? undefined,
+  });
+  mentions.useOwner((text, short) => ownerNotices.tell(text, 'mention', short));
+  mentions.useLearner((lesson) => knowledge.learn(lesson));
+  runs.useMentions(mentions);
   epics.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -232,6 +251,7 @@ export function buildServices({
     flow: new Flow(workClients, clock),
     epics,
     validations,
+    mentions,
     screens: new Screens(store, applications, clock),
     plans,
     knowledge,

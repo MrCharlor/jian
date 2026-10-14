@@ -32,7 +32,7 @@ type Submit = (profileId: string, sessionId: string, text: string, key: string) 
 
 /** Where the owner said something the base may learn from. */
 export type Lesson = {
-  kind: 'plano' | 'correcao' | 'decisao' | 'validacao';
+  kind: 'plano' | 'correcao' | 'decisao' | 'validacao' | 'mencao';
   /** "Plano #3", "Decisão #4 (pauta …)": what the Curator cites as the source. */
   ref: string;
   /** The owner's words, and what they answered. */
@@ -67,6 +67,7 @@ const LESSON_LABEL: Record<Lesson['kind'], string> = {
   correcao: 'corrigiu uma resposta',
   decisao: 'decidiu uma pauta',
   validacao: 'respondeu uma validação',
+  mencao: 'respondeu uma dúvida no Work',
 };
 
 const LESSON_SOURCE: Record<Lesson['kind'], KnowledgeRule['source']['kind']> = {
@@ -74,6 +75,7 @@ const LESSON_SOURCE: Record<Lesson['kind'], KnowledgeRule['source']['kind']> = {
   correcao: 'correcao',
   decisao: 'decisao',
   validacao: 'validacao',
+  mencao: 'mencao',
 };
 
 async function nextNumber(db: Queryable, table: typeof knowledge | typeof knowledgeProposals) {

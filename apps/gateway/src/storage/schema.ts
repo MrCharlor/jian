@@ -1435,3 +1435,32 @@ export const knowledgeProposals = pgTable(
   },
   (table) => [index('knowledge_proposals_state').on(table.state, table.createdAt.desc())],
 );
+
+/**
+ * A comment written on the tracker that the gateway followed (B22). The comment's id is unique:
+ * the automation may post the same comment twice, and it is handled once.
+ */
+export const mentions = pgTable(
+  'mentions',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    commentId: text('comment_id').notNull().unique(),
+    activityId: text('activity_id').notNull(),
+    boardId: text('board_id'),
+    authorId: text('author_id').notNull(),
+    authorName: text('author_name'),
+    body: text('body').notNull(),
+    cardTitle: text('card_title'),
+    state: text('state').notNull(),
+    kind: text('kind'),
+    highImpactItem: integer('high_impact_item'),
+    proposedReply: text('proposed_reply'),
+    publishedReply: text('published_reply'),
+    reason: text('reason'),
+    heldAt: timestamp('held_at', { withTimezone: true }),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('mentions_state').on(table.state, table.createdAt.desc())],
+);

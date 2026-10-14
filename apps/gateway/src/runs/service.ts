@@ -8,6 +8,7 @@ import {
   parseCorrectionReply,
   parseDecisionReply,
   parseKnowledgeReply,
+  parseMentionReply,
   parsePlanReply,
   parseValidationCommentReply,
   parseValidationReply,
@@ -21,6 +22,7 @@ import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
 import { Knowledge as KnowledgeNotices } from '../knowledge/service.js';
 import { bindMedia, mediaMarker } from '../media/repository.js';
+import { Mentions as MentionNotices } from '../mentions/service.js';
 import { Pautas as DecisionNotices } from '../pautas/service.js';
 import { Plans as PlanNotices } from '../plans/service.js';
 import type { ProfileReader } from '../profiles/port.js';
@@ -134,6 +136,12 @@ export class Runs {
 
   usePlans(plans: Pick<PlanNotices, 'fromChat'>) {
     this.plans = plans;
+  }
+
+  private mentions?: Pick<MentionNotices, 'fromChat'>;
+
+  useMentions(mentions: Pick<MentionNotices, 'fromChat'>) {
+    this.mentions = mentions;
   }
 
   private knowledge?: Pick<KnowledgeNotices, 'fromChat' | 'learn'>;
@@ -266,6 +274,29 @@ export class Runs {
         });
 
       if (validation) parsed.text = ValidationNotices.notice(validation);
+    }
+
+    // "ok menção 3", "menção 3: texto" or "ignora menção 3" answers a question from the Work.
+    const mentioned =
+      options.ownerMessage &&
+      this.mentions &&
+      !reply &&
+      !decided &&
+      !planned &&
+      !ruled &&
+      !validated &&
+      !commented &&
+      !parsed.mediaIds?.length
+        ? parseMentionReply(parsed.text)
+        : undefined;
+
+    if (mentioned && this.mentions) {
+      const mention = await this.mentions.fromChat(mentioned).catch((error: unknown) => {
+        if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+        throw error;
+      });
+
+      if (mention) parsed.text = MentionNotices.notice(mention);
     }
 
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of

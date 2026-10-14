@@ -36,6 +36,7 @@ export const knowledgeSourceKindSchema = z.enum([
   'correcao',
   'decisao',
   'validacao',
+  'mencao',
   'manual',
 ]);
 

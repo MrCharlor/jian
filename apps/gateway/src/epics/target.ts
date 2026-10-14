@@ -105,3 +105,20 @@ export const SIGMA_ENTRY: EntryTarget = {
   todoStatusId: SIGMA_EPICS.todoStatusId,
   staleDays: 7,
 };
+
+/** Where the comments the gateway answers live, and who takes a technical question. */
+export type MentionTarget = {
+  webUrl: string;
+  workspaceId: string;
+  /** The boards a comment counts on when the scope is the squad's. */
+  boards: string[];
+  lead?: { id: string; name: string };
+};
+
+/** The Sigma boards (14/10/2026): the Entrada, the epics and the tasks. */
+export const SIGMA_MENTIONS: MentionTarget = {
+  webUrl: SIGMA_EPICS.webUrl,
+  workspaceId: SIGMA_EPICS.workspaceId,
+  boards: [SIGMA_ENTRY.entryBoardId, SIGMA_EPICS.boardId, SIGMA_VALIDATION.tasksBoardId],
+  ...(SIGMA_EPICS.lead ? { lead: SIGMA_EPICS.lead } : {}),
+};

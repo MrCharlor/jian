@@ -2,12 +2,14 @@ import { createHash } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { GatewayError } from '../core/errors.js';
 import type { ChannelParams, ContactParams, ProfileParams, SessionParams } from '../http/params.js';
+import type { Mentions } from '../mentions/service.js';
 import type { Channels } from './service.js';
 import type { WhatsAppConnections } from './whatsapp/connections.js';
 
 type ChannelRouteServices = {
   channels?: Channels;
   whatsapp?: WhatsAppConnections;
+  mentions?: Pick<Mentions, 'receive'>;
 };
 
 export function registerChannelRoutes(app: FastifyInstance, deps: ChannelRouteServices): void {
@@ -130,6 +132,21 @@ export function registerChannelRoutes(app: FastifyInstance, deps: ChannelRouteSe
           },
         }),
       );
+    },
+  );
+
+  // A comment written on the work tracker, posted by its automation with the channel's token.
+  // The answer is immediate; the comment is read and answered after it (B22).
+  app.post<{ Params: { channelId: string } }>(
+    '/v1/ingress/:channelId/comment',
+    async (request, reply) => {
+      await channels().authenticate(request.params.channelId, request.headers);
+
+      if (!deps.mentions) {
+        throw new GatewayError(503, 'Comments are not followed here');
+      }
+
+      return reply.code(202).send(await deps.mentions.receive(request.body));
     },
   );
 

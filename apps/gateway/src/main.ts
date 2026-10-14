@@ -294,6 +294,11 @@ try {
         .catch(() =>
           console.error('jian: the board could not be checked for validations; will retry'),
         );
+      void services.mentions
+        .tick()
+        .catch(() =>
+          console.error('jian: the questions waiting for the owner could not be held; will retry'),
+        );
     }, SCHEDULE_TICK_MS);
     scheduleTimer.unref();
     await services.prototypes.recover();

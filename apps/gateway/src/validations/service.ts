@@ -11,6 +11,7 @@ import {
 import { desc, eq, sql } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
+import { accents, noDashes } from '../core/wording.js';
 import { lintReturn, lintTask } from '../epics/lint.js';
 import type { EpicTarget } from '../epics/target.js';
 import type { Lesson } from '../knowledge/service.js';
@@ -46,35 +47,9 @@ type Activity = {
 
 type Member = { id: string; user_id?: string; display_name?: string };
 
-/** Accents the owner skips when typing fast in a chat; only the obvious ones. */
-const SPELLING: Record<string, string> = {
-  nao: 'não',
-  entao: 'então',
-  tambem: 'também',
-  voce: 'você',
-  botao: 'botão',
-  pagina: 'página',
-  informacao: 'informação',
-  acao: 'ação',
-  validacao: 'validação',
-  funcao: 'função',
-  configuracao: 'configuração',
-  numero: 'número',
-  codigo: 'código',
-  usuario: 'usuário',
-};
-
 /** The owner's words with the obvious accents back, no dashes and no closing punctuation. */
 function tidy(text: string): string {
-  return text
-    .replace(/\s*[—–]\s*/g, ', ')
-    .replace(/\p{L}+/gu, (word) => {
-      const fixed = SPELLING[word.toLowerCase()];
-      if (!fixed) return word;
-      return word[0] === word[0]?.toUpperCase()
-        ? `${fixed.charAt(0).toUpperCase()}${fixed.slice(1)}`
-        : fixed;
-    })
+  return accents(noDashes(text))
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/[.;,:]+$/, '');

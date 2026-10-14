@@ -7,6 +7,7 @@ export * from './draw.js';
 export * from './epics.js';
 export * from './knowledge.js';
 export * from './media.js';
+export * from './mentions.js';
 export * from './operations.js';
 export * from './pautas.js';
 export * from './peers.js';

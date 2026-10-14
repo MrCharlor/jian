@@ -31,6 +31,8 @@ import type { Knowledge } from '../knowledge/service.js';
 import { knowledgeTools } from '../knowledge/tools.js';
 import { sameSubject } from '../memories/duplicates.js';
 import type { MemoryWriter } from '../memories/port.js';
+import type { Mentions } from '../mentions/service.js';
+import { mentionTools } from '../mentions/tools.js';
 import type { Pautas } from '../pautas/service.js';
 import type { PeerAgents } from '../peers/port.js';
 import type { Plans } from '../plans/service.js';
@@ -121,6 +123,7 @@ export type ToolServices = {
   plans?: Pick<Plans, 'write' | 'review' | 'read'>;
   knowledge?: Pick<Knowledge, 'lookup' | 'propose' | 'isCurator'>;
   entrySync?: Pick<EntrySync, 'run'>;
+  mentions?: Pick<Mentions, 'triaged' | 'answered'>;
 };
 
 export function profileTools(
@@ -278,6 +281,7 @@ export function profileTools(
     ...(services.screens ? screenTools(services.screens, run) : {}),
     ...(services.plans ? planTools(services.plans, run) : {}),
     ...(services.knowledge ? knowledgeTools(services.knowledge, run) : {}),
+    ...(services.mentions ? mentionTools(services.mentions, run) : {}),
     ...(services.entrySync
       ? {
           propose_entry_sync: tool({
@@ -722,6 +726,11 @@ export const TOOL_GROUPS = {
     summary:
       'search the owner’s knowledge base (rules he already answered, with scope and source) before asking him anything; as the Curator, propose to add, change or retire a rule',
     tools: ['search_knowledge', 'propose_knowledge'],
+  },
+  mentions: {
+    summary:
+      'triage a comment on the work tracker for the owner, and answer it on the card or propose the answer to the owner',
+    tools: ['triage_comment', 'answer_mention'],
   },
   draw: {
     summary:

@@ -5,6 +5,7 @@ import {
   applications,
   approvals,
   corrections,
+  mentions,
   priorityProposals,
   prototypes,
   prototypeVersions,
@@ -128,7 +129,16 @@ export async function listRounds(db: Queryable, profileId: string): Promise<Roun
     .orderBy(desc(validations.decidedAt))
     .limit(5000);
 
+  // Each comment the agent answered or proposed an answer to is one round of the mentions.
+  const answered = await db
+    .select({ at: mentions.createdAt })
+    .from(mentions)
+    .where(isNotNull(mentions.kind))
+    .orderBy(desc(mentions.createdAt))
+    .limit(5000);
+
   return [
+    ...answered.map((row) => ({ automation: 'mencao', at: row.at })),
     ...checked.map((row) => ({ automation: 'validacao', at: row.at as Date })),
     ...ordered.map((row) => ({ automation: 'priorizacao', at: row.at as Date })),
     ...drawn.map((row) => ({ automation: `prototipo:${row.slug}`, at: row.at })),

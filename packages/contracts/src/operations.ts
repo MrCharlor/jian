@@ -75,6 +75,16 @@ import {
   stickerTagsSchema,
 } from './media.js';
 import {
+  commentIngressResultSchema,
+  commentIngressSchema,
+  mentionAnswerSchema,
+  mentionListQuerySchema,
+  mentionNumberParamsSchema,
+  mentionRecordSchema,
+  mentionSettingsPatchSchema,
+  mentionSettingsSchema,
+} from './mentions.js';
+import {
   boardCardSchema,
   decisionChoiceSchema,
   decisionInputSchema,
@@ -804,6 +814,56 @@ export const operations: Operation[] = [
     response: validationSchema,
   },
   {
+    // Comments on the tracker the gateway followed (B22), newest first.
+    method: 'GET',
+    path: '/v1/mentions',
+    operationId: 'listMentions',
+    access: 'admin',
+    query: mentionListQuerySchema,
+    response: z.array(mentionRecordSchema),
+  },
+  {
+    method: 'GET',
+    path: '/v1/mentions/:number',
+    operationId: 'getMention',
+    access: 'admin',
+    params: mentionNumberParamsSchema,
+    response: mentionRecordSchema,
+  },
+  {
+    // The owner's OK on a waiting question: the proposed reply, or the owner's text, goes on the card.
+    method: 'POST',
+    path: '/v1/mentions/:number/answer',
+    operationId: 'answerMention',
+    access: 'admin',
+    params: mentionNumberParamsSchema,
+    body: mentionAnswerSchema,
+    response: mentionRecordSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/mentions/:number/ignore',
+    operationId: 'ignoreMention',
+    access: 'admin',
+    params: mentionNumberParamsSchema,
+    response: mentionRecordSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/mention-settings',
+    operationId: 'getMentionSettings',
+    access: 'admin',
+    response: mentionSettingsSchema,
+  },
+  {
+    method: 'PUT',
+    path: '/v1/mention-settings',
+    operationId: 'updateMentionSettings',
+    access: 'admin',
+    body: mentionSettingsPatchSchema,
+    response: mentionSettingsSchema,
+  },
+  {
     method: 'GET',
     path: '/v1/screens',
     operationId: 'listScreens',
@@ -1200,6 +1260,16 @@ export const operations: Operation[] = [
     query: textIngressQuerySchema,
     body: z.string().trim().min(1).max(8000),
     response: ingressResultSchema,
+    status: 202,
+  },
+  {
+    // A comment written on the tracker, posted by its automation with the channel's token (B22).
+    method: 'POST',
+    path: '/v1/ingress/:channelId/comment',
+    operationId: 'commentIngress',
+    access: 'webhook',
+    body: commentIngressSchema,
+    response: commentIngressResultSchema,
     status: 202,
   },
   {

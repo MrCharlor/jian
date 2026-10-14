@@ -21,6 +21,7 @@ import { registerGatewayUi } from './http/ui.js';
 import { registerKnowledgeRoutes } from './knowledge/routes.js';
 import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
+import { registerMentionRoutes } from './mentions/routes.js';
 import { registerPautaRoutes } from './pautas/routes.js';
 import { registerPlanRoutes } from './plans/routes.js';
 import { registerPriorityRoutes } from './priorities/routes.js';
@@ -141,6 +142,7 @@ export function createApp(
   registerDrawingRoutes(app, options);
   registerEpicRoutes(app, options);
   registerValidationRoutes(app, options);
+  registerMentionRoutes(app, options);
   registerScreenRoutes(app, options);
   registerPlanRoutes(app, options);
   registerKnowledgeRoutes(app, options);
