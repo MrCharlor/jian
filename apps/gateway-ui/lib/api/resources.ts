@@ -7,6 +7,8 @@ import type {
   KnowledgeFilter,
   KnowledgePatch,
   KnowledgeSettingsPatch,
+  MentionSettingsPatch,
+  MentionState,
   NewApplication,
   NewPauta,
   NewPrototype,
@@ -172,6 +174,20 @@ export const resourceCalls = (client: Client) => ({
   updateKnowledgeSettings: (body: KnowledgeSettingsPatch) =>
     result(client.PUT('/v1/knowledge-settings', { body })),
   runEntrySync: () => result(client.POST('/v1/entry-sync/run', { body: { skip: [] } })),
+  mentions: (state?: MentionState) =>
+    result(client.GET('/v1/mentions', { params: { query: state ? { state } : {} } })),
+  answerMention: (number: number, text?: string) =>
+    result(
+      client.POST('/v1/mentions/{number}/answer', {
+        params: { path: { number } },
+        body: text ? { text } : {},
+      }),
+    ),
+  ignoreMention: (number: number) =>
+    result(client.POST('/v1/mentions/{number}/ignore', { params: { path: { number } } })),
+  mentionSettings: () => result(client.GET('/v1/mention-settings')),
+  updateMentionSettings: (body: MentionSettingsPatch) =>
+    result(client.PUT('/v1/mention-settings', { body })),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

@@ -3,6 +3,8 @@ import type {
   KnowledgeProposal,
   KnowledgeRule,
   KnowledgeSettings,
+  Mention,
+  MentionSettings,
   Plan,
   PlanSettings,
   PriorityProposal,
@@ -559,10 +561,92 @@ const knowledgeSettings: KnowledgeSettings = {
   curatorProfileId: reviewer,
 };
 
+const card = (board: string, activity: string) =>
+  `https://work.example.com/w/sistemas/b/${board}?activity=${activity}`;
+
+export const mentions: Mention[] = [
+  {
+    id: id(80),
+    number: 7,
+    commentId: 'comment-7',
+    activityId: '88413',
+    boardId: 'tasks',
+    cardTitle: 'Filtro de loja e período na listagem',
+    cardUrl: card('tasks', '88413'),
+    authorId: 'user-ricardo',
+    authorName: 'Ricardo Albuquerque',
+    body: 'Quatro pontos de regra ficaram assumidos e pedem confirmação do PO. O principal: o total do rodapé deve considerar as notas canceladas no período ou só as autorizadas? Hoje o Faturamento antigo soma as duas.',
+    state: 'waiting',
+    kind: 'alto_impacto',
+    highImpactItem: 1,
+    proposedReply:
+      'Só as autorizadas. Nota cancelada não entra no total do rodapé, igual ao relatório fiscal. Os outros três pontos seguem como você assumiu.',
+    reason: 'Toca o Faturamento: total de notas, que o Zend também lê.',
+    createdAt: at(50),
+    updatedAt: at(48),
+  },
+  {
+    id: id(81),
+    number: 6,
+    commentId: 'comment-6',
+    activityId: '88414',
+    boardId: 'tasks',
+    cardTitle: 'Totais por loja no rodapé',
+    cardUrl: card('tasks', '88414'),
+    authorId: 'user-ana',
+    authorName: 'Ana Tester',
+    body: 'O botão Limpar deve voltar o período para o mês atual ou para os últimos 30 dias?',
+    state: 'answered',
+    kind: 'comum',
+    proposedReply: 'Volta para o mês atual, como diz o Pronto quando do épico.',
+    publishedReply:
+      '@[Ana](mention:user-ana) Atena, pelo Moabe: Volta para o mês atual, como diz o Pronto quando do épico.',
+    reason: 'Pronto quando do épico, item 3.',
+    createdAt: at(60 * 3),
+    updatedAt: at(60 * 3 - 2),
+  },
+  {
+    id: id(82),
+    number: 5,
+    commentId: 'comment-5',
+    activityId: '88413',
+    boardId: 'tasks',
+    cardTitle: 'Filtro de loja e período na listagem',
+    cardUrl: card('tasks', '88413'),
+    authorId: 'user-lucas',
+    authorName: 'Lucas Larangeira',
+    body: 'PR aberto, pipeline verde.',
+    state: 'not_po',
+    reason: 'Status de PR.',
+    createdAt: at(60 * 5),
+    updatedAt: at(60 * 5),
+  },
+];
+
+const mentionSettings: MentionSettings = {
+  enabled: true,
+  scope: 'sigma',
+  signature: 'Atena, pelo Moabe:',
+  holdHours: 4,
+  highImpact: [
+    'Fiscal ou financeiro: nota, imposto, valor, Tipos e Natureza, Faturamento.',
+    'Dado em produção ou ação irreversível.',
+    'Escopo de épico em andamento.',
+    'Contradiz o Moabe.',
+    'Fora da Sigma.',
+    'Falta fato.',
+  ],
+  ownerUserId: 'b21a0000-0000-4000-8000-000000000099',
+};
+
 const ok = <T>(value: T) => HttpResponse.json(value as never);
 
 /** Reads answer from the data above; every write succeeds and changes nothing. */
 export const atenaHandlers = [
+  http.get('*/v1/mentions', () => ok(mentions)),
+  http.post('*/v1/mentions/*', () => ok(mentions[0])),
+  http.get('*/v1/mention-settings', () => ok(mentionSettings)),
+  http.put('*/v1/mention-settings', () => ok(mentionSettings)),
   http.get('*/v1/validations', () => ok(validations)),
   http.post('*/v1/validations/*', () => ok(validations[0])),
   http.patch('*/v1/validations/*', () => ok(validations[0])),
