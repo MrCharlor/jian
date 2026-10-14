@@ -269,7 +269,7 @@ export class Mentions {
     const comment = parseCommentIngress(payload);
 
     if (!comment) {
-      throw new GatewayError(400, 'A comment needs commentId, activityId, authorId and body');
+      throw new GatewayError(400, 'A comment needs commentId, activityId and authorId');
     }
 
     const settings = await this.settings();
@@ -289,6 +289,18 @@ export class Mentions {
     return { accepted: true };
   }
 
+  /** The comment as the tracker keeps it, when the automation sent only its ids. */
+  private async commentBody(comment: CommentIngress): Promise<string | undefined> {
+    const listed = (await (
+      await this.client()
+    ).call('GET', `/activities/${comment.activityId}/comments`)) as
+      | Array<{ id: string; body?: string }>
+      | { comments: Array<{ id: string; body?: string }> };
+    const comments = Array.isArray(listed) ? listed : (listed.comments ?? []);
+
+    return comments.find((item) => item.id === comment.commentId)?.body?.slice(0, 8000);
+  }
+
   /** Waits for every comment received so far; tests and a graceful stop read the outcome. */
   async settled(): Promise<void> {
     await Promise.allSettled([...this.inFlight]);
@@ -299,11 +311,18 @@ export class Mentions {
    * checked, and the comment goes to the triage, or straight to the answer when it mentions the
    * owner. Nothing is kept for the owner's own comments.
    */
-  async handle(comment: CommentIngress): Promise<Mention | undefined> {
+  async handle(received: CommentIngress): Promise<Mention | undefined> {
+    let comment = received;
     const settings = await this.settings();
     const owners = await this.owners(settings);
 
     if (owners.has(comment.authorId)) return undefined;
+    if (!comment.body) {
+      const body = await this.commentBody(comment);
+
+      if (!body) return undefined;
+      comment = { ...comment, body };
+    }
 
     const row = await this.keep(comment);
 

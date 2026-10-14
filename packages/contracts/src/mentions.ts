@@ -167,13 +167,15 @@ export function parseCommentIngress(payload: unknown): CommentIngress | undefine
   const authorName = read('authorName', 'author_name');
   const authorBotId = read('authorBotId', 'author_bot_id');
 
-  if (!commentId || !activityId || !authorId || !body) return undefined;
+  // The body may be left out: an automation that cannot quote text safely sends only the ids,
+  // and the comment is read from the tracker.
+  if (!commentId || !activityId || !authorId) return undefined;
 
   return {
     commentId: commentId.slice(0, 120),
     activityId: activityId.slice(0, 120),
     authorId: authorId.slice(0, 120),
-    body: body.slice(0, 8000),
+    body: (body ?? '').slice(0, 8000),
     ...(authorName ? { authorName: authorName.slice(0, 120) } : {}),
     ...(authorBotId ? { authorBotId: authorBotId.slice(0, 120) } : {}),
   };
