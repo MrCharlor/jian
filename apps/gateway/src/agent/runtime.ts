@@ -297,6 +297,11 @@ export class AgentRuntime {
       }
       // Only the Curator keeps the base; every other agent just reads it.
       if (!(await this.services.knowledge?.isCurator(profileId))) delete tools.propose_knowledge;
+      // Only the Estrategista keeps the roadmap; every other agent just reads it.
+      if (!(await this.services.roadmap?.isStrategist(profileId))) {
+        delete tools.propose_roadmap;
+        delete tools.sync_roadmap;
+      }
       if (learning) {
         for (const name of Object.keys(tools)) if (!LEARNING_TOOLS.has(name)) delete tools[name];
       }

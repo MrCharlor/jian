@@ -40,6 +40,8 @@ import { planTools } from '../plans/tools.js';
 import type { Priorities } from '../priorities/service.js';
 import type { ProfileAdmin } from '../profiles/port.js';
 import type { Prototypes } from '../prototypes/service.js';
+import type { Roadmap } from '../roadmap/service.js';
+import { roadmapTools } from '../roadmap/tools.js';
 import type { RunExecution, RunReader } from '../runs/port.js';
 import type { Schedules } from '../schedules/service.js';
 import type { Screens } from '../screens/service.js';
@@ -124,6 +126,7 @@ export type ToolServices = {
   knowledge?: Pick<Knowledge, 'lookup' | 'propose' | 'isCurator'>;
   entrySync?: Pick<EntrySync, 'run'>;
   mentions?: Pick<Mentions, 'triaged' | 'answered'>;
+  roadmap?: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'isStrategist'>;
 };
 
 export function profileTools(
@@ -282,6 +285,7 @@ export function profileTools(
     ...(services.plans ? planTools(services.plans, run) : {}),
     ...(services.knowledge ? knowledgeTools(services.knowledge, run) : {}),
     ...(services.mentions ? mentionTools(services.mentions, run) : {}),
+    ...(services.roadmap ? roadmapTools(services.roadmap, run) : {}),
     ...(services.entrySync
       ? {
           propose_entry_sync: tool({
@@ -731,6 +735,11 @@ export const TOOL_GROUPS = {
     summary:
       'triage a comment on the work tracker for the owner, and answer it on the card or propose the answer to the owner',
     tools: ['triage_comment', 'answer_mention'],
+  },
+  roadmap: {
+    summary:
+      'read the products’ roadmap (lanes agora, proximo, depois); as the Estrategista, send the reading of the boards and propose items, moves, conclusions and discards for the owner’s OK',
+    tools: ['read_roadmap', 'sync_roadmap', 'propose_roadmap'],
   },
   draw: {
     summary:

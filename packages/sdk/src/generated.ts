@@ -1023,6 +1023,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/roadmap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listRoadmap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roadmap/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["createRoadmapItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roadmap/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Required permission: admin. */
+        patch: operations["updateRoadmapItem"];
+        trace?: never;
+    };
+    "/v1/roadmap/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["runRoadmapSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roadmap-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["listRoadmapProposals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roadmap-proposals/{number}/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Required permission: admin. */
+        post: operations["decideRoadmapProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/roadmap-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Required permission: admin. */
+        get: operations["readRoadmapSettings"];
+        /** @description Required permission: admin. */
+        put: operations["updateRoadmapSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/screens": {
         parameters: {
             query?: never;
@@ -14498,6 +14618,1284 @@ export interface operations {
             };
         };
     };
+    listRoadmap: {
+        parameters: {
+            query?: {
+                application?: string;
+                lane?: "agora" | "proximo" | "depois";
+                state?: "ativo" | "concluido" | "descartado";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        applicationId: string;
+                        application: string;
+                        applicationName: string;
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        kind: "feature" | "melhoria" | "divida" | "ideia";
+                        /** @enum {string} */
+                        lane: "agora" | "proximo" | "depois";
+                        position: number;
+                        /** @enum {string} */
+                        state: "ativo" | "concluido" | "descartado";
+                        blocked: boolean;
+                        /** @enum {string} */
+                        origin: "moabe" | "pedido" | "pauta" | "sugestao";
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pautaTitle?: string;
+                        requestWorkId?: string;
+                        requestUrl?: string;
+                        epicWorkIds: string[];
+                        theme?: string;
+                        createdBy: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        /** Format: date-time */
+                        concludedAt?: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    createRoadmapItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    application: string;
+                    title: string;
+                    /** @default  */
+                    summary?: string;
+                    /**
+                     * @default ideia
+                     * @enum {string}
+                     */
+                    kind?: "feature" | "melhoria" | "divida" | "ideia";
+                    /**
+                     * @default depois
+                     * @enum {string}
+                     */
+                    lane?: "agora" | "proximo" | "depois";
+                    theme?: string;
+                    /** Format: uuid */
+                    pautaId?: string;
+                    requestWorkId?: string;
+                    /** @default [] */
+                    epicWorkIds?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        applicationId: string;
+                        application: string;
+                        applicationName: string;
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        kind: "feature" | "melhoria" | "divida" | "ideia";
+                        /** @enum {string} */
+                        lane: "agora" | "proximo" | "depois";
+                        position: number;
+                        /** @enum {string} */
+                        state: "ativo" | "concluido" | "descartado";
+                        blocked: boolean;
+                        /** @enum {string} */
+                        origin: "moabe" | "pedido" | "pauta" | "sugestao";
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pautaTitle?: string;
+                        requestWorkId?: string;
+                        requestUrl?: string;
+                        epicWorkIds: string[];
+                        theme?: string;
+                        createdBy: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        /** Format: date-time */
+                        concludedAt?: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updateRoadmapItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    application?: string;
+                    title?: string;
+                    summary?: string;
+                    /** @enum {string} */
+                    kind?: "feature" | "melhoria" | "divida" | "ideia";
+                    /** @enum {string} */
+                    lane?: "agora" | "proximo" | "depois";
+                    position?: number;
+                    /** @enum {string} */
+                    state?: "ativo" | "concluido" | "descartado";
+                    blocked?: boolean;
+                    theme?: string | null;
+                    /** Format: uuid */
+                    pautaId?: string | null;
+                    requestWorkId?: string | null;
+                    epicWorkIds?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** Format: uuid */
+                        applicationId: string;
+                        application: string;
+                        applicationName: string;
+                        title: string;
+                        summary: string;
+                        /** @enum {string} */
+                        kind: "feature" | "melhoria" | "divida" | "ideia";
+                        /** @enum {string} */
+                        lane: "agora" | "proximo" | "depois";
+                        position: number;
+                        /** @enum {string} */
+                        state: "ativo" | "concluido" | "descartado";
+                        blocked: boolean;
+                        /** @enum {string} */
+                        origin: "moabe" | "pedido" | "pauta" | "sugestao";
+                        /** Format: uuid */
+                        pautaId?: string;
+                        pautaTitle?: string;
+                        requestWorkId?: string;
+                        requestUrl?: string;
+                        epicWorkIds: string[];
+                        theme?: string;
+                        createdBy: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                        /** Format: date-time */
+                        updatedAt: string;
+                        /** Format: date-time */
+                        concludedAt?: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    runRoadmapSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @default leitura
+                     * @enum {string}
+                     */
+                    kind?: "leitura" | "sugestoes";
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        kind: "leitura" | "sugestoes";
+                        /** Format: uuid */
+                        profileId: string;
+                        /** Format: uuid */
+                        sessionId: string;
+                        workRead: boolean;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    listRoadmapProposals: {
+        parameters: {
+            query?: {
+                state?: "aguardando_po" | "aplicada" | "recusada";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        kind: "incluir" | "mover" | "concluir" | "descartar";
+                        /** Format: uuid */
+                        itemId?: string;
+                        itemNumber?: number;
+                        itemTitle?: string;
+                        application?: string;
+                        applicationName?: string;
+                        /** @enum {string} */
+                        fromLane?: "agora" | "proximo" | "depois";
+                        /** @enum {string} */
+                        lane?: "agora" | "proximo" | "depois";
+                        item?: {
+                            application: string;
+                            title: string;
+                            /** @default  */
+                            summary: string;
+                            /**
+                             * @default feature
+                             * @enum {string}
+                             */
+                            kind: "feature" | "melhoria" | "divida" | "ideia";
+                            /**
+                             * @default depois
+                             * @enum {string}
+                             */
+                            lane: "agora" | "proximo" | "depois";
+                            theme?: string;
+                            /**
+                             * @default sugestao
+                             * @enum {string}
+                             */
+                            origin: "pedido" | "pauta" | "sugestao";
+                            /** Format: uuid */
+                            pautaId?: string;
+                            requestWorkId?: string;
+                            /** @default [] */
+                            epicWorkIds: string[];
+                        };
+                        reason: string;
+                        counterpoint?: string;
+                        evidence: string[];
+                        highImpact: boolean;
+                        /** @enum {string} */
+                        state: "aguardando_po" | "aplicada" | "recusada";
+                        proposedBy?: string;
+                        /** @enum {string} */
+                        appliedBy?: "owner" | "automatico";
+                        resultNumber?: number;
+                        note?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    decideRoadmapProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "ok" | "edit" | "refuse";
+                    text?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        number: number;
+                        /** @enum {string} */
+                        kind: "incluir" | "mover" | "concluir" | "descartar";
+                        /** Format: uuid */
+                        itemId?: string;
+                        itemNumber?: number;
+                        itemTitle?: string;
+                        application?: string;
+                        applicationName?: string;
+                        /** @enum {string} */
+                        fromLane?: "agora" | "proximo" | "depois";
+                        /** @enum {string} */
+                        lane?: "agora" | "proximo" | "depois";
+                        item?: {
+                            application: string;
+                            title: string;
+                            /** @default  */
+                            summary: string;
+                            /**
+                             * @default feature
+                             * @enum {string}
+                             */
+                            kind: "feature" | "melhoria" | "divida" | "ideia";
+                            /**
+                             * @default depois
+                             * @enum {string}
+                             */
+                            lane: "agora" | "proximo" | "depois";
+                            theme?: string;
+                            /**
+                             * @default sugestao
+                             * @enum {string}
+                             */
+                            origin: "pedido" | "pauta" | "sugestao";
+                            /** Format: uuid */
+                            pautaId?: string;
+                            requestWorkId?: string;
+                            /** @default [] */
+                            epicWorkIds: string[];
+                        };
+                        reason: string;
+                        counterpoint?: string;
+                        evidence: string[];
+                        highImpact: boolean;
+                        /** @enum {string} */
+                        state: "aguardando_po" | "aplicada" | "recusada";
+                        proposedBy?: string;
+                        /** @enum {string} */
+                        appliedBy?: "owner" | "automatico";
+                        resultNumber?: number;
+                        note?: string;
+                        /** @enum {string} */
+                        decidedVia?: "panel" | "channel" | "api" | "automatico";
+                        /** Format: date-time */
+                        decidedAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    readRoadmapSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        strategistProfileId?: string;
+                        automaticMoves: boolean;
+                        suggestionsPerRound: number;
+                        applications: string[];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
+    updateRoadmapSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    strategistProfileId?: string | null;
+                    automaticMoves?: boolean;
+                    suggestionsPerRound?: number;
+                    applications?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        strategistProfileId?: string;
+                        automaticMoves: boolean;
+                        suggestionsPerRound: number;
+                        applications: string[];
+                    };
+                };
+            };
+            /** @description Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Error */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+        };
+    };
     listScreens: {
         parameters: {
             query?: {
@@ -17471,7 +18869,7 @@ export interface operations {
                         };
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref: string;
                             /** Format: date */
@@ -17610,7 +19008,7 @@ export interface operations {
                         };
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref?: string;
                             /** Format: date */
@@ -17650,7 +19048,7 @@ export interface operations {
                             };
                             source: {
                                 /** @enum {string} */
-                                kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                                kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                                 /** @default  */
                                 ref: string;
                                 /** Format: date */
@@ -17801,7 +19199,7 @@ export interface operations {
                         };
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref: string;
                             /** Format: date */
@@ -17965,7 +19363,7 @@ export interface operations {
                         };
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref: string;
                             /** Format: date */
@@ -18119,7 +19517,7 @@ export interface operations {
                         reason: string;
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref: string;
                             /** Format: date */
@@ -18278,7 +19676,7 @@ export interface operations {
                         reason: string;
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref: string;
                             /** Format: date */
@@ -18443,7 +19841,7 @@ export interface operations {
                         reason: string;
                         source: {
                             /** @enum {string} */
-                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "manual";
+                            kind: "inventario" | "plano" | "correcao" | "decisao" | "validacao" | "mencao" | "roadmap" | "manual";
                             /** @default  */
                             ref: string;
                             /** Format: date */

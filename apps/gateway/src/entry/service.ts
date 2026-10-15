@@ -15,23 +15,18 @@ import { decidedEntryPlans } from '../plans/repository.js';
 import type { WorkClient, WorkClientOpener } from '../priorities/work-board.js';
 import type { Store } from '../storage/database.js';
 import { validations } from '../storage/schema.js';
+import {
+  type BoardActivity,
+  type BoardColumns,
+  boardColumns,
+  columnCards,
+  columnName,
+  dependsOn,
+  type EntryKey,
+  type WorkKey,
+} from '../work/readers.js';
 
-type Activity = {
-  id: string;
-  title: string;
-  status_id: string;
-  board_id: string;
-  version: number;
-  parent_id?: string | null;
-  created_at: string;
-};
-
-type Relationship = {
-  activity_id: string;
-  board_id?: string | null;
-  relation_type: string;
-  direction: string;
-};
+type Activity = BoardActivity;
 
 type HistoryEvent = {
   event_type: string;
@@ -49,9 +44,6 @@ export type EntryPlanner = {
   closeEntrySync(note: string): Promise<number>;
 };
 
-type EntryKey = keyof EntryTarget['entryColumns'];
-type WorkKey = keyof EntryTarget['workColumns'];
-
 /** The columns a request moves into, and the ones it may come from. */
 const ENTRY_TO: EntryKey[] = ['running', 'blocked', 'done'];
 const ENTRY_FROM: EntryKey[] = ['prioritized', 'running'];
@@ -60,15 +52,9 @@ const EPIC_TO: WorkKey[] = ['doing', 'review'];
 
 const DAY = 86_400_000;
 
-const norm = (name: string) => name.normalize('NFC').trim().toLowerCase();
+const norm = columnName;
 
-type Columns = {
-  entry: Record<EntryKey, string>;
-  work: Record<WorkKey, string>;
-  /** A column name on the epics or the tasks board, normalized, by status id. */
-  epicName(statusId: string): string;
-  taskName(statusId: string): string;
-};
+type Columns = BoardColumns;
 
 /**
  * The Entrada follows the epic (B20). Each read compares every request of the Entrada with the
@@ -105,111 +91,16 @@ export class EntrySync {
     return this.open(profileId, { workspaceId: this.target.workspaceId });
   }
 
-  /**
-   * The columns as the boards name them now. A column missing, or an Entrada column whose id
-   * does not start as the team recorded, stops the read: the board changed under the names.
-   */
-  private async columns(client: WorkClient): Promise<Columns> {
-    const read = async (boardId: string) => {
-      const answer = (await client.call('GET', `/boards/${boardId}/statuses`)) as {
-        statuses: Array<{ id: string; name: string }> | null;
-      };
-      const list = answer.statuses ?? [];
-
-      return {
-        byName: new Map(list.map((item) => [norm(item.name), item.id])),
-        byId: new Map(list.map((item) => [item.id, norm(item.name)])),
-      };
-    };
-    const [entry, epics, tasks] = await Promise.all([
-      read(this.target.entryBoardId),
-      read(this.target.epicsBoardId),
-      read(this.target.tasksBoardId),
-    ]);
-    const pick = (
-      map: Map<string, string>,
-      name: string,
-      board: string,
-      expected?: (id: string) => boolean,
-    ) => {
-      const id = map.get(norm(name));
-
-      if (!id) throw new GatewayError(409, `The ${board} board has no column "${name}"`);
-      if (expected && !expected(id)) {
-        throw new GatewayError(
-          409,
-          `The ${board} column "${name}" is ${id}, not the one recorded for it; check the target`,
-        );
-      }
-
-      return id;
-    };
-    const entryIds = Object.fromEntries(
-      (Object.keys(this.target.entryColumns) as EntryKey[]).map((key) => {
-        const prefix = this.target.entryColumnIds[key];
-
-        return [
-          key,
-          pick(
-            entry.byName,
-            this.target.entryColumns[key],
-            'Entrada',
-            prefix ? (id) => id.startsWith(prefix) : undefined,
-          ),
-        ];
-      }),
-    ) as Record<EntryKey, string>;
-    const workIds = Object.fromEntries(
-      (Object.keys(this.target.workColumns) as WorkKey[]).map((key) => [
-        key,
-        pick(
-          epics.byName,
-          this.target.workColumns[key],
-          'Epics',
-          key === 'todo' && this.target.todoStatusId
-            ? (id) => id === this.target.todoStatusId
-            : undefined,
-        ),
-      ]),
-    ) as Record<WorkKey, string>;
-
-    return {
-      entry: entryIds,
-      work: workIds,
-      epicName: (id) => epics.byId.get(id) ?? id,
-      taskName: (id) => tasks.byId.get(id) ?? epics.byId.get(id) ?? id,
-    };
+  private columns(client: WorkClient): Promise<Columns> {
+    return boardColumns(client, this.target);
   }
 
-  private async column(client: WorkClient, boardId: string, statusId: string) {
-    const cards: Activity[] = [];
-    let cursor = '';
-
-    do {
-      const page = (await client.call(
-        'GET',
-        `/boards/${boardId}/activities/column?status_id=${statusId}&limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
-      )) as { items: Activity[] | null; next_cursor?: string | null };
-
-      cards.push(...(page.items ?? []));
-      cursor = page.next_cursor ?? '';
-    } while (cursor && cards.length < 500);
-
-    return cards;
+  private column(client: WorkClient, boardId: string, statusId: string) {
+    return columnCards(client, boardId, statusId);
   }
 
-  /** The epics of the squad a request depends on: "depende de" pointing to the epics board. */
-  private async dependsOn(client: WorkClient, requestId: string, epics: Map<string, Activity>) {
-    const answer = (await client.call('GET', `/activities/${requestId}/relationships`)) as {
-      relationships: Relationship[] | null;
-    };
-
-    return (answer.relationships ?? []).filter(
-      (item) =>
-        item.relation_type === 'depends_on' &&
-        item.direction === 'out' &&
-        (item.board_id === this.target.epicsBoardId || epics.has(item.activity_id)),
-    );
+  private dependsOn(client: WorkClient, requestId: string, epics: Map<string, Activity>) {
+    return dependsOn(client, this.target, requestId, epics);
   }
 
   /** When the request reached Priorizado: its last move there, or when it reached the board. */

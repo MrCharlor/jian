@@ -29,6 +29,7 @@ import { SubscriptionUsageReader } from './providers/subscription-usage.js';
 import { Quality } from './quality/service.js';
 import { RepositoryStars } from './releases/repository.js';
 import { ReleaseNotes } from './releases/service.js';
+import { Roadmap } from './roadmap/service.js';
 import { RunLifecycle } from './runs/lifecycle.js';
 import { Runs } from './runs/service.js';
 import { Schedules } from './schedules/service.js';
@@ -60,6 +61,7 @@ export type Services = {
   epics: Epics;
   validations: Validations;
   mentions: Mentions;
+  roadmap: Roadmap;
   screens: Screens;
   plans: Plans;
   knowledge: Knowledge;
@@ -215,6 +217,31 @@ export function buildServices({
   mentions.useOwner((text, short) => ownerNotices.tell(text, 'mention', short));
   mentions.useLearner((lesson) => knowledge.learn(lesson));
   runs.useMentions(mentions);
+  // The products' roadmap (B24): the Estrategista proposes in conversations of its own, the
+  // owner hears of the proposals as of the plans, and refusals reach the Curator.
+  const roadmap = new Roadmap(
+    store,
+    profiles,
+    applications,
+    workClients,
+    workProfile,
+    SIGMA_ENTRY,
+    quality,
+    clock,
+  );
+  roadmap.useAgents({
+    submit: (profileId, sessionId, text, requestKey) =>
+      runs.submit(profileId, sessionId, { text, requestKey }),
+    session: async (profileId, title) =>
+      (await sessions.sessions(profileId)).find(
+        (session) => session.channel === 'roadmap' && session.title === title,
+      ) ?? sessions.createSession(profileId, { title, channel: 'roadmap' }),
+    remember: (profileId, key, content) =>
+      memories.remember(profileId, { key, content, expectedVersion: 0 }),
+  });
+  roadmap.useOwner((text, short) => ownerNotices.tell(text, 'roadmap', short));
+  roadmap.useLearner((lesson) => knowledge.learn(lesson));
+  runs.useRoadmap(roadmap);
   epics.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -252,6 +279,7 @@ export function buildServices({
     epics,
     validations,
     mentions,
+    roadmap,
     screens: new Screens(store, applications, clock),
     plans,
     knowledge,

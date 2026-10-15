@@ -18,6 +18,7 @@ export * from './prototypes.js';
 export * from './providers.js';
 export * from './records.js';
 export * from './releases.js';
+export * from './roadmap.js';
 export * from './schedules.js';
 export * from './screens.js';
 export * from './security.js';

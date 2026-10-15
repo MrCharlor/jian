@@ -50,6 +50,7 @@ const sourceLabel: Record<KnowledgeRule['source']['kind'], string> = {
   decisao: 'decisão',
   validacao: 'validação',
   mencao: 'menção no Work',
+  roadmap: 'roadmap',
   manual: 'manual',
 };
 

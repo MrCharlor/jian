@@ -161,6 +161,21 @@ import {
 } from './records.js';
 import { releasesSchema, repositorySchema } from './releases.js';
 import {
+  roadmapDecideSchema,
+  roadmapItemCreateSchema,
+  roadmapItemParamsSchema,
+  roadmapItemPatchSchema,
+  roadmapItemSchema,
+  roadmapListQuerySchema,
+  roadmapProposalListQuerySchema,
+  roadmapProposalParamsSchema,
+  roadmapProposalRecordSchema,
+  roadmapRunResultSchema,
+  roadmapRunSchema,
+  roadmapSettingsPatchSchema,
+  roadmapSettingsSchema,
+} from './roadmap.js';
+import {
   gatewaySettingsPatchSchema,
   gatewaySettingsSchema,
   scheduleInputSchema,
@@ -862,6 +877,78 @@ export const operations: Operation[] = [
     access: 'admin',
     body: mentionSettingsPatchSchema,
     response: mentionSettingsSchema,
+  },
+  {
+    // The roadmap of the products (B24), lane by lane in order.
+    method: 'GET',
+    path: '/v1/roadmap',
+    operationId: 'listRoadmap',
+    access: 'admin',
+    query: roadmapListQuerySchema,
+    response: z.array(roadmapItemSchema),
+  },
+  {
+    // The owner's own item: direct, in Depois unless a lane is given.
+    method: 'POST',
+    path: '/v1/roadmap/items',
+    operationId: 'createRoadmapItem',
+    access: 'admin',
+    body: roadmapItemCreateSchema,
+    response: roadmapItemSchema,
+    status: 201,
+  },
+  {
+    // The owner's edit: lane and order, texts, theme, concluding or discarding. Direct.
+    method: 'PATCH',
+    path: '/v1/roadmap/items/:itemId',
+    operationId: 'updateRoadmapItem',
+    access: 'admin',
+    params: roadmapItemParamsSchema,
+    body: roadmapItemPatchSchema,
+    response: roadmapItemSchema,
+  },
+  {
+    // Starts the Estrategista's reading of the boards, or its suggestions, now.
+    method: 'POST',
+    path: '/v1/roadmap/sync',
+    operationId: 'runRoadmapSync',
+    access: 'admin',
+    body: roadmapRunSchema,
+    response: roadmapRunResultSchema,
+    status: 202,
+  },
+  {
+    method: 'GET',
+    path: '/v1/roadmap-proposals',
+    operationId: 'listRoadmapProposals',
+    access: 'admin',
+    query: roadmapProposalListQuerySchema,
+    response: z.array(roadmapProposalRecordSchema),
+  },
+  {
+    // The owner on a proposal: apply it, apply it adjusted, or refuse it.
+    method: 'POST',
+    path: '/v1/roadmap-proposals/:number/decide',
+    operationId: 'decideRoadmapProposal',
+    access: 'admin',
+    params: roadmapProposalParamsSchema,
+    body: roadmapDecideSchema,
+    response: roadmapProposalRecordSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/roadmap-settings',
+    operationId: 'readRoadmapSettings',
+    access: 'admin',
+    response: roadmapSettingsSchema,
+  },
+  {
+    method: 'PUT',
+    path: '/v1/roadmap-settings',
+    operationId: 'updateRoadmapSettings',
+    access: 'admin',
+    body: roadmapSettingsPatchSchema,
+    response: roadmapSettingsSchema,
   },
   {
     method: 'GET',

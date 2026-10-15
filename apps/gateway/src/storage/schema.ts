@@ -1464,3 +1464,62 @@ export const mentions = pgTable(
   },
   (table) => [index('mentions_state').on(table.state, table.createdAt.desc())],
 );
+
+/**
+ * An item of the products' roadmap (B24): a lane, an order within it, and pointers to the
+ * request, the topic and the epics it rests on, whose stage is still read where they live.
+ */
+export const roadmapItems = pgTable(
+  'roadmap_items',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    applicationId: uuid('application_id')
+      .notNull()
+      .references(() => applications.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    summary: text('summary').notNull().default(''),
+    kind: text('kind').notNull(),
+    lane: text('lane').notNull(),
+    position: integer('position').notNull().default(0),
+    state: text('state').notNull(),
+    blocked: boolean('blocked').notNull().default(false),
+    origin: text('origin').notNull(),
+    pautaId: uuid('pauta_id').references(() => pautas.id, { onDelete: 'set null' }),
+    requestWorkId: text('request_work_id'),
+    epicWorkIds: jsonb('epic_work_ids').$type<string[]>().notNull().default([]),
+    theme: text('theme'),
+    /** The profile that proposed it, or "owner". */
+    createdBy: text('created_by').notNull(),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    concludedAt: timestamp('concluded_at', { withTimezone: true }),
+  },
+  (table) => [index('roadmap_items_lane').on(table.state, table.lane, table.position)],
+);
+
+/** A change the Estrategista proposed to the roadmap, and what the owner decided. */
+export const roadmapProposals = pgTable(
+  'roadmap_proposals',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    kind: text('kind').notNull(),
+    itemId: uuid('item_id').references(() => roadmapItems.id, { onDelete: 'set null' }),
+    /** The new item for incluir; the lanes for mover; the item's lane for the others. */
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    reason: text('reason').notNull(),
+    counterpoint: text('counterpoint'),
+    evidence: jsonb('evidence').$type<string[]>().notNull().default([]),
+    highImpact: boolean('high_impact').notNull().default(false),
+    state: text('state').notNull(),
+    proposedBy: uuid('proposed_by').references(() => profiles.id, { onDelete: 'set null' }),
+    appliedBy: text('applied_by'),
+    resultId: uuid('result_id').references(() => roadmapItems.id, { onDelete: 'set null' }),
+    note: text('note'),
+    decidedVia: text('decided_via'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt,
+  },
+  (table) => [index('roadmap_proposals_state').on(table.state, table.createdAt.desc())],
+);

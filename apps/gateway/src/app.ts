@@ -32,6 +32,7 @@ import type { ProviderModels } from './providers/discovery.js';
 import { registerProviderRoutes } from './providers/routes.js';
 import { registerQualityRoutes } from './quality/routes.js';
 import { registerReleaseRoutes } from './releases/routes.js';
+import { registerRoadmapRoutes } from './roadmap/routes.js';
 import { registerRunRoutes } from './runs/routes.js';
 import { registerScheduleRoutes } from './schedules/routes.js';
 import { registerScreenRoutes } from './screens/routes.js';
@@ -143,6 +144,7 @@ export function createApp(
   registerEpicRoutes(app, options);
   registerValidationRoutes(app, options);
   registerMentionRoutes(app, options);
+  registerRoadmapRoutes(app, options);
   registerScreenRoutes(app, options);
   registerPlanRoutes(app, options);
   registerKnowledgeRoutes(app, options);

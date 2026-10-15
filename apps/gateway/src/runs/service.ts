@@ -10,6 +10,8 @@ import {
   parseKnowledgeReply,
   parseMentionReply,
   parsePlanReply,
+  parseRoadmapNote,
+  parseRoadmapReply,
   parseValidationCommentReply,
   parseValidationReply,
   type Run,
@@ -30,6 +32,7 @@ import type { ModelFallback } from '../providers/fallback.js';
 import type { ProviderSelection } from '../providers/port.js';
 import { readModelDefaults, writeModelDefaults } from '../providers/repository.js';
 import type { Quality } from '../quality/service.js';
+import { Roadmap as RoadmapNotices } from '../roadmap/service.js';
 import type { SessionReader } from '../sessions/port.js';
 import {
   insertMessage,
@@ -142,6 +145,12 @@ export class Runs {
 
   useMentions(mentions: Pick<MentionNotices, 'fromChat'>) {
     this.mentions = mentions;
+  }
+
+  private roadmap?: Pick<RoadmapNotices, 'fromChat' | 'note'>;
+
+  useRoadmap(roadmap: Pick<RoadmapNotices, 'fromChat' | 'note'>) {
+    this.roadmap = roadmap;
   }
 
   private knowledge?: Pick<KnowledgeNotices, 'fromChat' | 'learn'>;
@@ -297,6 +306,37 @@ export class Runs {
       });
 
       if (mention) parsed.text = MentionNotices.notice(mention);
+    }
+
+    // "ok roadmap 1-12", "recusa roadmap 4: …" or "roadmap 4: …" answers the Estrategista;
+    // "roadmap: <ideia> no <produto>" is the owner's own item, straight into Depois.
+    const roadmapFree =
+      options.ownerMessage &&
+      this.roadmap &&
+      !reply &&
+      !decided &&
+      !planned &&
+      !ruled &&
+      !validated &&
+      !commented &&
+      !mentioned &&
+      !parsed.mediaIds?.length;
+    const charted = roadmapFree ? parseRoadmapReply(parsed.text) : undefined;
+    const noted = roadmapFree && !charted ? parseRoadmapNote(parsed.text) : undefined;
+
+    if (charted && this.roadmap) {
+      const result = await this.roadmap.fromChat(charted);
+
+      if (result.proposals.length || result.failed.length) {
+        parsed.text = RoadmapNotices.notice(result);
+      }
+    } else if (noted && this.roadmap) {
+      const result = await this.roadmap.note(noted).catch((error: unknown) => {
+        if (error instanceof GatewayError && [404, 409].includes(error.statusCode)) return null;
+        throw error;
+      });
+
+      if (result) parsed.text = RoadmapNotices.noted(result);
     }
 
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of

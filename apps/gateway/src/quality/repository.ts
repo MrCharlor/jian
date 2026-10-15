@@ -9,6 +9,7 @@ import {
   priorityProposals,
   prototypes,
   prototypeVersions,
+  roadmapProposals,
   runs,
   validations,
 } from '../storage/schema.js';
@@ -137,7 +138,23 @@ export async function listRounds(db: Queryable, profileId: string): Promise<Roun
     .orderBy(desc(mentions.createdAt))
     .limit(5000);
 
+  // Each proposal of the Estrategista the owner decided, or that applied on its own, is one
+  // round of the roadmap.
+  const charted = await db
+    .select({ at: roadmapProposals.decidedAt })
+    .from(roadmapProposals)
+    .where(
+      and(
+        eq(roadmapProposals.proposedBy, profileId),
+        inArray(roadmapProposals.state, ['aplicada', 'recusada']),
+        isNotNull(roadmapProposals.decidedAt),
+      ),
+    )
+    .orderBy(desc(roadmapProposals.decidedAt))
+    .limit(5000);
+
   return [
+    ...charted.map((row) => ({ automation: 'roadmap', at: row.at as Date })),
     ...answered.map((row) => ({ automation: 'mencao', at: row.at })),
     ...checked.map((row) => ({ automation: 'validacao', at: row.at as Date })),
     ...ordered.map((row) => ({ automation: 'priorizacao', at: row.at as Date })),
