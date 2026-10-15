@@ -18,6 +18,7 @@ import {
   ListOrdered,
   ListTodo,
   type LucideIcon,
+  MapIcon,
   MessageSquare,
   PenTool,
   Plug,
@@ -40,6 +41,7 @@ export type NavigationItem = {
 export const navigation: NavigationItem[] = [
   { href: '/providers', label: 'Providers', icon: Plug, group: 'global' },
   { href: '/pautas', label: 'Pautas', icon: ClipboardList, group: 'global' },
+  { href: '/roadmap', label: 'Roadmap', icon: MapIcon, group: 'global' },
   { href: '/board', label: 'Quadro', icon: Columns3, group: 'global' },
   { href: '/validations', label: 'Validações', icon: ClipboardCheck, group: 'global' },
   { href: '/mentions', label: 'Menções', icon: AtSign, group: 'global' },

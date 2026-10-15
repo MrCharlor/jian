@@ -12,10 +12,16 @@ import type {
   NewApplication,
   NewPauta,
   NewPrototype,
+  NewRoadmapItem,
   PlanSettings,
   PlanSettingsPatch,
   PlanState,
   ReturnDraftPatch,
+  RoadmapDecision,
+  RoadmapFilter,
+  RoadmapItemPatch,
+  RoadmapProposalState,
+  RoadmapSettingsPatch,
   ScheduleInput,
   SchedulePatch,
   ScreenFilter,
@@ -188,6 +194,21 @@ export const resourceCalls = (client: Client) => ({
   mentionSettings: () => result(client.GET('/v1/mention-settings')),
   updateMentionSettings: (body: MentionSettingsPatch) =>
     result(client.PUT('/v1/mention-settings', { body })),
+  roadmap: (query: RoadmapFilter = {}) => result(client.GET('/v1/roadmap', { params: { query } })),
+  createRoadmapItem: (body: NewRoadmapItem) => result(client.POST('/v1/roadmap/items', { body })),
+  updateRoadmapItem: (itemId: string, body: RoadmapItemPatch) =>
+    result(client.PATCH('/v1/roadmap/items/{itemId}', { params: { path: { itemId } }, body })),
+  roadmapProposals: (state?: RoadmapProposalState) =>
+    result(client.GET('/v1/roadmap-proposals', { params: { query: state ? { state } : {} } })),
+  decideRoadmapProposal: (number: number, body: RoadmapDecision) =>
+    result(
+      client.POST('/v1/roadmap-proposals/{number}/decide', { params: { path: { number } }, body }),
+    ),
+  roadmapSettings: () => result(client.GET('/v1/roadmap-settings')),
+  updateRoadmapSettings: (body: RoadmapSettingsPatch) =>
+    result(client.PUT('/v1/roadmap-settings', { body })),
+  runRoadmapSync: (kind: 'leitura' | 'sugestoes') =>
+    result(client.POST('/v1/roadmap/sync', { body: { kind } })),
   validations: () => result(client.GET('/v1/validations')),
   scanValidations: () => result(client.POST('/v1/validations/scan')),
   answerValidation: (validationId: string, body: ValidationAnswer) =>

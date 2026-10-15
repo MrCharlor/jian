@@ -1,8 +1,8 @@
 /* biome-ignore-all lint/style/noDescendingSpecificity: Each page part keeps its states next to it; the selectors do not overlap. */
 /*
- * The product owner's pages (Validações, Planos, Rotinas, Priorização, Telas, Conhecimento),
- * drawn with the same pieces as Providers and Channels: row groups under small headings,
- * request cards whose content keeps the card's padding, and nothing that runs past its box.
+ * The product owner's pages (Validações, Planos, Rotinas, Priorização, Telas, Conhecimento,
+ * Roadmap), drawn with the same pieces as Providers and Channels: row groups under small
+ * headings, request cards whose content keeps the card's padding, and nothing that runs past its box.
  */
 @layer components {
   /* A long word or link breaks inside its box instead of pushing out of it. */
@@ -344,5 +344,33 @@
   }
   .owner-meta small {
     @apply text-muted;
+  }
+  /* The roadmap's three lanes side by side on a wide screen, one under the other on a phone. */
+  .roadmap-lanes {
+    @apply mt-10 grid items-start gap-6 lg:grid-cols-3;
+  }
+  .roadmap-lanes > .row-group {
+    @apply mt-0 min-w-0;
+  }
+  .roadmap-lanes .request-card > footer {
+    @apply flex-wrap justify-start gap-2;
+  }
+  .roadmap-lanes .request-card > footer > .button {
+    @apply min-h-9 px-3;
+  }
+  .roadmap-lanes .request-card > footer > .button:first-of-type {
+    @apply ml-0;
+  }
+  .roadmap-lanes + .disclosure {
+    @apply mt-10;
+  }
+  .roadmap-products {
+    @apply flex flex-wrap gap-x-5 gap-y-2 text-sm;
+  }
+  .roadmap-products legend {
+    @apply mb-2 text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+  .roadmap-products label {
+    @apply flex items-center gap-2;
   }
 }

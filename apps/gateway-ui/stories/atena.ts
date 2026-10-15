@@ -8,6 +8,9 @@ import type {
   Plan,
   PlanSettings,
   PriorityProposal,
+  RoadmapItem,
+  RoadmapProposal,
+  RoadmapSettings,
   Routines,
   Screen,
   Validation,
@@ -16,9 +19,9 @@ import { at } from './conversations';
 import { ids } from './fixtures';
 
 /**
- * The product owner's pages (Validações, Planos, Rotinas, Priorização, Telas, Conhecimento)
- * with believable work in them: long notes, long links, a plan with questions, a refusal with
- * its comment draft. Synthetic from end to end, like the rest of the fixtures.
+ * The product owner's pages (Validações, Planos, Rotinas, Priorização, Telas, Conhecimento,
+ * Roadmap) with believable work in them: long notes, long links, a plan with questions, a
+ * refusal with its comment draft. Synthetic from end to end, like the rest of the fixtures.
  */
 const id = (index: number) => `b21a0000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 
@@ -639,10 +642,163 @@ const mentionSettings: MentionSettings = {
   ownerUserId: 'b21a0000-0000-4000-8000-000000000099',
 };
 
+const erp = id(90);
+const gestores = id(91);
+const entrada = (activity: string) => card('entrada', activity);
+
+const roadmapItem = (
+  index: number,
+  number: number,
+  fields: Partial<RoadmapItem> & Pick<RoadmapItem, 'title' | 'lane'>,
+): RoadmapItem => ({
+  id: id(index),
+  number,
+  applicationId: gestores,
+  application: 'app-gestores',
+  applicationName: 'App Gestores',
+  summary: '',
+  kind: 'feature',
+  position: 0,
+  state: 'ativo',
+  blocked: false,
+  origin: 'pedido',
+  epicWorkIds: [],
+  createdBy: 'owner',
+  createdAt: at(60 * 24 * 9),
+  updatedAt: at(60 * 24),
+  ...fields,
+});
+
+export const roadmapItems: RoadmapItem[] = [
+  roadmapItem(92, 3, {
+    title: 'Faturamento: filtro por loja e período na listagem, com totais por loja no rodapé',
+    lane: 'agora',
+    applicationId: erp,
+    application: 'erp',
+    applicationName: 'ERP',
+    summary:
+      'Gestores não conseguem ver o faturamento de uma loja só. Hoje exportam a listagem inteira e filtram na planilha.',
+    theme: 'Fiscal',
+    requestWorkId: '88410',
+    requestUrl: entrada('88410'),
+    epicWorkIds: ['88412'],
+    pautaId: id(93),
+    pautaTitle: 'Gestores não conseguem ver o faturamento de uma loja só',
+  }),
+  roadmapItem(94, 5, {
+    title: 'Encomendas no App Gestores',
+    lane: 'agora',
+    position: 1,
+    summary: 'Gestor acompanha as encomendas da loja pelo celular, sem abrir o ERP.',
+    theme: 'Encomendas',
+    blocked: true,
+    requestWorkId: '88501',
+    requestUrl: entrada('88501'),
+    epicWorkIds: ['88502', '88503'],
+  }),
+  roadmapItem(95, 7, {
+    title: 'Meta do dia por loja na tela inicial',
+    lane: 'proximo',
+    kind: 'melhoria',
+    origin: 'sugestao',
+    summary: 'Até 5 lojas, uma linha por loja; acima, o resumo.',
+  }),
+  roadmapItem(96, 9, {
+    title: 'Tipos e Natureza: revisar os cadastros lidos pelo Zend',
+    lane: 'depois',
+    kind: 'divida',
+    origin: 'pauta',
+    applicationId: erp,
+    application: 'erp',
+    applicationName: 'ERP',
+    theme: 'Fiscal',
+  }),
+  roadmapItem(97, 10, {
+    title: 'Ranking de lojas por ticket médio',
+    lane: 'depois',
+    position: 1,
+    kind: 'ideia',
+    origin: 'moabe',
+  }),
+  roadmapItem(98, 1, {
+    title: 'Cores de Aparelhos com amostra ao lado do nome',
+    lane: 'agora',
+    state: 'concluido',
+    applicationId: erp,
+    application: 'erp',
+    applicationName: 'ERP',
+    concludedAt: at(60 * 24 * 3),
+  }),
+];
+
+export const roadmapProposals: RoadmapProposal[] = [
+  {
+    id: id(99),
+    number: 12,
+    kind: 'incluir',
+    application: 'app-gestores',
+    applicationName: 'App Gestores',
+    lane: 'depois',
+    item: {
+      application: 'app-gestores',
+      title: 'Alerta de meta não batida às 18h',
+      summary: 'O gestor só descobre que a loja ficou abaixo da meta no dia seguinte.',
+      kind: 'feature',
+      lane: 'depois',
+      theme: 'Metas',
+      origin: 'sugestao',
+      epicWorkIds: [],
+    },
+    reason: 'Três validações reprovadas citaram a falta de aviso, e a menção #7 perguntou o mesmo.',
+    counterpoint:
+      'Notificação demais cansa: se o alerta vier todo dia para quem já sabe, vira ruído e o gestor desliga.',
+    evidence: ['Validação #14', 'Menção #7', `${work}88412`],
+    highImpact: false,
+    state: 'aguardando_po',
+    proposedBy: 'Estrategista',
+    createdAt: at(30),
+  },
+  {
+    id: id(100),
+    number: 11,
+    kind: 'mover',
+    itemId: id(94),
+    itemNumber: 5,
+    itemTitle: 'Encomendas no App Gestores',
+    application: 'app-gestores',
+    applicationName: 'App Gestores',
+    fromLane: 'agora',
+    lane: 'proximo',
+    reason: 'O pedido voltou para Priorizado: o épico 88502 foi para Bloqueado e saiu da sprint.',
+    evidence: [entrada('88501')],
+    highImpact: false,
+    state: 'aguardando_po',
+    proposedBy: 'Estrategista',
+    createdAt: at(90),
+  },
+];
+
+const roadmapSettings: RoadmapSettings = {
+  strategistProfileId: reviewer,
+  automaticMoves: false,
+  suggestionsPerRound: 3,
+  applications: ['erp', 'app-gestores'],
+};
+
 const ok = <T>(value: T) => HttpResponse.json(value as never);
 
 /** Reads answer from the data above; every write succeeds and changes nothing. */
 export const atenaHandlers = [
+  http.get('*/v1/roadmap', () => ok(roadmapItems)),
+  http.post('*/v1/roadmap/items', () => ok(roadmapItems[0])),
+  http.patch('*/v1/roadmap/items/*', () => ok(roadmapItems[0])),
+  http.post('*/v1/roadmap/sync', () =>
+    ok({ kind: 'leitura', profileId: reviewer, sessionId: id(101), workRead: true }),
+  ),
+  http.get('*/v1/roadmap-proposals', () => ok(roadmapProposals)),
+  http.post('*/v1/roadmap-proposals/*', () => ok(roadmapProposals[0])),
+  http.get('*/v1/roadmap-settings', () => ok(roadmapSettings)),
+  http.put('*/v1/roadmap-settings', () => ok(roadmapSettings)),
   http.get('*/v1/mentions', () => ok(mentions)),
   http.post('*/v1/mentions/*', () => ok(mentions[0])),
   http.get('*/v1/mention-settings', () => ok(mentionSettings)),
