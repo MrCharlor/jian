@@ -459,9 +459,13 @@ export class Mentions {
 
     if (!fresh && this.people && now - this.people.at < MEMBERS_TTL) return this.people.members;
 
-    const listed = (await (await this.client()).call('GET', '/members')) as
-      | Member[]
-      | { members: Member[] };
+    const client = await this.client();
+    // The REST API refuses an API key the people; the MCP server reads them with the same key.
+    const listed = (
+      client.tool
+        ? await client.tool('vx_list_members', { workspace_id: this.target.workspaceId })
+        : await client.call('GET', '/members')
+    ) as Member[] | { members: Member[] };
     const members = Array.isArray(listed) ? listed : (listed?.members ?? []);
 
     this.people = { at: now, members };

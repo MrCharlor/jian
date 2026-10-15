@@ -45,6 +45,11 @@ const card = (item: ActivityJson): BoardCard => ({
 /** The tracker's REST API for one workspace, as the agent's key reaches it. */
 export type WorkClient = {
   call(method: string, path: string, body?: unknown): Promise<unknown>;
+  /**
+   * One tool of the tracker's MCP server, for what its REST API refuses an API key (the
+   * workspace's people, 15/10/2026). Answers the tool's text read as JSON when it is JSON.
+   */
+  tool?(name: string, args: Record<string, unknown>): Promise<unknown>;
 };
 
 export type WorkClientOpener = (
@@ -111,6 +116,56 @@ export function workClientOpener(
         }
 
         return text ? JSON.parse(text) : undefined;
+      },
+      async tool(name, args) {
+        // The server answers one call with no session opened first.
+        const response = await fetcher(server.url as string, {
+          method: 'POST',
+          headers: {
+            Authorization: key.startsWith('Bearer ') ? key : `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/event-stream',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'tools/call',
+            params: { name, arguments: args },
+          }),
+          redirect: 'error',
+          signal: AbortSignal.timeout(30_000),
+        });
+        const text = await response.text();
+
+        if (!response.ok) {
+          throw new GatewayError(
+            502,
+            `The board answered ${response.status}: ${text.slice(0, 300)}`,
+          );
+        }
+
+        // A streamed answer carries the JSON on its data line.
+        const json = text.trimStart().startsWith('{')
+          ? text
+          : (text
+              .split('\n')
+              .find((line) => line.startsWith('data:'))
+              ?.slice(5) ?? '');
+        const reply = JSON.parse(json) as {
+          result?: { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+          error?: { message?: string };
+        };
+        const said = reply.result?.content?.find((part) => part.type === 'text')?.text ?? '';
+
+        if (reply.error || reply.result?.isError) {
+          throw new GatewayError(502, `The board refused ${name}: ${reply.error?.message ?? said}`);
+        }
+
+        try {
+          return JSON.parse(said);
+        } catch {
+          return said;
+        }
       },
     };
   };
