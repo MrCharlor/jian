@@ -33,6 +33,7 @@ import { noDashes } from '../core/wording.js';
 import type { EntryTarget } from '../epics/target.js';
 import type { Lesson } from '../knowledge/service.js';
 import type { WorkClientOpener } from '../priorities/work-board.js';
+import { boardColumns, columnCards, dependsOn } from '../priorities/work-readers.js';
 import type { Quality } from '../quality/service.js';
 import type { Queryable, Store } from '../storage/database.js';
 import {
@@ -42,7 +43,6 @@ import {
   roadmapItems,
   roadmapProposals,
 } from '../storage/schema.js';
-import { boardColumns, columnCards, dependsOn } from '../work/readers.js';
 
 type ItemRow = typeof roadmapItems.$inferSelect;
 type ProposalRow = typeof roadmapProposals.$inferSelect;

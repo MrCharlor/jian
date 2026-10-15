@@ -13,8 +13,6 @@ import { GatewayError } from '../core/errors.js';
 import type { EntryTarget } from '../epics/target.js';
 import { decidedEntryPlans } from '../plans/repository.js';
 import type { WorkClient, WorkClientOpener } from '../priorities/work-board.js';
-import type { Store } from '../storage/database.js';
-import { validations } from '../storage/schema.js';
 import {
   type BoardActivity,
   type BoardColumns,
@@ -24,7 +22,9 @@ import {
   dependsOn,
   type EntryKey,
   type WorkKey,
-} from '../work/readers.js';
+} from '../priorities/work-readers.js';
+import type { Store } from '../storage/database.js';
+import { validations } from '../storage/schema.js';
 
 type Activity = BoardActivity;
 
