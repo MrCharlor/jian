@@ -1,6 +1,16 @@
 'use client';
 
-import { Check, ExternalLink, Pencil, Send, Settings, ShieldCheck, Users, X } from 'lucide-react';
+import {
+  Check,
+  ExternalLink,
+  EyeOff,
+  Pencil,
+  Send,
+  Settings,
+  ShieldCheck,
+  Users,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { Mention, MentionMember, MentionSettings, MentionState } from '../../lib/api';
 import { date } from '../../lib/format';
@@ -57,17 +67,19 @@ const kindLabel: Record<NonNullable<Mention['kind']>, string> = {
   fora_do_escopo: 'Fora do escopo',
 };
 
-/** What waits for the owner first, what the agent is still reading, then what ended. */
+/** What waits for the owner first, what the agent is still reading, then what went on a card. */
 const GROUPS: Array<{ id: string; title: string; states: MentionState[] }> = [
   { id: 'waiting', title: 'Esperando você', states: ['waiting', 'held', 'limited'] },
   { id: 'running', title: 'Em andamento', states: ['received', 'analyzing'] },
-  { id: 'blocked', title: 'Bloqueadas', states: ['blocked'] },
   {
-    id: 'history',
-    title: 'Histórico',
-    states: ['answered', 'owner_answered', 'owner_ignored', 'not_po', 'out_of_scope', 'failed'],
+    id: 'published',
+    title: 'Publicadas no card',
+    states: ['answered', 'owner_answered', 'out_of_scope'],
   },
 ];
+
+/** Nothing went on a card: kept closed, for when the owner wants to know why. */
+const IGNORED: MentionState[] = ['not_po', 'owner_ignored', 'blocked', 'failed'];
 
 const WAITING = new Set<MentionState>(['waiting', 'held', 'limited']);
 
@@ -115,6 +127,7 @@ export function Mentions({ api, data }: SectionProps) {
     ...group,
     items: (list ?? []).filter((item) => group.states.includes(item.state)),
   }));
+  const ignored = (list ?? []).filter((item) => IGNORED.includes(item.state));
 
   return (
     <>
@@ -152,6 +165,19 @@ export function Mentions({ api, data }: SectionProps) {
             </section>
           ) : null,
         )
+      )}
+      {ignored.length > 0 && (
+        <Disclosure
+          title={`Ignoradas (${ignored.length})`}
+          hint="Nada foi publicado: não era do PO, você ignorou, a Atena bloqueou ou falhou."
+          icon={<EyeOff size={18} />}
+        >
+          <div className="request-list">
+            {ignored.map((item) => (
+              <MentionCard key={item.id} mention={item} api={api} act={act} busy={busy} />
+            ))}
+          </div>
+        </Disclosure>
       )}
       <Disclosure
         title="Quem a Atena responde"
