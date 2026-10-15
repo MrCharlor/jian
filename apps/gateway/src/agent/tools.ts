@@ -126,7 +126,7 @@ export type ToolServices = {
   knowledge?: Pick<Knowledge, 'lookup' | 'propose' | 'isCurator'>;
   entrySync?: Pick<EntrySync, 'run'>;
   mentions?: Pick<Mentions, 'triaged' | 'answered'>;
-  roadmap?: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'isStrategist'>;
+  roadmap?: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'snapshot' | 'isStrategist'>;
 };
 
 export function profileTools(
@@ -739,7 +739,7 @@ export const TOOL_GROUPS = {
   roadmap: {
     summary:
       'read the products’ roadmap (lanes agora, proximo, depois); as the Estrategista, send the reading of the boards and propose items, moves, conclusions and discards for the owner’s OK',
-    tools: ['read_roadmap', 'sync_roadmap', 'propose_roadmap'],
+    tools: ['read_roadmap', 'read_entry', 'sync_roadmap', 'propose_roadmap'],
   },
   draw: {
     summary:

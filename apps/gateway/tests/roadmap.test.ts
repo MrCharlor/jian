@@ -241,7 +241,12 @@ describe('roadmap', () => {
 
     // The agent toolset carries the tools; the service still refuses another profile.
     const tools = roadmapTools(f.roadmap, { profileId: f.other.id } as never);
-    expect(Object.keys(tools).sort()).toEqual(['propose_roadmap', 'read_roadmap', 'sync_roadmap']);
+    expect(Object.keys(tools).sort()).toEqual([
+      'propose_roadmap',
+      'read_entry',
+      'read_roadmap',
+      'sync_roadmap',
+    ]);
   });
 
   it('refuses again a suggestion the owner refused in the last 60 days', async () => {

@@ -1189,7 +1189,7 @@ export class Roadmap {
   }
 
   /** The Entrada as it is now, column by column, with the epics each request depends on. */
-  private async snapshot(): Promise<string | undefined> {
+  async snapshot(): Promise<string | undefined> {
     try {
       const profileId = await this.keyProfile();
 

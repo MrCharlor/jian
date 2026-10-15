@@ -301,6 +301,7 @@ export class AgentRuntime {
       if (!(await this.services.roadmap?.isStrategist(profileId))) {
         delete tools.propose_roadmap;
         delete tools.sync_roadmap;
+        delete tools.read_entry;
       }
       if (learning) {
         for (const name of Object.keys(tools)) if (!LEARNING_TOOLS.has(name)) delete tools[name];

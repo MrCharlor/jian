@@ -15,7 +15,7 @@ import type { Roadmap } from './service.js';
  * refuses them as well.
  */
 export function roadmapTools(
-  roadmap: Pick<Roadmap, 'lookup' | 'propose' | 'sync'>,
+  roadmap: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'snapshot'>,
   run: Run,
 ): ToolSet {
   return {
@@ -28,6 +28,13 @@ export function roadmapTools(
         state: roadmapStateSchema.optional(),
       }),
       execute: async (input) => roadmap.lookup(input),
+    }),
+    read_entry: tool({
+      description:
+        'As the Estrategista, read the Sigma Entrada now: the requests in Em execução, Priorizado, Bloqueado and Concluído, each with the epics it depends on. Use it at the start of the daily reading, when the message did not bring the board already.',
+      inputSchema: z.object({}),
+      execute: async () =>
+        (await roadmap.snapshot()) ?? 'O Work não respondeu agora; tente na próxima rodada.',
     }),
     sync_roadmap: tool({
       description:
