@@ -194,6 +194,7 @@ export const resourceCalls = (client: Client) => ({
   mentionSettings: () => result(client.GET('/v1/mention-settings')),
   updateMentionSettings: (body: MentionSettingsPatch) =>
     result(client.PUT('/v1/mention-settings', { body })),
+  mentionMembers: () => result(client.GET('/v1/mention-members')),
   roadmap: (query: RoadmapFilter = {}) => result(client.GET('/v1/roadmap', { params: { query } })),
   createRoadmapItem: (body: NewRoadmapItem) => result(client.POST('/v1/roadmap/items', { body })),
   updateRoadmapItem: (itemId: string, body: RoadmapItemPatch) =>

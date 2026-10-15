@@ -290,3 +290,60 @@ export function mcpActionKind(tool: unknown, name?: string): ActionKind | undefi
 
   return 'service';
 }
+
+/**
+ * The only gateway tools a conversation that answers a comment on the tracker keeps (B25): the
+ * comment is someone else's words, so the run that reads it can look and answer, never act.
+ * Nothing that writes, sends, remembers or runs is offered at all, whatever the comment says.
+ */
+export const MENTION_TOOLS = new Set([
+  'triage_comment',
+  'answer_mention',
+  'search_knowledge',
+  'list_pautas',
+  'read_pauta',
+  'read_epic_draft',
+  'read_plan',
+  'read_roadmap',
+  'list_applications',
+  'read_design_system',
+  'read_design_file',
+  'read_prototype',
+  'list_screens',
+  'read_screen',
+  'read_memories',
+  'load_skill',
+  'compact_context',
+]);
+
+/**
+ * Leaves a run only the MCP tools that change nothing, by the same reading the guard makes:
+ * the server's read-only hint, or a lookup's name when the server says nothing.
+ */
+export function keepReadOnlyMcp(
+  tools: ToolSet,
+  catalog: Array<{ name: string; tool: string }>,
+  names: string[],
+  selected: Set<string>,
+): void {
+  const writes = new Set(
+    names.filter(
+      (name) =>
+        mcpActionKind(tools[name], catalog.find((entry) => entry.name === name)?.tool) !==
+        undefined,
+    ),
+  );
+
+  for (const name of writes) {
+    delete tools[name];
+    selected.delete(name);
+  }
+
+  for (let index = catalog.length - 1; index >= 0; index -= 1) {
+    if (writes.has(catalog[index]?.name ?? '')) catalog.splice(index, 1);
+  }
+
+  for (let index = names.length - 1; index >= 0; index -= 1) {
+    if (writes.has(names[index] ?? '')) names.splice(index, 1);
+  }
+}

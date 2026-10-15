@@ -24082,7 +24082,11 @@
                 "held",
                 "owner_answered",
                 "owner_ignored",
-                "failed"
+                "failed",
+                "ignored_author",
+                "blocked",
+                "limited",
+                "out_of_scope"
               ]
             }
           }
@@ -24143,7 +24147,11 @@
                           "held",
                           "owner_answered",
                           "owner_ignored",
-                          "failed"
+                          "failed",
+                          "ignored_author",
+                          "blocked",
+                          "limited",
+                          "out_of_scope"
                         ]
                       },
                       "kind": {
@@ -24151,7 +24159,8 @@
                         "enum": [
                           "comum",
                           "tecnica",
-                          "alto_impacto"
+                          "alto_impacto",
+                          "fora_do_escopo"
                         ]
                       },
                       "highImpactItem": {
@@ -24450,7 +24459,11 @@
                         "held",
                         "owner_answered",
                         "owner_ignored",
-                        "failed"
+                        "failed",
+                        "ignored_author",
+                        "blocked",
+                        "limited",
+                        "out_of_scope"
                       ]
                     },
                     "kind": {
@@ -24458,7 +24471,8 @@
                       "enum": [
                         "comum",
                         "tecnica",
-                        "alto_impacto"
+                        "alto_impacto",
+                        "fora_do_escopo"
                       ]
                     },
                     "highImpactItem": {
@@ -24774,7 +24788,11 @@
                         "held",
                         "owner_answered",
                         "owner_ignored",
-                        "failed"
+                        "failed",
+                        "ignored_author",
+                        "blocked",
+                        "limited",
+                        "out_of_scope"
                       ]
                     },
                     "kind": {
@@ -24782,7 +24800,8 @@
                       "enum": [
                         "comum",
                         "tecnica",
-                        "alto_impacto"
+                        "alto_impacto",
+                        "fora_do_escopo"
                       ]
                     },
                     "highImpactItem": {
@@ -25080,7 +25099,11 @@
                         "held",
                         "owner_answered",
                         "owner_ignored",
-                        "failed"
+                        "failed",
+                        "ignored_author",
+                        "blocked",
+                        "limited",
+                        "out_of_scope"
                       ]
                     },
                     "kind": {
@@ -25088,7 +25111,8 @@
                       "enum": [
                         "comum",
                         "tecnica",
-                        "alto_impacto"
+                        "alto_impacto",
+                        "fora_do_escopo"
                       ]
                     },
                     "highImpactItem": {
@@ -25395,6 +25419,30 @@
                       "type": "string",
                       "format": "uuid",
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "responders": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      }
+                    },
+                    "outOfScopeReply": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 400
+                    },
+                    "dailyLimit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    "cardLimit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 20
                     }
                   },
                   "required": [
@@ -25403,7 +25451,11 @@
                     "signature",
                     "holdHours",
                     "highImpact",
-                    "ownerUserId"
+                    "ownerUserId",
+                    "responders",
+                    "outOfScopeReply",
+                    "dailyLimit",
+                    "cardLimit"
                   ],
                   "additionalProperties": false
                 }
@@ -25668,6 +25720,39 @@
                     "type": "string",
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "responders": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    }
+                  },
+                  "outOfScopeReply": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 400
+                  },
+                  "dailyLimit": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "cardLimit": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 20
                   }
                 },
                 "additionalProperties": false
@@ -25749,6 +25834,30 @@
                       "type": "string",
                       "format": "uuid",
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "responders": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      }
+                    },
+                    "outOfScopeReply": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 400
+                    },
+                    "dailyLimit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    "cardLimit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 20
                     }
                   },
                   "required": [
@@ -25757,9 +25866,231 @@
                     "signature",
                     "holdHours",
                     "highImpact",
-                    "ownerUserId"
+                    "ownerUserId",
+                    "responders",
+                    "outOfScopeReply",
+                    "dailyLimit",
+                    "cardLimit"
                   ],
                   "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/mention-members": {
+      "get": {
+        "operationId": "listMentionMembers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Required permission: admin.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "answered": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "name",
+                      "answered"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               }
             }

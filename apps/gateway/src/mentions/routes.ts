@@ -27,4 +27,6 @@ export function registerMentionRoutes(app: FastifyInstance, deps: { mentions: Me
   app.get('/v1/mention-settings', async () => deps.mentions.settings());
 
   app.put('/v1/mention-settings', async (request) => deps.mentions.updateSettings(request.body));
+
+  app.get('/v1/mention-members', async () => deps.mentions.members());
 }

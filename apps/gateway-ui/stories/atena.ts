@@ -640,7 +640,17 @@ const mentionSettings: MentionSettings = {
     'Falta fato.',
   ],
   ownerUserId: 'b21a0000-0000-4000-8000-000000000099',
+  responders: ['lucas'],
+  outOfScopeReply: 'Isso não é do escopo do PO da Sigma. Fala direto com o Moabe.',
+  dailyLimit: 10,
+  cardLimit: 3,
 };
+
+const mentionMembers = [
+  { userId: 'lucas', name: 'Lucas Larangeira', email: 'lucas@vx.example', answered: true },
+  { userId: 'ricardo', name: 'Ricardo Albuquerque', email: 'ricardo@vx.example', answered: false },
+  { userId: 'wesley', name: 'Wesley Melo', email: 'wesley@vx.example', answered: false },
+];
 
 const erp = id(90);
 const gestores = id(91);
@@ -803,6 +813,7 @@ export const atenaHandlers = [
   http.post('*/v1/mentions/*', () => ok(mentions[0])),
   http.get('*/v1/mention-settings', () => ok(mentionSettings)),
   http.put('*/v1/mention-settings', () => ok(mentionSettings)),
+  http.get('*/v1/mention-members', () => ok(mentionMembers)),
   http.get('*/v1/validations', () => ok(validations)),
   http.post('*/v1/validations/*', () => ok(validations[0])),
   http.patch('*/v1/validations/*', () => ok(validations[0])),

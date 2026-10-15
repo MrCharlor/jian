@@ -79,6 +79,7 @@ import {
   commentIngressSchema,
   mentionAnswerSchema,
   mentionListQuerySchema,
+  mentionMemberSchema,
   mentionNumberParamsSchema,
   mentionRecordSchema,
   mentionSettingsPatchSchema,
@@ -877,6 +878,14 @@ export const operations: Operation[] = [
     access: 'admin',
     body: mentionSettingsPatchSchema,
     response: mentionSettingsSchema,
+  },
+  {
+    // The tracker's people and whether the agent answers each of them (B25).
+    method: 'GET',
+    path: '/v1/mention-members',
+    operationId: 'listMentionMembers',
+    access: 'admin',
+    response: z.array(mentionMemberSchema),
   },
   {
     // The roadmap of the products (B24), lane by lane in order.

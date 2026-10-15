@@ -40,6 +40,8 @@ import {
   actionGuard,
   composeGuards,
   guardTools,
+  keepReadOnlyMcp,
+  MENTION_TOOLS,
   mcpActionKind,
   policyGuard,
 } from './guard.js';
@@ -83,6 +85,8 @@ export type RuntimeServices = ToolServices & {
  * What a look back may touch: its memories and its skills, nothing that reaches a person or
  * the machine. A review that could send a message would be a turn nobody asked for.
  */
+/** Where the tracker's comments are triaged and answered (B22); see MENTION_TOOLS. */
+const MENTION_SESSION_CHANNEL = 'mentions';
 const LEARNING_TOOLS = new Set([
   'read_memories',
   'remember',
@@ -253,9 +257,10 @@ export class AgentRuntime {
         ) === 'subscription';
 
       const model = await this.model(config, process.env, outbound.fetch, providerKey);
-      const learning =
-        (await this.services.sessions.session(profileId, run.sessionId)).channel ===
-        LEARNING_SESSION_CHANNEL;
+      const channel = (await this.services.sessions.session(profileId, run.sessionId)).channel;
+      const learning = channel === LEARNING_SESSION_CHANNEL;
+      // A comment on the tracker is someone else's words: its conversations only look (B25).
+      const mention = channel === MENTION_SESSION_CHANNEL;
       const gitAccess = run.subagent
         ? await prepareWorkerWorkspace(run)
         : { readOnly: [], writable: [] };
@@ -306,6 +311,9 @@ export class AgentRuntime {
       if (learning) {
         for (const name of Object.keys(tools)) if (!LEARNING_TOOLS.has(name)) delete tools[name];
       }
+      if (mention) {
+        for (const name of Object.keys(tools)) if (!MENTION_TOOLS.has(name)) delete tools[name];
+      }
       // Loaded within the run and never across runs: a turn states what it needs. A look back
       // has only a handful, all loaded from the start.
       const loadedTools = new Set<string>(learning ? Object.keys(tools) : []);
@@ -322,6 +330,8 @@ export class AgentRuntime {
           ...(this.options.mcpOAuth ? { oauth: this.options.mcpOAuth } : {}),
         },
       );
+
+      if (mention) keepReadOnlyMcp(tools, catalog, mcpToolNames, selectedMcpTools);
 
       const mcpNote = [availableNote(catalog), unavailableNote(unavailable)]
         .filter(Boolean)

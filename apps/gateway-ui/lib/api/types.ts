@@ -41,6 +41,7 @@ export type Mention = JsonResponse<'listMentions', 200>[number];
 export type MentionState = Mention['state'];
 export type MentionSettings = JsonResponse<'getMentionSettings', 200>;
 export type MentionSettingsPatch = RequestBody<'updateMentionSettings'>;
+export type MentionMember = JsonResponse<'listMentionMembers', 200>[number];
 export type RoadmapItem = JsonResponse<'listRoadmap', 200>[number];
 export type RoadmapLane = RoadmapItem['lane'];
 export type RoadmapKind = RoadmapItem['kind'];

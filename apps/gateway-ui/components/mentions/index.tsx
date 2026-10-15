@@ -1,8 +1,8 @@
 'use client';
 
-import { Check, ExternalLink, Pencil, Send, Settings, X } from 'lucide-react';
+import { Check, ExternalLink, Pencil, Send, Settings, ShieldCheck, Users, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import type { Mention, MentionSettings, MentionState } from '../../lib/api';
+import type { Mention, MentionMember, MentionSettings, MentionState } from '../../lib/api';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
 import {
@@ -27,6 +27,10 @@ export const mentionStateLabel: Record<MentionState, string> = {
   owner_answered: 'Respondida por você',
   owner_ignored: 'Ignorada',
   failed: 'Falhou',
+  ignored_author: 'Fora da lista',
+  blocked: 'Bloqueada',
+  limited: 'Parada no limite',
+  out_of_scope: 'Fora do escopo',
 };
 
 const stateTone: Record<MentionState, 'neutral' | 'good' | 'warn' | 'bad' | 'accent'> = {
@@ -40,26 +44,32 @@ const stateTone: Record<MentionState, 'neutral' | 'good' | 'warn' | 'bad' | 'acc
   owner_answered: 'good',
   owner_ignored: 'neutral',
   failed: 'bad',
+  ignored_author: 'neutral',
+  blocked: 'bad',
+  limited: 'warn',
+  out_of_scope: 'neutral',
 };
 
 const kindLabel: Record<NonNullable<Mention['kind']>, string> = {
   comum: 'Comum',
   tecnica: 'Técnica (com o Lucas)',
   alto_impacto: 'Alto impacto',
+  fora_do_escopo: 'Fora do escopo',
 };
 
 /** What waits for the owner first, what the agent is still reading, then what ended. */
 const GROUPS: Array<{ id: string; title: string; states: MentionState[] }> = [
-  { id: 'waiting', title: 'Esperando você', states: ['waiting', 'held'] },
+  { id: 'waiting', title: 'Esperando você', states: ['waiting', 'held', 'limited'] },
   { id: 'running', title: 'Em andamento', states: ['received', 'analyzing'] },
+  { id: 'blocked', title: 'Bloqueadas', states: ['blocked'] },
   {
     id: 'history',
     title: 'Histórico',
-    states: ['answered', 'owner_answered', 'owner_ignored', 'not_po', 'failed'],
+    states: ['answered', 'owner_answered', 'owner_ignored', 'not_po', 'out_of_scope', 'failed'],
   },
 ];
 
-const WAITING = new Set<MentionState>(['waiting', 'held']);
+const WAITING = new Set<MentionState>(['waiting', 'held', 'limited']);
 
 /**
  * Comments on the Work answered for the owner (B22): the high-impact ones wait here for the
@@ -143,6 +153,20 @@ export function Mentions({ api, data }: SectionProps) {
           ) : null,
         )
       )}
+      <Disclosure
+        title="Quem a Atena responde"
+        hint="As pessoas do Work. Quem está desligado não recebe resposta, e o comentário nem vai para o modelo."
+        icon={<Users size={18} />}
+      >
+        <Responders api={api} />
+      </Disclosure>
+      <Disclosure
+        title="Travas"
+        hint="Resposta para o que não é do PO e os limites de respostas por pessoa e por card."
+        icon={<ShieldCheck size={18} />}
+      >
+        <GuardsCard api={api} />
+      </Disclosure>
       <Disclosure
         title="Configurações"
         hint="Ligado, onde vale, assinatura, modelo da triagem, prazo do aviso e a lista de alto impacto."
@@ -237,7 +261,9 @@ function MentionCard({
           <p>
             {mention.state === 'held'
               ? 'O card já foi avisado de que você vai responder.'
-              : 'Nada foi publicado no card ainda.'}
+              : mention.state === 'limited'
+                ? 'A Atena parou neste card. Responda com o seu texto para liberar.'
+                : 'Nada foi publicado no card ainda.'}
           </p>
           <Button
             variant="quiet"
@@ -432,6 +458,200 @@ function MentionSettingsCard({ api, data }: Pick<SectionProps, 'api' | 'data'>) 
           onClick={() => void save({ highImpact: items })}
         >
           <Check size={16} /> Salvar a lista
+        </Button>
+      </footer>
+    </article>
+  );
+}
+
+/**
+ * The people of the Work, read fresh each time the page opens and every hour while it stays
+ * open; one switch each. Someone who joins the Work shows up switched off.
+ */
+function Responders({ api }: Pick<SectionProps, 'api'>) {
+  const [members, setMembers] = useState<MentionMember[]>();
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(
+    () =>
+      api
+        .mentionMembers()
+        .then((list) => {
+          setMembers(list);
+          setMessage('');
+        })
+        .catch((failure) =>
+          setMessage(failure instanceof Error ? failure.message : 'As pessoas não carregaram.'),
+        ),
+    [api],
+  );
+
+  useEffect(() => {
+    void load();
+    const timer = setInterval(() => void load(), 3_600_000);
+
+    return () => clearInterval(timer);
+  }, [load]);
+
+  const toggle = async (member: MentionMember, answered: boolean) => {
+    if (!members) return;
+    setBusy(true);
+    try {
+      const responders = members
+        .filter((item) => (item.userId === member.userId ? answered : item.answered))
+        .map((item) => item.userId);
+
+      await api.updateMentionSettings({ responders });
+      setMembers(
+        members.map((item) => (item.userId === member.userId ? { ...item, answered } : item)),
+      );
+      setMessage('Salvo.');
+    } catch (failure) {
+      setMessage(failure instanceof Error ? failure.message : 'Não salvou.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!members) {
+    return message ? (
+      <p className="form-error my-0" role="alert">
+        {message}
+      </p>
+    ) : null;
+  }
+
+  const on = members.filter((member) => member.answered).length;
+
+  return (
+    <article className="request-card">
+      <header>
+        <div className="grow">
+          <h4>
+            Pessoas do Work <Badge dot={false}>{`${on} de ${members.length}`}</Badge>
+          </h4>
+          <small>Você e a própria Atena ficam de fora: seus comentários nunca disparam nada.</small>
+        </div>
+        <Button variant="quiet" disabled={busy} onClick={() => void load()}>
+          Atualizar
+        </Button>
+      </header>
+      <div className="request-body">
+        {members.length ? (
+          members.map((member) => (
+            <SwitchField
+              key={member.userId}
+              label={member.name}
+              hint={member.email ?? ''}
+              checked={member.answered}
+              disabled={busy}
+              onChange={(answered) => void toggle(member, answered)}
+            />
+          ))
+        ) : (
+          <p className="note my-0">O Work não devolveu ninguém.</p>
+        )}
+      </div>
+      <footer>
+        <p role="status">{message}</p>
+      </footer>
+    </article>
+  );
+}
+
+/** What the agent says to a question that is not the squad's PO work, and how far it goes. */
+function GuardsCard({ api }: Pick<SectionProps, 'api'>) {
+  const [settings, setSettings] = useState<MentionSettings>();
+  const [reply, setReply] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    void api
+      .mentionSettings()
+      .then((saved) => {
+        setSettings(saved);
+        setReply(saved.outOfScopeReply);
+      })
+      .catch(() => setMessage('A configuração não carregou.'));
+  }, [api]);
+
+  const save = (patch: Parameters<typeof api.updateMentionSettings>[0]) =>
+    api
+      .updateMentionSettings(patch)
+      .then((saved) => {
+        setSettings(saved);
+        setMessage('Salvo.');
+      })
+      .catch((failure) => setMessage(failure instanceof Error ? failure.message : 'Não salvou.'));
+
+  if (!settings) {
+    return message ? (
+      <p className="form-error my-0" role="alert">
+        {message}
+      </p>
+    ) : null;
+  }
+
+  return (
+    <article className="request-card">
+      <header>
+        <div className="grow">
+          <h4>Travas das menções</h4>
+          <small>
+            Comentário que tenta mandar na Atena é bloqueado antes de qualquer modelo, e você é
+            avisado. Na conversa das menções a Atena só lê o Work.
+          </small>
+        </div>
+      </header>
+      <div className="request-body">
+        <div className="owner-fields">
+          <Field
+            label="Respostas por pessoa"
+            hint="Em 24 horas. Passou, a Atena para e avisa você."
+          >
+            <select
+              value={settings.dailyLimit}
+              onChange={(event) => void save({ dailyLimit: Number(event.target.value) })}
+            >
+              {[3, 5, 10, 20, 50].map((count) => (
+                <option key={count} value={count}>
+                  {count}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            label="Respostas seguidas no card"
+            hint="Sem palavra sua no meio. Passou, o card espera você."
+          >
+            <select
+              value={settings.cardLimit}
+              onChange={(event) => void save({ cardLimit: Number(event.target.value) })}
+            >
+              {[1, 2, 3, 5, 10].map((count) => (
+                <option key={count} value={count}>
+                  {count}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <Field
+          label="Resposta para o que não é do PO"
+          hint="Vai no card depois de marcar quem perguntou e da assinatura, sem a Atena ler a base."
+        >
+          <textarea rows={2} value={reply} onChange={(event) => setReply(event.target.value)} />
+        </Field>
+      </div>
+      <footer>
+        <p role="status">{message}</p>
+        <Button
+          variant="secondary"
+          disabled={!reply.trim() || reply.trim() === settings.outOfScopeReply}
+          onClick={() => void save({ outOfScopeReply: reply.trim() })}
+        >
+          <Check size={16} /> Salvar a resposta
         </Button>
       </footer>
     </article>

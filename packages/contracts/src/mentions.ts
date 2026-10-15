@@ -17,10 +17,21 @@ export const mentionStateSchema = z.enum([
   'owner_answered',
   'owner_ignored',
   'failed',
+  /** The author is not on the owner's list of people the agent answers (B25). */
+  'ignored_author',
+  /** The comment reads like an attempt to steer the agent; nothing went to a model. */
+  'blocked',
+  /** The author's daily answers, or the card's answers in a row, ran out; the owner answers. */
+  'limited',
+  /** Not the squad's PO work at all; the fixed reply went on the card. */
+  'out_of_scope',
 ]);
 
-/** comum: answered on the card; tecnica: handed to the tech lead; alto_impacto: the owner first. */
-export const mentionKindSchema = z.enum(['comum', 'tecnica', 'alto_impacto']);
+/**
+ * comum: answered on the card; tecnica: handed to the tech lead; alto_impacto: the owner first;
+ * fora_do_escopo: not the squad's PO work, the fixed reply goes on the card.
+ */
+export const mentionKindSchema = z.enum(['comum', 'tecnica', 'alto_impacto', 'fora_do_escopo']);
 
 export const mentionRecordSchema = z.strictObject({
   id: z.uuid(),
@@ -85,6 +96,14 @@ export const mentionSettingsSchema = z.strictObject({
   highImpact: z.array(z.string().trim().min(1).max(400)).min(1).max(12),
   /** The owner on the tracker: their comments, and the agent's written with their key, start nothing. */
   ownerUserId: z.uuid(),
+  /** The tracker's users the agent answers; anyone else's comment is kept and left alone. */
+  responders: z.array(z.string().trim().min(1).max(120)).max(200),
+  /** What goes on the card when a question is not the squad's PO work. */
+  outOfScopeReply: z.string().trim().min(1).max(400),
+  /** Answers one person gets in 24 hours before the owner is asked to step in. */
+  dailyLimit: z.number().int().min(1).max(100),
+  /** Answers the agent writes in a row on one card before the owner is asked to step in. */
+  cardLimit: z.number().int().min(1).max(20),
 });
 
 export const mentionSettingsPatchSchema = z.strictObject({
@@ -95,6 +114,18 @@ export const mentionSettingsPatchSchema = z.strictObject({
   holdHours: z.number().int().min(1).max(72).optional(),
   highImpact: z.array(z.string().trim().min(1).max(400)).min(1).max(12).optional(),
   ownerUserId: z.uuid().optional(),
+  responders: z.array(z.string().trim().min(1).max(120)).max(200).optional(),
+  outOfScopeReply: z.string().trim().min(1).max(400).nullable().optional(),
+  dailyLimit: z.number().int().min(1).max(100).nullable().optional(),
+  cardLimit: z.number().int().min(1).max(20).nullable().optional(),
+});
+
+/** One person of the tracker's workspace, and whether the agent answers them. */
+export const mentionMemberSchema = z.strictObject({
+  userId: z.string(),
+  name: z.string(),
+  email: z.string().optional(),
+  answered: z.boolean(),
 });
 
 /** What the tracker's automation posts; its field names are read leniently by the gateway. */
@@ -109,6 +140,8 @@ export const commentIngressResultSchema = z.strictObject({
 /** What the triage answers: whether the comment is the owner's to answer. */
 export const mentionTriageSchema = z.object({
   forPo: z.boolean(),
+  /** Not for the owner and not the squad's PO work either, asked of the agent or the owner. */
+  outOfScope: z.boolean().optional(),
   reason: z.string().trim().min(1).max(600),
 });
 
@@ -124,6 +157,7 @@ export type MentionState = z.infer<typeof mentionStateSchema>;
 export type MentionKind = z.infer<typeof mentionKindSchema>;
 export type Mention = z.infer<typeof mentionRecordSchema>;
 export type MentionSettings = z.infer<typeof mentionSettingsSchema>;
+export type MentionMember = z.infer<typeof mentionMemberSchema>;
 
 /** One comment as the gateway reads it from the automation. */
 export type CommentIngress = {
