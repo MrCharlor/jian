@@ -1466,6 +1466,31 @@ export const mentions = pgTable(
 );
 
 /**
+ * The owner's inbox (B26): one number for each thing that waits for them, whatever its queue.
+ * The item itself stays in its queue; this row only numbers it and says when it was decided.
+ */
+export const inbox = pgTable(
+  'inbox',
+  {
+    number: integer('number').primaryKey(),
+    kind: text('kind').notNull(),
+    refId: text('ref_id').notNull(),
+    refNumber: integer('ref_number').notNull(),
+    title: text('title').notNull(),
+    highImpact: boolean('high_impact').notNull().default(false),
+    openedAt: timestamp('opened_at', { withTimezone: true }).notNull(),
+    announcedAt: timestamp('announced_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    decidedVia: text('decided_via'),
+    createdAt,
+  },
+  (table) => [
+    uniqueIndex('inbox_ref').on(table.kind, table.refId),
+    index('inbox_open').on(table.closedAt, table.openedAt),
+  ],
+);
+
+/**
  * An item of the products' roadmap (B24): a lane, an order within it, and pointers to the
  * request, the topic and the epics it rests on, whose stage is still read where they live.
  */

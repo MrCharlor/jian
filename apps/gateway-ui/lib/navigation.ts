@@ -11,6 +11,7 @@ import {
   FileCheck,
   Fingerprint,
   Gauge,
+  Inbox,
   KeyRound,
   LayoutDashboard,
   LayoutTemplate,
@@ -39,6 +40,7 @@ export type NavigationItem = {
  * Global holds what belongs to the installation; Agent holds the open agent's own sections.
  */
 export const navigation: NavigationItem[] = [
+  { href: '/inbox', label: 'Esperando você', icon: Inbox, group: 'global' },
   { href: '/providers', label: 'Providers', icon: Plug, group: 'global' },
   { href: '/pautas', label: 'Pautas', icon: ClipboardList, group: 'global' },
   { href: '/roadmap', label: 'Roadmap', icon: MapIcon, group: 'global' },

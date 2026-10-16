@@ -9,6 +9,8 @@ import { Epics } from './epics/service.js';
 import { SIGMA_ENTRY, SIGMA_EPICS, SIGMA_MENTIONS, SIGMA_VALIDATION } from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
+import { Inbox } from './inbox/service.js';
+import { inboxSources } from './inbox/sources.js';
 import { Knowledge } from './knowledge/service.js';
 import { Learning } from './learning/service.js';
 import { Media } from './media/service.js';
@@ -61,6 +63,7 @@ export type Services = {
   epics: Epics;
   validations: Validations;
   mentions: Mentions;
+  inbox: Inbox;
   roadmap: Roadmap;
   screens: Screens;
   plans: Plans;
@@ -242,6 +245,24 @@ export function buildServices({
   roadmap.useOwner((text, short) => ownerNotices.tell(text, 'roadmap', short));
   roadmap.useLearner((lesson) => knowledge.learn(lesson));
   runs.useRoadmap(roadmap);
+  // The owner's inbox (B26): every queue under one number, answered with the same commands.
+  const inbox = new Inbox(store, clock);
+  for (const source of inboxSources({
+    profiles,
+    approvals,
+    plans,
+    knowledge,
+    pautas,
+    validations,
+    mentions,
+    roadmap,
+    priorities,
+  })) {
+    inbox.use(source);
+  }
+  ownerNotices.useInbox(inbox);
+  approvals.useNumbering((refId) => inbox.numberFor('aprovacao', refId));
+  runs.useInbox(inbox);
   epics.useAgents({
     remember: (profileId, key, content) =>
       memories.remember(profileId, { key, content, expectedVersion: 0 }),
@@ -279,6 +300,7 @@ export function buildServices({
     epics,
     validations,
     mentions,
+    inbox,
     roadmap,
     screens: new Screens(store, applications, clock),
     plans,

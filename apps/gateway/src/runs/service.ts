@@ -7,6 +7,7 @@ import {
   parseApprovalReply,
   parseCorrectionReply,
   parseDecisionReply,
+  parseInboxReply,
   parseKnowledgeReply,
   parseMentionReply,
   parsePlanReply,
@@ -22,6 +23,7 @@ import { Approvals as ApprovalNotices, type Approvals } from '../approvals/servi
 import { type Clock, nowIso } from '../core/clock.js';
 import { assertFound, GatewayError, NoModelAvailable } from '../core/errors.js';
 import { recordEvent } from '../core/events.js';
+import { Inbox } from '../inbox/service.js';
 import { Knowledge as KnowledgeNotices } from '../knowledge/service.js';
 import { bindMedia, mediaMarker } from '../media/repository.js';
 import { Mentions as MentionNotices } from '../mentions/service.js';
@@ -147,6 +149,12 @@ export class Runs {
     this.mentions = mentions;
   }
 
+  private inbox?: Pick<Inbox, 'decide' | 'knows'>;
+
+  useInbox(inbox: Pick<Inbox, 'decide' | 'knows'>) {
+    this.inbox = inbox;
+  }
+
   private roadmap?: Pick<RoadmapNotices, 'fromChat' | 'note'>;
 
   useRoadmap(roadmap: Pick<RoadmapNotices, 'fromChat' | 'note'>) {
@@ -176,10 +184,25 @@ export class Runs {
       origin,
     } = options;
     const parsed = submitSchema.parse(input);
+    // "ok 3-7", "não 4: motivo" or "5: texto" answers the owner's inbox (B26), whatever queue
+    // the number is in; the agent reads what was decided. The old commands run only otherwise.
+    const asked =
+      options.ownerMessage && this.inbox && !parsed.mediaIds?.length
+        ? parseInboxReply(parsed.text)
+        : undefined;
+    const boxed = asked && (await this.inbox?.knows(asked.numbers)) ? asked : undefined;
+
+    if (boxed && this.inbox) {
+      parsed.text = Inbox.notice(
+        await this.inbox.decide(boxed, activity === 'channel' ? 'channel' : 'panel'),
+      );
+    }
+
+    const owner = options.ownerMessage && !boxed;
     // "ok 3" from the owner is a decision, not a message for the model to interpret. It is
     // recorded first, and what the agent reads is the decision and what to do with it.
     const reply =
-      options.ownerMessage && this.approvals && !parsed.mediaIds?.length
+      owner && this.approvals && !parsed.mediaIds?.length
         ? parseApprovalReply(parsed.text)
         : undefined;
 
@@ -204,7 +227,7 @@ export class Runs {
 
     // "ok plano 3" or "corrige plano 3: …" answers a plan; the agent reads what was decided.
     const planned =
-      options.ownerMessage && this.plans && !reply && !parsed.mediaIds?.length
+      owner && this.plans && !reply && !parsed.mediaIds?.length
         ? parsePlanReply(parsed.text)
         : undefined;
 
@@ -219,7 +242,7 @@ export class Runs {
 
     // "ok regra 4" or "recusa regra 4: …" answers a rule the Curator proposed.
     const ruled =
-      options.ownerMessage && this.knowledge && !reply && !planned && !parsed.mediaIds?.length
+      owner && this.knowledge && !reply && !planned && !parsed.mediaIds?.length
         ? parseKnowledgeReply(parsed.text)
         : undefined;
 
@@ -234,7 +257,7 @@ export class Runs {
 
     // "decisão 4: B, porque …" is the owner deciding; the agent reads the decision recorded.
     const decided =
-      options.ownerMessage && this.decisions && !reply && !planned && !ruled
+      owner && this.decisions && !reply && !planned && !ruled
         ? parseDecisionReply(parsed.text)
         : undefined;
 
@@ -255,7 +278,7 @@ export class Runs {
 
     // "aprovado" or "reprovado: motivo" answers the one validation waiting for the owner.
     const validated =
-      options.ownerMessage && this.validations && !reply && !decided && !planned && !ruled
+      owner && this.validations && !reply && !decided && !planned && !ruled
         ? parseValidationReply(parsed.text)
         : undefined;
 
@@ -270,7 +293,7 @@ export class Runs {
 
     // "ok comentario 3" or "comentario 3: texto" publishes the comment of a refusal.
     const commented =
-      options.ownerMessage && this.validations && !reply && !decided && !planned && !validated
+      owner && this.validations && !reply && !decided && !planned && !validated
         ? parseValidationCommentReply(parsed.text)
         : undefined;
 
@@ -287,7 +310,7 @@ export class Runs {
 
     // "ok menção 3", "menção 3: texto" or "ignora menção 3" answers a question from the Work.
     const mentioned =
-      options.ownerMessage &&
+      owner &&
       this.mentions &&
       !reply &&
       !decided &&
@@ -311,7 +334,7 @@ export class Runs {
     // "ok roadmap 1-12", "recusa roadmap 4: …" or "roadmap 4: …" answers the Estrategista;
     // "roadmap: <ideia> no <produto>" is the owner's own item, straight into Depois.
     const roadmapFree =
-      options.ownerMessage &&
+      owner &&
       this.roadmap &&
       !reply &&
       !decided &&
@@ -339,10 +362,17 @@ export class Runs {
       if (result) parsed.text = RoadmapNotices.noted(result);
     }
 
+    // The old commands still answer until 30/10/2026; the agent reminds the owner of the inbox.
+    if (planned || ruled || decided || validated || commented || mentioned || charted) {
+      parsed.text = `${parsed.text}
+
+[Caixa] O Moabe usou um comando antigo. Lembre em uma linha que agora basta "ok N", "não N: motivo" ou "N: texto", com o número da caixa (página Esperando você).`;
+    }
+
     // "corrige: ..." stays the owner's words for the agent; it is also kept as a correction of
     // the last answer here, which is how the owner sees how often this needed fixing.
     const correction =
-      options.ownerMessage && this.quality && !reply && !planned && !ruled
+      owner && this.quality && !reply && !planned && !ruled
         ? parseCorrectionReply(parsed.text)
         : undefined;
 

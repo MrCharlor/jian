@@ -27,6 +27,7 @@ import type { EntrySync } from '../entry/service.js';
 import type { Epics } from '../epics/service.js';
 import type { Outreach } from '../errands/port.js';
 import { type Flow, flowReportInputSchema } from '../flow/service.js';
+import type { Inbox } from '../inbox/service.js';
 import type { Knowledge } from '../knowledge/service.js';
 import { knowledgeTools } from '../knowledge/tools.js';
 import { sameSubject } from '../memories/duplicates.js';
@@ -126,6 +127,7 @@ export type ToolServices = {
   knowledge?: Pick<Knowledge, 'lookup' | 'propose' | 'isCurator'>;
   entrySync?: Pick<EntrySync, 'run'>;
   mentions?: Pick<Mentions, 'triaged' | 'answered'>;
+  inbox?: Pick<Inbox, 'list'>;
   roadmap?: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'snapshot' | 'isStrategist'>;
 };
 
@@ -285,6 +287,16 @@ export function profileTools(
     ...(services.plans ? planTools(services.plans, run) : {}),
     ...(services.knowledge ? knowledgeTools(services.knowledge, run) : {}),
     ...(services.mentions ? mentionTools(services.mentions, run) : {}),
+    ...(services.inbox
+      ? {
+          read_owner_inbox: tool({
+            description:
+              'Read what waits for the owner in their inbox (B26): each item with its inbox number, queue, title and since when, the high-impact first. Read only; the owner answers with "ok N", "não N: motivo" or "N: texto".',
+            inputSchema: z.object({}),
+            execute: async () => (services.inbox as Pick<Inbox, 'list'>).list(),
+          }),
+        }
+      : {}),
     ...(services.roadmap ? roadmapTools(services.roadmap, run) : {}),
     ...(services.entrySync
       ? {
@@ -730,6 +742,10 @@ export const TOOL_GROUPS = {
     summary:
       'search the owner’s knowledge base (rules he already answered, with scope and source) before asking him anything; as the Curator, propose to add, change or retire a rule',
     tools: ['search_knowledge', 'propose_knowledge'],
+  },
+  caixa: {
+    summary: 'read what waits for the owner in their inbox, with the number they answer by',
+    tools: ['read_owner_inbox'],
   },
   mentions: {
     summary:

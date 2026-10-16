@@ -5,6 +5,7 @@ export * from './coordination.js';
 export * from './decisions.js';
 export * from './draw.js';
 export * from './epics.js';
+export * from './inbox.js';
 export * from './knowledge.js';
 export * from './media.js';
 export * from './mentions.js';

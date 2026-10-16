@@ -18,6 +18,7 @@ import { registerEventRoutes } from './http/events.js';
 import { registerMetaRoutes } from './http/meta.js';
 import { configureSecurity } from './http/security.js';
 import { registerGatewayUi } from './http/ui.js';
+import { registerInboxRoutes } from './inbox/routes.js';
 import { registerKnowledgeRoutes } from './knowledge/routes.js';
 import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
@@ -143,6 +144,7 @@ export function createApp(
   registerDrawingRoutes(app, options);
   registerEpicRoutes(app, options);
   registerValidationRoutes(app, options);
+  registerInboxRoutes(app, options);
   registerMentionRoutes(app, options);
   registerRoadmapRoutes(app, options);
   registerScreenRoutes(app, options);

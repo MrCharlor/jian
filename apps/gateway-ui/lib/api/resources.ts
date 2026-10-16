@@ -4,6 +4,7 @@ import type {
   ApplicationPatch,
   EpicDraftPatch,
   GatewaySettingsPatch,
+  InboxDecision,
   KnowledgeFilter,
   KnowledgePatch,
   KnowledgeSettingsPatch,
@@ -191,6 +192,9 @@ export const resourceCalls = (client: Client) => ({
     ),
   ignoreMention: (number: number) =>
     result(client.POST('/v1/mentions/{number}/ignore', { params: { path: { number } } })),
+  inbox: () => result(client.GET('/v1/inbox')),
+  decideInbox: (number: number, body: InboxDecision) =>
+    result(client.POST('/v1/inbox/{number}/decide', { params: { path: { number } }, body })),
   mentionSettings: () => result(client.GET('/v1/mention-settings')),
   updateMentionSettings: (body: MentionSettingsPatch) =>
     result(client.PUT('/v1/mention-settings', { body })),

@@ -55,6 +55,12 @@ import {
 } from './draw.js';
 import { epicDraftPatchSchema, epicDraftSchema } from './epics.js';
 import {
+  inboxDecisionSchema,
+  inboxListSchema,
+  inboxNumberParamsSchema,
+  inboxOutcomeSchema,
+} from './inbox.js';
+import {
   knowledgeImportResultSchema,
   knowledgeImportSchema,
   knowledgeListQuerySchema,
@@ -878,6 +884,23 @@ export const operations: Operation[] = [
     access: 'admin',
     body: mentionSettingsPatchSchema,
     response: mentionSettingsSchema,
+  },
+  {
+    // Everything waiting for the owner, under one number (B26).
+    method: 'GET',
+    path: '/v1/inbox',
+    operationId: 'listInbox',
+    access: 'admin',
+    response: inboxListSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/inbox/:number/decide',
+    operationId: 'decideInbox',
+    access: 'admin',
+    params: inboxNumberParamsSchema,
+    body: inboxDecisionSchema,
+    response: inboxOutcomeSchema,
   },
   {
     // The tracker's people and whether the agent answers each of them (B25).

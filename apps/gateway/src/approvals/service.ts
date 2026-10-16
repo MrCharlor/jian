@@ -62,8 +62,9 @@ export function levelOf(policy: ActionPolicy, action: string, kind: ActionKind):
 export const proposeOnly = (action: string) =>
   `Not run: ${action} is at autonomy level 1 for this agent, so you only propose it. Tell the owner exactly what you would do and leave the action to them.`;
 
-export const waitingFor = (approval: Approval) =>
-  `Not run yet: this action waits for the owner's approval as request #${approval.number}. Tell the owner, in your own words, exactly what #${approval.number} would do and that they can answer "ok ${approval.number}" or "não ${approval.number}: motivo". Then end your turn; do not call the tool again until the owner answers.`;
+/** `shown` is the owner's inbox number when there is one (B26), the request's own otherwise. */
+export const waitingFor = (approval: Approval, shown = approval.number) =>
+  `Not run yet: this action waits for the owner's approval as request #${shown}. Tell the owner, in your own words, exactly what #${shown} would do and that they can answer "ok ${shown}" or "não ${shown}: motivo". Then end your turn; do not call the tool again until the owner answers.`;
 
 /**
  * Actions the agent prepared and the owner decides on. One short number per profile is the
@@ -77,6 +78,13 @@ export class Approvals {
     private readonly clock: Clock = Date.now,
     private readonly quality?: Pick<Quality, 'record'>,
   ) {}
+
+  private numbering?: (approvalId: string) => Promise<number | undefined>;
+
+  /** The owner's inbox numbers every request; the agent tells the owner that number. */
+  useNumbering(numbering: (approvalId: string) => Promise<number | undefined>) {
+    this.numbering = numbering;
+  }
 
   private runs?: {
     submit(profileId: string, sessionId: string, input: unknown): Promise<unknown>;
@@ -125,7 +133,20 @@ export class Approvals {
     call: { tool: string; action: string; input: unknown; summary: string },
   ): Promise<{ proceed: true } | { proceed: false; held: string; approval: Approval }> {
     const hash = inputHash(call.input);
+    const gated = await this.gateCall(run, call, hash);
 
+    if (gated.proceed || !this.numbering) return gated;
+
+    const shown = await this.numbering(gated.approval.id).catch(() => undefined);
+
+    return shown ? { ...gated, held: waitingFor(gated.approval, shown) } : gated;
+  }
+
+  private gateCall(
+    run: { profileId: string; sessionId: string; id: string },
+    call: { tool: string; action: string; input: unknown; summary: string },
+    hash: string,
+  ): Promise<{ proceed: true } | { proceed: false; held: string; approval: Approval }> {
     return this.store.transaction(run.profileId, async (tx) => {
       await expireApprovals(tx, run.profileId, new Date(this.clock()));
 

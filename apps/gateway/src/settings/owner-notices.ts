@@ -1,7 +1,18 @@
+import type { InboxKind } from '@jian/contracts';
 import type { Settings } from './service.js';
 
 type Panel = (profileId: string, text: string, requestKey: string) => Promise<unknown>;
 type Channels = { tellOwners(profileId: string, text: string): Promise<number> };
+type Numbers = { announce(kinds: InboxKind[]): Promise<string> };
+
+/** The inbox kinds a notice of each kind brings, so it ends with their numbers (B26). */
+const INBOX_KINDS: Record<string, InboxKind[]> = {
+  plan: ['plano'],
+  knowledge: ['regra'],
+  validation: ['validacao', 'comentario'],
+  mention: ['mencao'],
+  roadmap: ['roadmap'],
+};
 
 /**
  * The gateway's own word to the owner: a plan waiting, epics to validate. It always reaches the
@@ -10,6 +21,7 @@ type Channels = { tellOwners(profileId: string, text: string): Promise<number> }
  */
 export class OwnerNotices {
   private channels?: Channels;
+  private inbox?: Numbers;
 
   constructor(
     private readonly settings: Pick<Settings, 'ownerNotices'>,
@@ -22,11 +34,29 @@ export class OwnerNotices {
     this.channels = channels;
   }
 
+  /** Wired after construction: the inbox reads every queue, built after this one. */
+  useInbox(inbox: Numbers) {
+    this.inbox = inbox;
+  }
+
   /** `short`, when given, is what a chat gets instead: the gist and the command to answer. */
-  async tell(text: string, kind: string, short?: string): Promise<void> {
+  async tell(given: string, kind: string, givenShort?: string): Promise<void> {
     const profileId = await this.profile();
 
     if (!profileId) return;
+
+    // A notice that never reached the owner must not keep the numbers it would have brought.
+    const kinds = INBOX_KINDS[kind];
+    const numbers = kinds && this.inbox ? await this.inbox.announce(kinds).catch(() => '') : '';
+    const text = numbers
+      ? `${given}
+${numbers}`
+      : given;
+    const short =
+      givenShort && numbers
+        ? `${givenShort}
+${numbers}`
+        : givenShort;
 
     // One failing must not keep the notice from the other: each is the owner's only way to see it.
     const [panel, channel] = await Promise.allSettled([
