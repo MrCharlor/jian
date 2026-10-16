@@ -158,9 +158,18 @@ describe('the inbox', () => {
     const { inbox } = await fixture();
 
     const told = await inbox.announce(['plano']);
-    expect(told).toContain('plano 3, item 3');
-    expect(told).toContain('"ok N", "não N: motivo" ou "N: texto"');
-    expect(await inbox.announce(['plano'])).toBe('');
+    const numbers = (await inbox.list()).items
+      .filter((entry) => entry.kind === 'plano')
+      .map((entry) => entry.number);
+
+    expect(told.panel).toContain('"ok N", "não N: motivo" ou "N: texto"');
+    expect(told.chat.split('\n')).toEqual([
+      'plano: 2 esperando você',
+      `#${numbers[0]} · item 3`,
+      `#${numbers[1]} · item 4`,
+      `Tudo: ok ${numbers[0]}-${numbers[1]} · Uma: ok N, não N: motivo, N: texto`,
+    ]);
+    expect(await inbox.announce(['plano'])).toEqual({ panel: '', chat: '' });
   });
 
   it('measures the minutes from waiting to the owner’s decision', async () => {

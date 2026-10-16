@@ -3,7 +3,7 @@ import type { Settings } from './service.js';
 
 type Panel = (profileId: string, text: string, requestKey: string) => Promise<unknown>;
 type Channels = { tellOwners(profileId: string, text: string): Promise<number> };
-type Numbers = { announce(kinds: InboxKind[]): Promise<string> };
+type Numbers = { announce(kinds: InboxKind[]): Promise<{ panel: string; chat: string }> };
 
 /** The inbox kinds a notice of each kind brings, so it ends with their numbers (B26). */
 const INBOX_KINDS: Record<string, InboxKind[]> = {
@@ -46,17 +46,14 @@ export class OwnerNotices {
     if (!profileId) return;
 
     // A notice that never reached the owner must not keep the numbers it would have brought.
+    // On a phone the inbox lines stand in for the notice: one line per item, the numbers only.
     const kinds = INBOX_KINDS[kind];
-    const numbers = kinds && this.inbox ? await this.inbox.announce(kinds).catch(() => '') : '';
-    const text = numbers
-      ? `${given}
-${numbers}`
-      : given;
-    const short =
-      givenShort && numbers
-        ? `${givenShort}
-${numbers}`
-        : givenShort;
+    const numbers =
+      kinds && this.inbox
+        ? await this.inbox.announce(kinds).catch(() => ({ panel: '', chat: '' }))
+        : { panel: '', chat: '' };
+    const text = numbers.panel ? `${given}\n${numbers.panel}` : given;
+    const short = numbers.chat || givenShort;
 
     // One failing must not keep the notice from the other: each is the owner's only way to see it.
     const [panel, channel] = await Promise.allSettled([

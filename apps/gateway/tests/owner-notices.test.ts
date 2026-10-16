@@ -151,7 +151,7 @@ describe('notices to the owner', () => {
     expect(context.sent).toEqual([
       {
         chatId: '99',
-        text: expect.stringContaining(`Responda "ok plano ${plan.number}"`),
+        text: expect.stringMatching(/^Plano: 1 esperando você\n#\d+ · Cores\nResponda: ok N/),
       },
     ]);
   });

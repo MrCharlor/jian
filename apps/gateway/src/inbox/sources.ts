@@ -268,8 +268,9 @@ export function inboxSources(services: {
         return (await services.roadmap.proposals({ state: 'aguardando_po' })).map((proposal) => ({
           refId: proposal.id,
           refNumber: proposal.number,
-          title: `${proposal.kind} ${proposal.item?.title ?? proposal.itemTitle ?? ''}`.trim(),
-          summary: proposal.reason,
+          title:
+            `${proposal.kind === 'incluir' ? '' : `${proposal.kind}: `}${proposal.item?.title ?? proposal.itemTitle ?? ''}`.trim(),
+          summary: `${proposal.kind}. ${proposal.reason}`,
           highImpact: proposal.highImpact,
           createdAt: proposal.createdAt,
         }));

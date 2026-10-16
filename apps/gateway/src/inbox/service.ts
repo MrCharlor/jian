@@ -46,6 +46,9 @@ export type InboxSource = {
 type Row = typeof inbox.$inferSelect;
 
 const DAY = 86_400_000;
+
+const clip = (text: string, limit: number) =>
+  text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
 const STATS_DAYS = 30;
 
 const failure = (error: unknown) =>
@@ -207,13 +210,14 @@ export class Inbox {
   }
 
   /**
-   * The lines a notice ends with: the open items of these kinds the owner has not been told
-   * the number of yet, and the commands. Empty when there is none.
+   * The open items of these kinds the owner has not been told the number of yet, marked told:
+   * `panel` is a block that follows the full notice; `chat` stands in for the notice on a phone,
+   * one line per item. Both empty when there is none.
    */
-  async announce(kinds: InboxKind[]): Promise<string> {
+  async announce(kinds: InboxKind[]): Promise<{ panel: string; chat: string }> {
     const open = (await this.open(kinds)).filter(({ row }) => !row.announcedAt);
 
-    if (!open.length) return '';
+    if (!open.length) return { panel: '', chat: '' };
 
     await this.store.db
       .update(inbox)
@@ -225,15 +229,29 @@ export class Inbox {
         ),
       );
 
-    const lines = open
-      .sort((a, b) => a.row.number - b.row.number)
-      .map(({ row, item }) => {
-        const label = this.sources.get(row.kind as InboxKind)?.label ?? row.kind;
+    const sorted = open.sort((a, b) => a.row.number - b.row.number);
+    const labels = [
+      ...new Set(
+        sorted.map(({ row }) => this.sources.get(row.kind as InboxKind)?.label ?? row.kind),
+      ),
+    ];
+    const numbers = sorted.map(({ row }) => row.number);
+    const first = numbers[0] ?? 0;
+    const last = numbers.at(-1) ?? 0;
+    const together = numbers.length > 1 && last - first === numbers.length - 1;
+    const head =
+      labels.length === 1
+        ? `${labels[0]}: ${numbers.length} esperando você`
+        : `${numbers.length} itens esperando você`;
+    const lines = sorted.map(({ row, item }) => `#${row.number} · ${clip(item.title, 90)}`);
+    const commands = together
+      ? `Tudo: ok ${first}-${last} · Uma: ok N, não N: motivo, N: texto`
+      : 'Responda: ok N, não N: motivo, N: texto';
 
-        return `#${row.number}: ${label} ${row.refNumber}, ${item.title}`;
-      });
-
-    return [`Na caixa: ${lines.join('; ')}.`, INBOX_COMMANDS].join('\n');
+    return {
+      panel: [`Na caixa: ${lines.join('; ')}.`, INBOX_COMMANDS].join('\n'),
+      chat: [head, ...lines, commands].join('\n'),
+    };
   }
 
   /**
