@@ -36,6 +36,8 @@ import type { Mentions } from '../mentions/service.js';
 import { mentionTools } from '../mentions/tools.js';
 import type { Pautas } from '../pautas/service.js';
 import type { PeerAgents } from '../peers/port.js';
+import type { PipelineChain } from '../pipeline/service.js';
+import { pipelineTools } from '../pipeline/tools.js';
 import type { Plans } from '../plans/service.js';
 import { planTools } from '../plans/tools.js';
 import type { Priorities } from '../priorities/service.js';
@@ -129,6 +131,7 @@ export type ToolServices = {
   mentions?: Pick<Mentions, 'triaged' | 'answered'>;
   inbox?: Pick<Inbox, 'list'>;
   roadmap?: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'snapshot' | 'isStrategist'>;
+  pipeline?: Pick<PipelineChain, 'report' | 'isAuthor'>;
 };
 
 export function profileTools(
@@ -298,6 +301,7 @@ export function profileTools(
         }
       : {}),
     ...(services.roadmap ? roadmapTools(services.roadmap, run) : {}),
+    ...(services.pipeline ? pipelineTools(services.pipeline, run) : {}),
     ...(services.entrySync
       ? {
           propose_entry_sync: tool({
@@ -751,6 +755,11 @@ export const TOOL_GROUPS = {
     summary:
       'triage a comment on the work tracker for the owner, and answer it on the card or propose the answer to the owner',
     tools: ['triage_comment', 'answer_mention'],
+  },
+  pipeline: {
+    summary:
+      'report on a request of the Entrada walking to an epic: its pauta and whether it needs a prototype',
+    tools: ['report_request'],
   },
   roadmap: {
     summary:

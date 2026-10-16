@@ -17,6 +17,8 @@ export const inboxKindLabel: Record<InboxItem['kind'], string> = {
   mencao: 'Menção no Work',
   roadmap: 'Roadmap',
   priorizacao: 'Priorização',
+  prototipo: 'Protótipo',
+  epico: 'Épico',
 };
 
 const minutes = (value: number) =>

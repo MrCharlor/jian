@@ -1,10 +1,13 @@
 import { Approvals } from '../approvals/service.js';
+import type { Epics } from '../epics/service.js';
 import type { Knowledge } from '../knowledge/service.js';
 import type { Mentions } from '../mentions/service.js';
 import type { Pautas } from '../pautas/service.js';
+import type { PipelineChain } from '../pipeline/service.js';
 import type { Plans } from '../plans/service.js';
 import type { Priorities } from '../priorities/service.js';
 import type { Profiles } from '../profiles/service.js';
+import type { Prototypes } from '../prototypes/service.js';
 import type { Roadmap } from '../roadmap/service.js';
 import type { Validations } from '../validations/service.js';
 import type { InboxSource } from './service.js';
@@ -37,6 +40,9 @@ export function inboxSources(services: {
   mentions: Pick<Mentions, 'list' | 'answer' | 'ignore'>;
   roadmap: Pick<Roadmap, 'proposals' | 'fromChat'>;
   priorities: Pick<Priorities, 'list' | 'apply' | 'discard'>;
+  prototypes: Pick<Prototypes, 'list' | 'approve' | 'redo'>;
+  epics: Pick<Epics, 'list' | 'create' | 'discard'>;
+  pipeline: Pick<PipelineChain, 'prototypeRefused' | 'revise'>;
 }): InboxSource[] {
   const approvalOwner = new Map<string, string>();
 
@@ -411,6 +417,93 @@ export function inboxSources(services: {
           services.roadmap.fromChat({ numbers: [item.refNumber], action: 'edit', text }),
         );
         return 'aplicada com o seu ajuste.';
+      },
+    },
+    {
+      kind: 'prototipo',
+      label: 'Protótipo',
+      question: 'O desenho está bom para virar épico?',
+      ifOk: 'Esta versão fica aprovada e o épico é escrito a partir dela.',
+      ifNo: 'O protótipo é recusado e o pedido para; o motivo fica registrado.',
+      ifText: 'Uma versão nova é desenhada com a sua correção.',
+      okLabel: 'Aprovar desenho',
+      noLabel: 'Recusar',
+      async pending() {
+        return (await services.prototypes.list())
+          .map((prototype) => ({ prototype, latest: prototype.versions.at(-1) }))
+          .filter(
+            ({ prototype, latest }) =>
+              latest?.status === 'ready' && (prototype.approvedVersion ?? 0) < latest.number,
+          )
+          .map(({ prototype, latest }) => ({
+            refId: prototype.id,
+            refNumber: latest?.number ?? 1,
+            title: `${prototype.title} (versão ${latest?.number ?? 1})`,
+            ...(prototype.designUrl ? { link: prototype.designUrl } : {}),
+            details: [
+              ...(prototype.designUrl ? [`Desenho: ${prototype.designUrl}`] : []),
+              `Pedido: ${clip(prototype.brief, 400)}`,
+              ...(latest?.comments ? [`Correção anterior: ${clip(latest.comments, 300)}`] : []),
+            ],
+            createdAt: latest?.finishedAt ?? latest?.createdAt ?? prototype.updatedAt,
+          }));
+      },
+      async ok(item) {
+        await services.prototypes.approve(item.refId, item.refNumber);
+        return 'desenho aprovado; o épico é escrito a partir dele.';
+      },
+      async no(item, reason) {
+        await services.pipeline.prototypeRefused(item.refId, reason);
+        return 'recusado; o pedido parou.';
+      },
+      async text(item, text, via) {
+        await services.prototypes.redo(item.refId, { comments: text }, via);
+        return 'uma versão nova está sendo desenhada com a sua correção.';
+      },
+    },
+    {
+      kind: 'epico',
+      label: 'Épico',
+      question: 'Este épico e as subtasks podem ser criados no Work?',
+      ifOk: 'O épico e as subtasks são criados no Work (Equipe Sigma, 3433, etiqueta, App vazio), ligados ao pedido, e o Lucas é avisado.',
+      ifNo: 'O rascunho é descartado; nada vai para o Work.',
+      ifText: 'O autor reescreve o rascunho com a sua correção.',
+      okLabel: 'Criar no Work',
+      noLabel: 'Descartar',
+      async pending() {
+        return (await services.epics.list())
+          .filter((draft) => draft.state === 'rascunho')
+          .map((draft) => ({
+            refId: draft.id,
+            refNumber: draft.number,
+            title: draft.title,
+            ...(draft.prototypeUrl ? { link: draft.prototypeUrl } : {}),
+            details: [
+              ...(draft.pauta ? [`Pauta: ${draft.pauta}`] : []),
+              clip(draft.description, 600),
+              ...draft.tasks
+                .slice(0, 8)
+                .map((task, index) => `Subtask ${index + 1}: ${task.title}`),
+              ...(draft.problems.length
+                ? draft.problems.map((problem) => `Conferência: ${clip(problem, 200)}`)
+                : ['Conferência: nada a corrigir.']),
+            ],
+            highImpact: draft.problems.length > 0,
+            createdAt: draft.createdAt,
+          }));
+      },
+      async ok(item) {
+        const created = await services.epics.create(item.refId);
+
+        if (created.error) throw new Error(created.error);
+        return `criado no Work${created.work?.epicUrl ? `: ${created.work.epicUrl}` : ''}.`;
+      },
+      async no(item) {
+        await services.epics.discard(item.refId);
+        return 'descartado.';
+      },
+      async text(item, text) {
+        return services.pipeline.revise(item.refId, text);
       },
     },
     {

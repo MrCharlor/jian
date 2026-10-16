@@ -14,6 +14,7 @@ import type {
   NewPauta,
   NewPrototype,
   NewRoadmapItem,
+  PipelineSettingsPatch,
   PlanSettings,
   PlanSettingsPatch,
   PlanState,
@@ -193,6 +194,14 @@ export const resourceCalls = (client: Client) => ({
   ignoreMention: (number: number) =>
     result(client.POST('/v1/mentions/{number}/ignore', { params: { path: { number } } })),
   inbox: () => result(client.GET('/v1/inbox')),
+  pipelines: () => result(client.GET('/v1/pipelines')),
+  enterPipeline: (id: string) =>
+    result(client.POST('/v1/pipelines/{id}/enter', { params: { path: { id } } })),
+  stopPipeline: (id: string) =>
+    result(client.POST('/v1/pipelines/{id}/stop', { params: { path: { id } } })),
+  pipelineSettings: () => result(client.GET('/v1/pipeline-settings')),
+  updatePipelineSettings: (body: PipelineSettingsPatch) =>
+    result(client.PUT('/v1/pipeline-settings', { body })),
   decideInbox: (number: number, body: InboxDecision) =>
     result(client.POST('/v1/inbox/{number}/decide', { params: { path: { number } }, body })),
   mentionSettings: () => result(client.GET('/v1/mention-settings')),

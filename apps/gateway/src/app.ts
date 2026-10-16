@@ -24,6 +24,7 @@ import { registerMediaRoutes } from './media/routes.js';
 import { registerMemoryRoutes } from './memories/routes.js';
 import { registerMentionRoutes } from './mentions/routes.js';
 import { registerPautaRoutes } from './pautas/routes.js';
+import { registerPipelineRoutes } from './pipeline/routes.js';
 import { registerPlanRoutes } from './plans/routes.js';
 import { registerPriorityRoutes } from './priorities/routes.js';
 import { registerProfileRoutes } from './profiles/routes.js';
@@ -145,6 +146,7 @@ export function createApp(
   registerEpicRoutes(app, options);
   registerValidationRoutes(app, options);
   registerInboxRoutes(app, options);
+  registerPipelineRoutes(app, options);
   registerMentionRoutes(app, options);
   registerRoadmapRoutes(app, options);
   registerScreenRoutes(app, options);

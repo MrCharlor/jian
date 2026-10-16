@@ -294,6 +294,11 @@ try {
         .catch(() =>
           console.error('jian: the board could not be checked for validations; will retry'),
         );
+      void services.pipeline
+        .tick()
+        .catch(() =>
+          console.error('jian: the requests could not go on to their epics; will retry'),
+        );
       void services.mentions
         .tick()
         .catch(() =>

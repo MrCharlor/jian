@@ -18,6 +18,7 @@ import { Memories } from './memories/service.js';
 import { Mentions } from './mentions/service.js';
 import { Pautas } from './pautas/service.js';
 import { Peers } from './peers/service.js';
+import { PipelineChain } from './pipeline/service.js';
 import { Plans } from './plans/service.js';
 import { Priorities } from './priorities/service.js';
 import { workBoardOpener, workClientOpener } from './priorities/work-board.js';
@@ -64,6 +65,7 @@ export type Services = {
   validations: Validations;
   mentions: Mentions;
   inbox: Inbox;
+  pipeline: PipelineChain;
   roadmap: Roadmap;
   screens: Screens;
   plans: Plans;
@@ -245,9 +247,33 @@ export function buildServices({
   roadmap.useOwner((text, short) => ownerNotices.tell(text, 'roadmap', short));
   roadmap.useLearner((lesson) => knowledge.learn(lesson));
   runs.useRoadmap(roadmap);
+  // A request in Priorizado walks to an epic by itself (B23); the owner answers at the gates.
+  const pipeline = new PipelineChain(
+    store,
+    workClients,
+    workProfile,
+    SIGMA_ENTRY,
+    profiles,
+    pautas,
+    prototypes,
+    epics,
+    clock,
+  );
+  pipeline.useAgents({
+    submit: (profileId, sessionId, text, requestKey) =>
+      runs.submit(profileId, sessionId, { text, requestKey }),
+    session: async (profileId, title) =>
+      (await sessions.sessions(profileId)).find(
+        (session) => session.channel === 'pipeline' && session.title === title,
+      ) ?? sessions.createSession(profileId, { title, channel: 'pipeline' }),
+  });
+  pipeline.useOwner((text, short) => ownerNotices.tell(text, 'pipeline', short));
   // The owner's inbox (B26): every queue under one number, answered with the same commands.
   const inbox = new Inbox(store, clock);
   for (const source of inboxSources({
+    prototypes,
+    epics,
+    pipeline,
     profiles,
     approvals,
     plans,
@@ -301,6 +327,7 @@ export function buildServices({
     validations,
     mentions,
     inbox,
+    pipeline,
     roadmap,
     screens: new Screens(store, applications, clock),
     plans,

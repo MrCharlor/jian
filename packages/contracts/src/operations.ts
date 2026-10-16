@@ -101,6 +101,12 @@ import {
   pautaRecordSchema,
 } from './pautas.js';
 import {
+  pipelineIdParamsSchema,
+  pipelineRecordSchema,
+  pipelineSettingsPatchSchema,
+  pipelineSettingsSchema,
+} from './pipeline.js';
+import {
   entrySyncResultSchema,
   entrySyncRunSchema,
   planActionParamsSchema,
@@ -884,6 +890,46 @@ export const operations: Operation[] = [
     access: 'admin',
     body: mentionSettingsPatchSchema,
     response: mentionSettingsSchema,
+  },
+  {
+    // The requests walking from Priorizado to an epic (B23).
+    method: 'GET',
+    path: '/v1/pipelines',
+    operationId: 'listPipelines',
+    access: 'admin',
+    response: z.array(pipelineRecordSchema),
+  },
+  {
+    // A request seen before the chain was on, let in by the owner.
+    method: 'POST',
+    path: '/v1/pipelines/:id/enter',
+    operationId: 'enterPipeline',
+    access: 'admin',
+    params: pipelineIdParamsSchema,
+    response: pipelineRecordSchema,
+  },
+  {
+    method: 'POST',
+    path: '/v1/pipelines/:id/stop',
+    operationId: 'stopPipeline',
+    access: 'admin',
+    params: pipelineIdParamsSchema,
+    response: pipelineRecordSchema,
+  },
+  {
+    method: 'GET',
+    path: '/v1/pipeline-settings',
+    operationId: 'getPipelineSettings',
+    access: 'admin',
+    response: pipelineSettingsSchema,
+  },
+  {
+    method: 'PUT',
+    path: '/v1/pipeline-settings',
+    operationId: 'updatePipelineSettings',
+    access: 'admin',
+    body: pipelineSettingsPatchSchema,
+    response: pipelineSettingsSchema,
   },
   {
     // Everything waiting for the owner, under one number (B26).

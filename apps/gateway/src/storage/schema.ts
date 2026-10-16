@@ -1342,7 +1342,8 @@ export const plans = pgTable(
     id: uuid('id').primaryKey(),
     number: integer('number').notNull().unique(),
     action: text('action').notNull(),
-    prototypeId: uuid('prototype_id').references(() => prototypes.id, { onDelete: 'set null' }),
+    // No foreign key: a prototype the owner deletes leaves the request where it was.
+    prototypeId: uuid('prototype_id'),
     prototypeVersion: integer('prototype_version'),
     /** The proposed order a prioritization plan holds until it is approved. */
     priorityProposalId: uuid('priority_proposal_id').references(() => priorityProposals.id, {
@@ -1463,6 +1464,34 @@ export const mentions = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('mentions_state').on(table.state, table.createdAt.desc())],
+);
+
+/**
+ * A request of the Entrada walking to an epic (B23): which stage it is in, and what it made on
+ * the way, so a restart picks it up where it was without opening anything twice.
+ */
+export const pipelines = pgTable(
+  'pipelines',
+  {
+    id: uuid('id').primaryKey(),
+    number: integer('number').notNull().unique(),
+    requestWorkId: text('request_work_id').notNull().unique(),
+    requestTitle: text('request_title').notNull(),
+    stage: text('stage').notNull(),
+    pautaId: uuid('pauta_id').references(() => pautas.id, { onDelete: 'set null' }),
+    needsPrototype: boolean('needs_prototype'),
+    // No foreign key: a prototype the owner deletes leaves the request where it was.
+    prototypeId: uuid('prototype_id'),
+    epicDraftId: uuid('epic_draft_id').references(() => epicDrafts.id, { onDelete: 'set null' }),
+    epicWorkId: text('epic_work_id'),
+    rounds: integer('rounds').notNull().default(0),
+    /** What the author was last asked, so the same step is not asked twice. */
+    asked: text('asked'),
+    note: text('note'),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('pipelines_stage').on(table.stage, table.createdAt)],
 );
 
 /**

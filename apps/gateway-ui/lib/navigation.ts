@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Workflow,
 } from 'lucide-react';
 
 export type NavigationItem = {
@@ -41,6 +42,7 @@ export type NavigationItem = {
  */
 export const navigation: NavigationItem[] = [
   { href: '/inbox', label: 'Esperando você', icon: Inbox, group: 'global' },
+  { href: '/requests', label: 'Pedidos → épico', icon: Workflow, group: 'global' },
   { href: '/providers', label: 'Providers', icon: Plug, group: 'global' },
   { href: '/pautas', label: 'Pautas', icon: ClipboardList, group: 'global' },
   { href: '/roadmap', label: 'Roadmap', icon: MapIcon, group: 'global' },

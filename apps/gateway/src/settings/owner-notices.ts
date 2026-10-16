@@ -12,6 +12,7 @@ const INBOX_KINDS: Record<string, InboxKind[]> = {
   validation: ['validacao', 'comentario'],
   mention: ['mencao'],
   roadmap: ['roadmap'],
+  pipeline: ['plano', 'prototipo', 'epico'],
 };
 
 /**

@@ -12,6 +12,7 @@ export * from './mentions.js';
 export * from './operations.js';
 export * from './pautas.js';
 export * from './peers.js';
+export * from './pipeline.js';
 export * from './plans.js';
 export * from './priorities.js';
 export * from './profile.js';
