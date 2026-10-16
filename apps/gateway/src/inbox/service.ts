@@ -23,6 +23,9 @@ export type InboxPending = {
   summary?: string;
   link?: string;
   highImpact?: boolean;
+  /** Defaults to the source's own: what is decided and what matters for it. */
+  question?: string;
+  details?: string[];
   createdAt: string;
 };
 
@@ -35,6 +38,13 @@ export type InboxSource = {
   kind: InboxKind;
   /** How the owner calls one of these: "Plano", "Regra". */
   label: string;
+  /** What the owner decides on one of these, when the item does not say it better. */
+  question: string;
+  ifOk: string;
+  ifNo: string;
+  ifText?: string;
+  okLabel: string;
+  noLabel: string;
   pending(): Promise<InboxPending[]>;
   /** `chat`: the owner answered in a conversation, which the agent reads next on its own. */
   ok(item: InboxPending, via: InboxVia, chat: boolean): Promise<string>;
@@ -157,6 +167,8 @@ export class Inbox {
   }
 
   private present(row: Row, item: InboxPending): InboxItem {
+    const source = this.sources.get(row.kind as InboxKind);
+
     return {
       number: row.number,
       kind: row.kind as InboxKind,
@@ -166,7 +178,14 @@ export class Inbox {
       ...(item.summary ? { summary: item.summary } : {}),
       ...(item.link ? { link: item.link } : {}),
       highImpact: row.highImpact,
-      acceptsText: Boolean(this.sources.get(row.kind as InboxKind)?.text),
+      acceptsText: Boolean(source?.text),
+      question: item.question ?? source?.question ?? '',
+      details: (item.details ?? []).filter(Boolean).slice(0, 12),
+      ifOk: source?.ifOk ?? '',
+      ifNo: source?.ifNo ?? '',
+      ...(source?.text && source.ifText ? { ifText: source.ifText } : {}),
+      okLabel: source?.okLabel ?? 'Aceitar',
+      noLabel: source?.noLabel ?? 'Recusar',
       createdAt: row.openedAt.toISOString(),
     };
   }

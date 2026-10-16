@@ -26116,6 +26116,30 @@
                           "acceptsText": {
                             "type": "boolean"
                           },
+                          "question": {
+                            "type": "string"
+                          },
+                          "details": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "ifOk": {
+                            "type": "string"
+                          },
+                          "ifNo": {
+                            "type": "string"
+                          },
+                          "ifText": {
+                            "type": "string"
+                          },
+                          "okLabel": {
+                            "type": "string"
+                          },
+                          "noLabel": {
+                            "type": "string"
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -26130,6 +26154,12 @@
                           "title",
                           "highImpact",
                           "acceptsText",
+                          "question",
+                          "details",
+                          "ifOk",
+                          "ifNo",
+                          "okLabel",
+                          "noLabel",
                           "createdAt"
                         ],
                         "additionalProperties": false

@@ -28,6 +28,16 @@ export const inboxItemSchema = z.strictObject({
   highImpact: z.boolean(),
   /** Whether "N: texto" means something for this kind. */
   acceptsText: z.boolean(),
+  /** What the owner is deciding, as a question. */
+  question: z.string(),
+  /** What to read before deciding: the criteria, the reason, the counterpoint. */
+  details: z.array(z.string()),
+  /** What each answer does, in the owner's words, and the button that does it. */
+  ifOk: z.string(),
+  ifNo: z.string(),
+  ifText: z.string().optional(),
+  okLabel: z.string(),
+  noLabel: z.string(),
   createdAt: z.iso.datetime(),
 });
 

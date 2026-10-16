@@ -17,6 +17,11 @@ function queue(kind: InboxSource['kind'], items: InboxPending[], withText = true
   const source: InboxSource = {
     kind,
     label: kind,
+    question: `Decide ${kind}?`,
+    ifOk: 'segue',
+    ifNo: 'para',
+    okLabel: 'Aceitar',
+    noLabel: 'Recusar',
     pending: async () => [...waiting],
     ok: async (item) => done(item, `ok ${item.refNumber}`),
     no: async (item, reason) => done(item, `não ${item.refNumber}: ${reason ?? ''}`),

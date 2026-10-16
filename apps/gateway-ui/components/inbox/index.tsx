@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { InboxItem, InboxList } from '../../lib/api';
 import { date } from '../../lib/format';
 import type { SectionProps } from '../props';
-import { Badge, Button, Empty, Field, MoreText, SectionHeading } from '../ui';
+import { Badge, Button, Empty, Field, SectionHeading } from '../ui';
 
 export const inboxKindLabel: Record<InboxItem['kind'], string> = {
   aprovacao: 'Ação de agente',
@@ -132,30 +132,50 @@ function InboxCard({
           </small>
         </div>
       </header>
-      {(item.summary || item.link || mode) && (
-        <div className="request-body">
-          {item.link && (
-            <nav className="request-links" aria-label={`Links do item #${item.number}`}>
-              <a className="text-button" href={item.link} target="_blank" rel="noreferrer">
-                <ExternalLink size={14} /> Abrir
-              </a>
-            </nav>
-          )}
-          {item.summary && <MoreText lines={3}>{item.summary}</MoreText>}
-          {mode && (
-            <Field
-              label={mode === 'no' ? 'Motivo da recusa' : 'Sua resposta'}
-              hint={
-                mode === 'no'
-                  ? 'Opcional. Vira lição para o Curador.'
-                  : 'Vale como o "N: texto" do Telegram.'
-              }
-            >
-              <textarea rows={3} value={text} onChange={(event) => setText(event.target.value)} />
-            </Field>
+      <div className="request-body">
+        <p className="my-0">
+          <strong>{item.question}</strong>
+        </p>
+        {item.link && (
+          <nav className="request-links" aria-label={`Links do item #${item.number}`}>
+            <a className="text-button" href={item.link} target="_blank" rel="noreferrer">
+              <ExternalLink size={14} /> Abrir
+            </a>
+          </nav>
+        )}
+        {item.details.length > 0 && (
+          <ul className="my-0">
+            {item.details.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+        <div className="owner-callout">
+          <p className="my-0">
+            <strong>{item.okLabel}:</strong> {item.ifOk}
+          </p>
+          <p className="my-0">
+            <strong>{item.noLabel}:</strong> {item.ifNo}
+          </p>
+          {item.ifText && (
+            <p className="my-0">
+              <strong>Responder:</strong> {item.ifText}
+            </p>
           )}
         </div>
-      )}
+        {mode && (
+          <Field
+            label={mode === 'no' ? 'Motivo' : 'Sua resposta'}
+            hint={
+              mode === 'no'
+                ? 'Opcional. Vira lição para o agente.'
+                : 'Vale como o "N: texto" do Telegram.'
+            }
+          >
+            <textarea rows={3} value={text} onChange={(event) => setText(event.target.value)} />
+          </Field>
+        )}
+      </div>
       <footer>
         <p>{`Telegram: "ok ${item.number}", "não ${item.number}: motivo"${item.acceptsText ? ` ou "${item.number}: texto"` : ''}`}</p>
         {mode ? (
@@ -168,13 +188,13 @@ function InboxCard({
               disabled={busy || (mode === 'text' && !text.trim())}
               onClick={() => void decide(item, mode, text.trim() || undefined)}
             >
-              {mode === 'no' ? 'Recusar' : 'Enviar'}
+              {mode === 'no' ? item.noLabel : 'Enviar'}
             </Button>
           </>
         ) : (
           <>
             <Button variant="quiet" disabled={busy} onClick={() => setMode('no')}>
-              <X size={16} /> Recusar
+              <X size={16} /> {item.noLabel}
             </Button>
             {item.acceptsText && (
               <Button variant="secondary" disabled={busy} onClick={() => setMode('text')}>
@@ -182,7 +202,7 @@ function InboxCard({
               </Button>
             )}
             <Button busy={busy} disabled={busy} onClick={() => void decide(item, 'ok')}>
-              <Check size={16} /> Aceitar
+              <Check size={16} /> {item.okLabel}
             </Button>
           </>
         )}

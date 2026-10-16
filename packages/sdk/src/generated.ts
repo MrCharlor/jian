@@ -14708,6 +14708,13 @@ export interface operations {
                             link?: string;
                             highImpact: boolean;
                             acceptsText: boolean;
+                            question: string;
+                            details: string[];
+                            ifOk: string;
+                            ifNo: string;
+                            ifText?: string;
+                            okLabel: string;
+                            noLabel: string;
                             /** Format: date-time */
                             createdAt: string;
                         }[];

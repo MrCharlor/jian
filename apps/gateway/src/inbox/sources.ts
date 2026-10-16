@@ -14,6 +14,8 @@ const clip = (text: string, limit: number) =>
 
 const MENTION_WAITING = new Set(['waiting', 'held', 'limited']);
 
+const LANE: Record<string, string> = { agora: 'Agora', proximo: 'Próximo', depois: 'Depois' };
+
 /** The roadmap answers a list; one that failed comes back as the reason, not as an error. */
 const charted = async (result: Promise<{ failed: Array<{ why: string }> }>) => {
   const { failed } = await result;
@@ -42,6 +44,11 @@ export function inboxSources(services: {
     {
       kind: 'aprovacao',
       label: 'Ação',
+      question: 'Um agente pode fazer esta ação?',
+      ifOk: 'O agente faz a ação agora.',
+      ifNo: 'O agente não faz; o motivo vai para ele.',
+      okLabel: 'Liberar',
+      noLabel: 'Não liberar',
       async pending() {
         const profiles = await services.profiles.profiles();
         const found = [];
@@ -89,11 +96,35 @@ export function inboxSources(services: {
     {
       kind: 'plano',
       label: 'Plano',
+      question: 'O plano do agente pode seguir?',
+      ifOk: 'O agente executa o plano (protótipo, ordem do Priorizado ou movimentos da Entrada).',
+      ifNo: 'O plano é descartado.',
+      ifText: 'O plano volta ao autor com a sua correção.',
+      okLabel: 'Aprovar plano',
+      noLabel: 'Descartar',
       async pending() {
         return (await services.plans.list({ state: 'aguardando_po' })).map((plan) => ({
           refId: plan.id,
           refNumber: plan.number,
           title: plan.title,
+          question:
+            plan.action === 'entry_sync'
+              ? 'Os movimentos de cards na Entrada podem ser feitos?'
+              : plan.action === 'priority'
+                ? 'A nova ordem do Priorizado pode ser aplicada no Work?'
+                : 'O plano do protótipo pode virar desenho?',
+          details: [
+            ...(plan.reviewerName ? [`Revisado por ${plan.reviewerName}.`] : []),
+            ...plan.findings
+              .slice(0, 4)
+              .map((finding) => `Achado do Revisor: ${clip(finding.text, 200)}`),
+            ...(plan.questions ?? [])
+              .slice(0, 3)
+              .map((question) => `Pergunta: ${clip(question, 200)}`),
+            ...(plan.revised || plan.original
+              ? [clip(plan.revised ?? plan.original ?? '', 600)]
+              : []),
+          ],
           createdAt: plan.updatedAt,
         }));
       },
@@ -113,12 +144,31 @@ export function inboxSources(services: {
     {
       kind: 'regra',
       label: 'Regra',
+      question: 'Esta regra entra na base que os agentes consultam?',
+      ifOk: 'A regra passa a valer para todos os agentes.',
+      ifNo: 'A regra não entra; o motivo vira lição para o Curador.',
+      okLabel: 'Aceitar regra',
+      noLabel: 'Recusar regra',
       async pending() {
         return (await services.knowledge.proposals({ state: 'aguardando_po' })).map((proposal) => ({
           refId: proposal.id,
           refNumber: proposal.number,
           title: clip(proposal.text ?? proposal.ruleText ?? proposal.reason, 160),
           summary: proposal.reason,
+          question:
+            proposal.kind === 'aposentar'
+              ? 'Esta regra sai da base?'
+              : proposal.ruleText
+                ? 'A regra muda para este texto?'
+                : 'Esta regra entra na base que os agentes consultam?',
+          details: [
+            ...(proposal.text ? [`Regra: ${proposal.text}`] : []),
+            ...(proposal.ruleText ? [`Hoje: ${proposal.ruleText}`] : []),
+            `Por quê: ${proposal.reason}`,
+            ...(proposal.sensitive
+              ? ['Sensível: mexe com fiscal, preço, dado de cliente ou produção.']
+              : []),
+          ],
           highImpact: proposal.sensitive,
           createdAt: proposal.createdAt,
         }));
@@ -135,6 +185,12 @@ export function inboxSources(services: {
     {
       kind: 'decisao',
       label: 'Decisão',
+      question: 'Qual opção você escolhe?',
+      ifOk: 'Vale a recomendação do agente.',
+      ifNo: 'A decisão é descartada, sem escolha.',
+      ifText: 'Vale a opção que você escrever (ex.: "B, porque ...").',
+      okLabel: 'Seguir a recomendação',
+      noLabel: 'Descartar',
       async pending() {
         return (await services.pautas.list()).flatMap((pauta) =>
           pauta.decisions
@@ -144,6 +200,14 @@ export function inboxSources(services: {
               refNumber: decision.number,
               title: `${pauta.title}: ${clip(decision.question, 140)}`,
               summary: `Opções: ${decision.options.join(' / ')}. Recomendação: ${decision.recommendation}`,
+              question: decision.question,
+              details: [
+                ...decision.options.map(
+                  (option, index) => `Opção ${String.fromCharCode(65 + index)}: ${option}`,
+                ),
+                `Contraponto: ${decision.counterpoint}`,
+                `Recomendação: ${decision.recommendation}`,
+              ],
               createdAt: decision.createdAt,
             })),
         );
@@ -178,6 +242,11 @@ export function inboxSources(services: {
     {
       kind: 'validacao',
       label: 'Validação',
+      question: 'Você testou este épico e ele cumpre o Pronto quando?',
+      ifOk: 'O épico fica aprovado e recebe o comentário "Aprovado" no Work.',
+      ifNo: 'O épico fica reprovado; a Atena prepara o comentário com o seu motivo e espera o seu OK para publicar.',
+      okLabel: 'Aprovar épico',
+      noLabel: 'Reprovar',
       async pending() {
         return (await services.validations.list())
           .filter((validation) => validation.state === 'aberta')
@@ -185,7 +254,18 @@ export function inboxSources(services: {
             refId: validation.id,
             refNumber: validation.number,
             title: validation.epicTitle,
-            link: validation.epicUrl,
+            link: validation.previewUrl ?? validation.epicUrl,
+            details: [
+              ...(validation.pauta ? [`Pauta: ${validation.pauta}`] : []),
+              ...(validation.previewUrl
+                ? [`Preview: ${validation.previewUrl}`]
+                : ['Sem link de preview no épico.']),
+              `Épico: ${validation.epicUrl}`,
+              ...validation.items
+                .slice(0, 8)
+                .map((entry) => `Pronto quando: ${clip(entry.text, 200)}`),
+              ...validation.notes.slice(0, 2).map((note) => `Nota recente: ${clip(note, 200)}`),
+            ],
             createdAt: validation.createdAt,
           }));
       },
@@ -207,6 +287,12 @@ export function inboxSources(services: {
     {
       kind: 'comentario',
       label: 'Comentário',
+      question: 'Este comentário de reprovação pode ir para o épico?',
+      ifOk: 'O comentário é publicado no épico, marcando quem pegou e o Lucas.',
+      ifNo: 'O comentário é descartado; nada vai para o Work.',
+      ifText: 'O seu texto é publicado no lugar.',
+      okLabel: 'Publicar',
+      noLabel: 'Descartar',
       async pending() {
         return (await services.validations.list())
           .filter((validation) => validation.comment?.state === 'rascunho')
@@ -215,6 +301,7 @@ export function inboxSources(services: {
             refNumber: validation.number,
             title: `reprovação de ${validation.epicTitle}`,
             summary: validation.comment?.body,
+            details: [`Comentário: ${validation.comment?.body ?? ''}`],
             link: validation.epicUrl,
             createdAt: validation.createdAt,
           }));
@@ -235,6 +322,12 @@ export function inboxSources(services: {
     {
       kind: 'mencao',
       label: 'Menção',
+      question: 'Alguém perguntou no Work. A resposta da Atena pode ir?',
+      ifOk: 'A resposta proposta é publicada no card.',
+      ifNo: 'Nada é publicado; a menção é ignorada.',
+      ifText: 'O seu texto é publicado no card no lugar.',
+      okLabel: 'Publicar resposta',
+      noLabel: 'Ignorar',
       async pending() {
         return (await services.mentions.list())
           .filter((mention) => MENTION_WAITING.has(mention.state))
@@ -243,6 +336,11 @@ export function inboxSources(services: {
             refNumber: mention.number,
             title: `${mention.authorName ?? 'alguém'} em ${mention.cardTitle ?? 'card'}`,
             summary: clip(mention.body, 300),
+            details: [
+              `Pergunta: ${clip(mention.body, 400)}`,
+              ...(mention.proposedReply ? [`Resposta proposta: ${mention.proposedReply}`] : []),
+              ...(mention.reason ? [`Por quê: ${clip(mention.reason, 300)}`] : []),
+            ],
             ...(mention.cardUrl ? { link: mention.cardUrl } : {}),
             highImpact: mention.kind === 'alto_impacto',
             createdAt: mention.createdAt,
@@ -264,6 +362,12 @@ export function inboxSources(services: {
     {
       kind: 'roadmap',
       label: 'Roadmap',
+      question: 'Esta mudança entra no seu roadmap?',
+      ifOk: 'O roadmap da Atena muda. Nada muda no Work.',
+      ifNo: 'Não muda; o motivo vira lição para o Estrategista.',
+      ifText: 'Muda com o seu ajuste.',
+      okLabel: 'Aplicar no roadmap',
+      noLabel: 'Recusar',
       async pending() {
         return (await services.roadmap.proposals({ state: 'aguardando_po' })).map((proposal) => ({
           refId: proposal.id,
@@ -271,6 +375,19 @@ export function inboxSources(services: {
           title:
             `${proposal.kind === 'incluir' ? '' : `${proposal.kind}: `}${proposal.item?.title ?? proposal.itemTitle ?? ''}`.trim(),
           summary: `${proposal.kind}. ${proposal.reason}`,
+          question:
+            proposal.kind === 'incluir'
+              ? `Incluir no roadmap${proposal.applicationName ? ` do ${proposal.applicationName}` : ''}, em ${LANE[proposal.lane ?? proposal.item?.lane ?? 'depois'] ?? 'Depois'}?`
+              : proposal.kind === 'mover'
+                ? `Mover de ${LANE[proposal.fromLane ?? ''] ?? '?'} para ${LANE[proposal.lane ?? ''] ?? '?'}?`
+                : proposal.kind === 'concluir'
+                  ? 'Marcar como concluído?'
+                  : 'Descartar do roadmap?',
+          details: [
+            `Por quê: ${proposal.reason}`,
+            ...(proposal.counterpoint ? [`Contraponto: ${proposal.counterpoint}`] : []),
+            ...proposal.evidence.slice(0, 3).map((entry) => `Evidência: ${clip(entry, 200)}`),
+          ],
           highImpact: proposal.highImpact,
           createdAt: proposal.createdAt,
         }));
@@ -299,6 +416,11 @@ export function inboxSources(services: {
     {
       kind: 'priorizacao',
       label: 'Priorização',
+      question: 'Esta ordem do Priorizado pode ser aplicada no Work?',
+      ifOk: 'A coluna Priorizado da Entrada é reordenada no Work.',
+      ifNo: 'A proposta é descartada; nada muda no Work.',
+      okLabel: 'Aplicar ordem',
+      noLabel: 'Descartar',
       async pending() {
         // One held by a plan is answered as that plan.
         return (await services.priorities.list())
@@ -307,6 +429,12 @@ export function inboxSources(services: {
             refId: proposal.id,
             refNumber: proposal.number,
             title: clip(proposal.summary, 160),
+            details: proposal.cards
+              .slice(0, 8)
+              .map(
+                (card, index) =>
+                  `${index + 1}. ${clip(card.title, 120)}${card.reason ? `: ${clip(card.reason, 160)}` : ''}`,
+              ),
             createdAt: proposal.createdAt,
           }));
       },
