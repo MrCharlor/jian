@@ -18,6 +18,7 @@ const target: ValidationTarget = {
   awaitingLabel: 'awaiting',
   returnedLabel: 'returned',
   previewFieldId: 'preview',
+  acceptedStatusId: 'accepted',
   lead: { id: 'lucas', name: 'Lucas Larangeira' },
 };
 
@@ -175,6 +176,25 @@ describe('validations', () => {
     });
     expect(check?.notes[0]).toContain('Todos os CAs passaram.');
     expect(told).toHaveLength(1);
+  });
+
+  it('closes the check of an epic that reached Aceito, quietly, and never opens one for it', async () => {
+    const { validations, board } = await fixture();
+
+    await validations.scan();
+    expect((await validations.list())[0]?.state).toBe('aberta');
+
+    Object.assign(epic, { status_id: 'accepted' });
+    try {
+      await (validations as unknown as { look(): Promise<unknown> }).look();
+      const checks = await validations.list();
+
+      expect(checks).toHaveLength(1);
+      expect(checks[0]?.state).toBe('aprovada');
+      expect(board.writes).toEqual([]);
+    } finally {
+      Object.assign(epic, { status_id: undefined });
+    }
   });
 
   it('comments the approval on the epic', async () => {

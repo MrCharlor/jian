@@ -8,7 +8,7 @@ import {
   validationAnswerSchema,
   validationCommentPublishSchema,
 } from '@jian/contracts';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import { accents, noDashes } from '../core/wording.js';
@@ -30,6 +30,8 @@ export type ValidationTarget = EpicTarget & {
   awaitingLabel: string;
   returnedLabel: string;
   previewFieldId: string;
+  /** The column of the epics board an accepted epic is in; its sheet closes on its own. */
+  acceptedStatusId?: string;
 };
 
 type Activity = {
@@ -39,6 +41,7 @@ type Activity = {
   version: number;
   updated_at: string;
   created_at: string;
+  status_id?: string;
   labels: Array<{ id: string; name: string }>;
   custom_field_values?: Array<{ field_id: string; value: unknown }>;
   parent_id?: string | null;
@@ -225,8 +228,11 @@ export class Validations {
     )) as Activity[];
     const prepared: number[] = [];
 
+    await this.closeAccepted(epics);
+
     for (const epic of epics) {
       if (!epic.labels.some((label) => label.id === this.target.awaitingLabel)) continue;
+      if (this.accepted(epic)) continue;
 
       const [latest] = await this.store.db
         .select()
@@ -274,6 +280,25 @@ export class Validations {
     }
 
     return { prepared, reviewed: problems.length };
+  }
+
+  private accepted(epic: Activity) {
+    return Boolean(this.target.acceptedStatusId) && epic.status_id === this.target.acceptedStatusId;
+  }
+
+  /**
+   * An epic that reached Aceito on the board needs no check from the owner any more: its open
+   * sheet is closed as approved, quietly, with nothing written on the board.
+   */
+  private async closeAccepted(epics: Activity[]) {
+    const accepted = epics.filter((epic) => this.accepted(epic)).map((epic) => epic.id);
+
+    if (!accepted.length) return;
+
+    await this.store.db
+      .update(validations)
+      .set({ state: 'aprovada', decidedVia: 'api', decidedAt: new Date(this.clock()) })
+      .where(and(eq(validations.state, 'aberta'), inArray(validations.epicWorkId, accepted)));
   }
 
   /** The return cards on the tasks board not seen yet; the first look only takes note of them. */

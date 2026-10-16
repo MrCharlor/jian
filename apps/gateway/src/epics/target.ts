@@ -48,6 +48,8 @@ export const SIGMA_VALIDATION = {
   // type::returned
   returnedLabel: 'f1183a66-7b43-4c67-bed9-22181f0fbdf1',
   previewFieldId: '368ac481-2c90-4d91-8651-b1e42c232b79',
+  // Aceito on the epics board: an epic there is done, whatever label it still carries.
+  acceptedStatusId: '715e9f33-97f9-4ccb-be92-7349e377f916',
 };
 
 /** Where the requests of a squad wait and which columns the entry sync reads and moves. */
