@@ -15462,7 +15462,7 @@ export interface operations {
                         items: {
                             number: number;
                             /** @enum {string} */
-                            kind: "aprovacao" | "plano" | "regra" | "decisao" | "validacao" | "comentario" | "mencao" | "roadmap" | "priorizacao" | "prototipo" | "epico";
+                            kind: "aprovacao" | "plano" | "regra" | "decisao" | "validacao" | "comentario" | "mencao" | "roadmap" | "priorizacao" | "prototipo" | "epico" | "pedido";
                             refId: string;
                             refNumber: number;
                             title: string;
@@ -15482,7 +15482,7 @@ export interface operations {
                         }[];
                         stats: {
                             /** @enum {string} */
-                            kind: "aprovacao" | "plano" | "regra" | "decisao" | "validacao" | "comentario" | "mencao" | "roadmap" | "priorizacao" | "prototipo" | "epico";
+                            kind: "aprovacao" | "plano" | "regra" | "decisao" | "validacao" | "comentario" | "mencao" | "roadmap" | "priorizacao" | "prototipo" | "epico" | "pedido";
                             decided: number;
                             medianMinutes?: number;
                         }[];

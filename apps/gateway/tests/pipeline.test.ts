@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { EntryTarget } from '../src/epics/target.js';
+import { type EntryTarget, SIGMA_REQUEST } from '../src/epics/target.js';
 import { PipelineChain } from '../src/pipeline/service.js';
 import type { WorkClient } from '../src/priorities/work-board.js';
 import { testServices } from './helpers/services.js';
@@ -75,6 +75,7 @@ async function fixture() {
       },
     },
     services.epics,
+    SIGMA_REQUEST,
   );
 
   chain.useAgents({
@@ -117,7 +118,7 @@ describe('the chain from Priorizado to an epic', () => {
     expect(list.find((row) => row.requestWorkId === 'new-2')?.stage).toBe('fila');
     expect(f.asked).toHaveLength(1);
     expect(f.asked[0]?.text).toContain('report_request');
-    expect(f.asked[0]?.text).toContain('workId new-1');
+    expect(f.asked[0]?.text).toContain('workId: "new-1"');
   });
 
   it('opens the prototype from the author’s report, or goes straight to the epic', async () => {
@@ -228,5 +229,60 @@ describe('the chain from Priorizado to an epic', () => {
 
     const old = (await f.chain.list()).find((item) => item.requestWorkId === 'old-1');
     expect((await f.chain.enter(old?.id ?? '')).stage).toBe('fila');
+  });
+
+  it('goes straight to the epic when the talk already left a pauta with an approved drawing', async () => {
+    const f = await fixture();
+
+    await f.chain.updateSettings({ enabled: true });
+    await f.chain.step();
+    await f.services.pautas.update(f.pauta.id, {
+      links: [{ kind: 'pedido', workId: 'new-1', title: 'Filtro de cores' }],
+    });
+    // A pauta that shows an approved drawing, as one discussed with the owner would.
+    const pautas = f.services.pautas;
+    const list = pautas.list.bind(pautas);
+    pautas.list = async () =>
+      (await list()).map((pauta) =>
+        pauta.id === f.pauta.id
+          ? {
+              ...pauta,
+              prototypes: [
+                { id: '00000000-0000-4000-8000-0000000000bb', title: 'Cores', approvedVersion: 2 },
+              ],
+            }
+          : pauta,
+      );
+    f.cards.push({ id: 'new-1', title: 'Filtro de cores' });
+    await f.chain.step();
+
+    const row = (await f.chain.list()).find((item) => item.requestWorkId === 'new-1');
+    expect(row).toMatchObject({ stage: 'epico', pautaId: f.pauta.id, needsPrototype: true });
+    expect(f.asked.map((entry) => entry.text).join('\n')).not.toContain('report_request');
+    expect(f.asked.at(-1)?.text).toContain('draft_epic');
+  });
+
+  it('keeps a request the author proposes until the owner answers it', async () => {
+    const f = await fixture();
+    const by = { profileId: 'subaru' };
+
+    await expect(
+      f.chain.proposeRequest(
+        { pautaId: f.pauta.id, title: 'Filtro', description: 'Origem: pauta.' },
+        { profileId: 'otto' },
+      ),
+    ).rejects.toMatchObject({ statusCode: 403 });
+
+    const draft = await f.chain.proposeRequest(
+      { pautaId: f.pauta.id, title: 'Filtro de cores', description: 'Origem: pauta Cores.' },
+      by,
+    );
+
+    expect(draft).toMatchObject({ number: 1, state: 'rascunho', kind: 'implementacao' });
+    expect(await f.chain.requests()).toHaveLength(1);
+    expect(f.told.at(-1)).toContain('Filtro de cores');
+
+    await f.chain.discardRequest(draft.id);
+    expect((await f.chain.requests())[0]?.state).toBe('descartado');
   });
 });

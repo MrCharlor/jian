@@ -16,6 +16,7 @@ export const inboxKindSchema = z.enum([
   'priorizacao',
   'prototipo',
   'epico',
+  'pedido',
 ]);
 
 export const inboxItemSchema = z.strictObject({

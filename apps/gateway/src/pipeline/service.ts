@@ -6,19 +6,27 @@ import {
   pipelineReportSchema,
   pipelineSettingsPatchSchema,
   pipelineSettingsSchema,
+  type RequestDraft,
+  requestProposalSchema,
 } from '@jian/contracts';
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import type { Clock } from '../core/clock.js';
 import { assertFound, GatewayError } from '../core/errors.js';
 import type { Epics } from '../epics/service.js';
-import type { EntryTarget } from '../epics/target.js';
+import type { EntryTarget, RequestTarget } from '../epics/target.js';
 import type { Pautas } from '../pautas/service.js';
 import type { WorkClientOpener } from '../priorities/work-board.js';
 import { boardColumns, columnCards } from '../priorities/work-readers.js';
 import type { Profiles } from '../profiles/service.js';
 import type { Prototypes } from '../prototypes/service.js';
 import type { Store } from '../storage/database.js';
-import { epicDrafts, gatewaySettings, pautas, pipelines } from '../storage/schema.js';
+import {
+  epicDrafts,
+  gatewaySettings,
+  pautas,
+  pipelines,
+  requestDrafts,
+} from '../storage/schema.js';
 
 type Row = typeof pipelines.$inferSelect;
 
@@ -34,7 +42,8 @@ const BASELINE_KEY = 'pipeline:baseline';
 const SESSION = 'Pedidos → épico';
 /** The author named so when no profile is set, as the plans do. */
 const AUTHOR_NAME = 'subaru';
-const TICK_MS = 5 * 60_000;
+/** The tracker's automation calls the moment a card moves; this look is only the safety net. */
+const TICK_MS = 60 * 60_000;
 
 const DEFAULTS: PipelineSettings = { enabled: false, maxActive: 3, maxRounds: 2 };
 
@@ -63,9 +72,10 @@ export class PipelineChain {
     private readonly keyProfile: () => Promise<string | undefined>,
     private readonly target: EntryTarget,
     private readonly profiles: Pick<Profiles, 'profiles'>,
-    private readonly pautasService: Pick<Pautas, 'get'>,
+    private readonly pautasService: Pick<Pautas, 'get' | 'list' | 'update'>,
     private readonly prototypes: Pick<Prototypes, 'list' | 'create'>,
     private readonly epics: Pick<Epics, 'list' | 'discard'>,
+    private readonly request: RequestTarget,
     private readonly clock: Clock = Date.now,
   ) {}
 
@@ -218,7 +228,20 @@ export class PipelineChain {
     return this.present(await this.row(id));
   }
 
-  /** On the worker's tick, every few minutes, while the owner keeps the chain on. */
+  /**
+   * The tracker's automation, the moment a card moves on the Entrada: the chain looks at once
+   * instead of waiting for its hourly look. Answers at once; the look runs after.
+   */
+  poke(): { accepted: boolean } {
+    this.lastTick = 0;
+    void this.tick().catch((error) => {
+      console.error('jian: the requests could not go on after a move on the Entrada', error);
+    });
+
+    return { accepted: true };
+  }
+
+  /** On the worker's tick, every hour as a safety net, while the owner keeps the chain on. */
   async tick(): Promise<void> {
     const now = this.clock();
 
@@ -347,20 +370,47 @@ export class PipelineChain {
 
   private async advance(row: Row): Promise<void> {
     switch (row.stage) {
-      case 'pauta':
+      case 'pauta': {
+        // The talk with the owner usually happened already: the pauta, its approved drawing and
+        // even the draft may exist. Only what is missing is asked for.
+        const pauta = (await this.pautasService.list()).find((item) =>
+          item.links.some((link) => link.workId === row.requestWorkId),
+        );
+        const drawn = pauta?.prototypes.find((item) => item.approvedVersion);
+
+        if (pauta && drawn) {
+          await this.update(row.id, {
+            pautaId: pauta.id,
+            needsPrototype: true,
+            prototypeId: drawn.id,
+            stage: 'epico',
+            asked: null,
+            note: 'Pauta e protótipo aprovado já existiam: segue direto para o épico.',
+          });
+          return this.advance(await this.row(row.id));
+        }
+
+        if (pauta) await this.update(row.id, { pautaId: pauta.id });
+
         return this.ask(
           row,
           'pauta',
           [
-            `[Pedido #${row.number}] Pedido novo em Priorizado na Entrada: "${row.requestTitle}" (${row.requestWorkId}). ${this.requestUrl(row.requestWorkId)}`,
+            `[Pedido #${row.number}] Pedido em Priorizado na Entrada: "${row.requestTitle}" (${row.requestWorkId}). ${this.requestUrl(row.requestWorkId)}`,
+            pauta
+              ? `A pauta já existe: "${pauta.title}" (${pauta.id}). Use o que foi combinado nela e na conversa com o Moabe; não refaça.`
+              : 'Nenhuma pauta tem este pedido ligado ainda.',
             '',
             '1. Leia o card no Work e os comentários dele.',
-            `2. Ache a pauta deste pedido em list_pautas (um link de pedido com workId ${row.requestWorkId}) ou crie uma com create_pauta, com a cadeia Pauta, Tela(s), Demanda e o link {kind: "pedido", workId: "${row.requestWorkId}"}.`,
+            pauta
+              ? '2. Confira se a pauta tem a cadeia Pauta, Tela(s), Demanda; complete só o que faltar.'
+              : `2. Ache a pauta deste assunto em list_pautas ou crie uma com create_pauta, com a cadeia Pauta, Tela(s), Demanda e o link {kind: "pedido", workId: "${row.requestWorkId}"}.`,
             '3. Decida se precisa de protótipo: tela nova ou mudança visível de tela, sim; regra, bug sem mudança de tela ou backend, não.',
             `4. Carregue o grupo pipeline e chame report_request com pipelineId ${row.id}, pautaId, needsPrototype, reason e, se precisar de protótipo, application (slug) e brief (o que desenhar).`,
             'Se não der para saber a origem ou a tela, não presuma: chame report_request com missing dizendo o que falta e abra uma decisão para o Moabe com propose_decision.',
           ].join('\n'),
         );
+      }
 
       case 'prototipo': {
         if (!row.prototypeId) return this.stopWith(row, 'O protótipo não foi aberto.');
@@ -573,5 +623,129 @@ export class PipelineChain {
     await this.advance(await this.row(row.id));
 
     return 'o autor reescreve com a sua correção.';
+  }
+
+  private presentRequest(
+    row: typeof requestDrafts.$inferSelect,
+    pautaTitle?: string,
+  ): RequestDraft {
+    return {
+      id: row.id,
+      number: row.number,
+      pautaId: row.pautaId,
+      ...(pautaTitle ? { pautaTitle } : {}),
+      title: row.title,
+      description: row.description,
+      kind: row.kind as RequestDraft['kind'],
+      state: row.state as RequestDraft['state'],
+      ...(row.workId ? { workId: row.workId } : {}),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  async requests(): Promise<RequestDraft[]> {
+    const rows = await this.store.db
+      .select({ row: requestDrafts, pauta: pautas.title })
+      .from(requestDrafts)
+      .leftJoin(pautas, eq(pautas.id, requestDrafts.pautaId))
+      .orderBy(desc(requestDrafts.createdAt))
+      .limit(100);
+
+    return rows.map(({ row, pauta }) => this.presentRequest(row, pauta ?? undefined));
+  }
+
+  /**
+   * The author, at the end of a talk with the owner, proposes the request for the Entrada. It
+   * waits in the inbox; nothing reaches the board before the owner's OK.
+   */
+  async proposeRequest(input: unknown, by: { profileId: string }): Promise<RequestDraft> {
+    if (!(await this.isAuthor(by.profileId))) {
+      throw new GatewayError(403, 'Only the chain’s author proposes a request');
+    }
+
+    const data = requestProposalSchema.parse(input);
+    const [pauta] = await this.store.db.select().from(pautas).where(eq(pautas.id, data.pautaId));
+
+    if (!pauta) throw new GatewayError(404, 'Pauta not found');
+
+    const id = randomUUID();
+
+    await this.store.transaction('request_drafts', async (tx) => {
+      const [top] = await tx
+        .select({ max: sql<number>`coalesce(max(${requestDrafts.number}), 0)` })
+        .from(requestDrafts);
+
+      await tx.insert(requestDrafts).values({
+        id,
+        number: Number(top?.max ?? 0) + 1,
+        pautaId: data.pautaId,
+        title: data.title,
+        description: data.description,
+        kind: data.kind,
+        state: 'rascunho',
+        proposedBy: by.profileId,
+      });
+    });
+
+    const [row] = await this.store.db.select().from(requestDrafts).where(eq(requestDrafts.id, id));
+    const draft = this.presentRequest(assertFound(row, 'Request draft'), pauta.title);
+
+    await this.notify?.(
+      `[Pedido proposto] O Subaru escreveu o pedido "${draft.title}" para a Entrada, da pauta "${pauta.title}".`,
+      `[Pedido proposto] "${clip(draft.title, 90)}" (pauta ${clip(pauta.title, 60)}).`,
+    ).catch(() => {});
+
+    return draft;
+  }
+
+  /** The owner's OK: the request goes to the Entrada, in Novo, linked to its pauta. */
+  async createRequest(id: string): Promise<RequestDraft> {
+    const [row] = await this.store.db.select().from(requestDrafts).where(eq(requestDrafts.id, id));
+    const draft = assertFound(row, 'Request draft');
+
+    if (draft.state !== 'rascunho') {
+      throw new GatewayError(409, `O pedido #${draft.number} já está ${draft.state}`);
+    }
+
+    const profileId = await this.keyProfile();
+
+    if (!profileId) throw new GatewayError(409, 'No agent reaches the work tracker');
+
+    const client = await this.open(profileId, { workspaceId: this.target.workspaceId });
+    const created = (await client.call('POST', '/activities', {
+      board_id: this.target.entryBoardId,
+      status_id: this.request.newStatusId,
+      title: draft.title,
+      description: draft.description,
+    })) as { id: string };
+    const kind = this.request.kinds[draft.kind as keyof RequestTarget['kinds']];
+
+    await client
+      .call('PATCH', `/activities/${created.id}`, {
+        custom_field_values: [
+          { field_id: this.request.requesterFieldId, value: this.request.requester },
+          ...(kind ? [{ field_id: this.request.kindFieldId, value: { option_id: kind } }] : []),
+        ],
+      })
+      .catch(() => undefined);
+    await this.store.db
+      .update(requestDrafts)
+      .set({ state: 'criado', workId: created.id, updatedAt: new Date(this.clock()) })
+      .where(eq(requestDrafts.id, id));
+
+    const pauta = await this.pautasService.get(draft.pautaId);
+
+    await this.pautasService.update(pauta.id, {
+      links: [...pauta.links, { kind: 'pedido', workId: created.id, title: draft.title }],
+    });
+
+    return this.presentRequest({ ...draft, state: 'criado', workId: created.id }, pauta.title);
+  }
+
+  async discardRequest(id: string): Promise<void> {
+    await this.store.db
+      .update(requestDrafts)
+      .set({ state: 'descartado', updatedAt: new Date(this.clock()) })
+      .where(eq(requestDrafts.id, id));
   }
 }

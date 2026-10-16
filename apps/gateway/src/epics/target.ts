@@ -52,6 +52,21 @@ export const SIGMA_VALIDATION = {
   acceptedStatusId: '715e9f33-97f9-4ccb-be92-7349e377f916',
 };
 
+/** What a request the agent writes carries on the Sigma Entrada (16/10/2026). */
+export const SIGMA_REQUEST = {
+  newStatusId: 'ba9c276f-74cf-4177-bcfb-9cacc39edf63',
+  requesterFieldId: 'c76b7190-fd31-442a-8ad9-d1e40231e4cb',
+  requester: '3433',
+  kindFieldId: '2a81d7f5-6830-4d78-ae2c-7bcb33559a45',
+  kinds: {
+    suporte: 'd277f168-80df-4e77-b984-64254c26f696',
+    qa: '387a2f61-0472-4048-bf2e-672bea9737f4',
+    implementacao: '215695ea-7aea-4cc4-86fb-2fdb1df56415',
+  },
+};
+
+export type RequestTarget = typeof SIGMA_REQUEST;
+
 /** Where the requests of a squad wait and which columns the entry sync reads and moves. */
 export type EntryTarget = {
   webUrl: string;

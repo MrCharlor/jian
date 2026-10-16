@@ -27437,7 +27437,8 @@
                               "roadmap",
                               "priorizacao",
                               "prototipo",
-                              "epico"
+                              "epico",
+                              "pedido"
                             ]
                           },
                           "refId": {
@@ -27530,7 +27531,8 @@
                               "roadmap",
                               "priorizacao",
                               "prototipo",
-                              "epico"
+                              "epico",
+                              "pedido"
                             ]
                           },
                           "decided": {

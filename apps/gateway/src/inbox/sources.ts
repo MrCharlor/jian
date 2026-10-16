@@ -42,7 +42,10 @@ export function inboxSources(services: {
   priorities: Pick<Priorities, 'list' | 'apply' | 'discard'>;
   prototypes: Pick<Prototypes, 'list' | 'approve' | 'redo'>;
   epics: Pick<Epics, 'list' | 'create' | 'discard'>;
-  pipeline: Pick<PipelineChain, 'prototypeRefused' | 'revise'>;
+  pipeline: Pick<
+    PipelineChain,
+    'prototypeRefused' | 'revise' | 'requests' | 'createRequest' | 'discardRequest'
+  >;
 }): InboxSource[] {
   const approvalOwner = new Map<string, string>();
 
@@ -417,6 +420,37 @@ export function inboxSources(services: {
           services.roadmap.fromChat({ numbers: [item.refNumber], action: 'edit', text }),
         );
         return 'aplicada com o seu ajuste.';
+      },
+    },
+    {
+      kind: 'pedido',
+      label: 'Pedido',
+      question: 'Este pedido pode ir para a Entrada?',
+      ifOk: 'O card é criado na Entrada, em Novo, ligado à pauta. Para andar até o épico, mova para Priorizado.',
+      ifNo: 'O pedido é descartado; nada vai para o Work.',
+      okLabel: 'Criar na Entrada',
+      noLabel: 'Descartar',
+      async pending() {
+        return (await services.pipeline.requests())
+          .filter((draft) => draft.state === 'rascunho')
+          .map((draft) => ({
+            refId: draft.id,
+            refNumber: draft.number,
+            title: draft.title,
+            details: [
+              ...(draft.pautaTitle ? [`Pauta: ${draft.pautaTitle}`] : []),
+              clip(draft.description, 900),
+            ],
+            createdAt: draft.createdAt,
+          }));
+      },
+      async ok(item) {
+        const created = await services.pipeline.createRequest(item.refId);
+        return `criado na Entrada, em Novo${created.workId ? ` (${created.workId})` : ''}.`;
+      },
+      async no(item) {
+        await services.pipeline.discardRequest(item.refId);
+        return 'descartado.';
       },
     },
     {

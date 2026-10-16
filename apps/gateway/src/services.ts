@@ -6,7 +6,13 @@ import { Decisions } from './decisions/service.js';
 import { boardRooms, Drawings } from './drawings/service.js';
 import { EntrySync } from './entry/service.js';
 import { Epics } from './epics/service.js';
-import { SIGMA_ENTRY, SIGMA_EPICS, SIGMA_MENTIONS, SIGMA_VALIDATION } from './epics/target.js';
+import {
+  SIGMA_ENTRY,
+  SIGMA_EPICS,
+  SIGMA_MENTIONS,
+  SIGMA_REQUEST,
+  SIGMA_VALIDATION,
+} from './epics/target.js';
 import { Errands } from './errands/service.js';
 import { Flow } from './flow/service.js';
 import { Inbox } from './inbox/service.js';
@@ -257,6 +263,7 @@ export function buildServices({
     pautas,
     prototypes,
     epics,
+    SIGMA_REQUEST,
     clock,
   );
   pipeline.useAgents({

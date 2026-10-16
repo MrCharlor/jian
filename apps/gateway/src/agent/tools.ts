@@ -131,7 +131,7 @@ export type ToolServices = {
   mentions?: Pick<Mentions, 'triaged' | 'answered'>;
   inbox?: Pick<Inbox, 'list'>;
   roadmap?: Pick<Roadmap, 'lookup' | 'propose' | 'sync' | 'snapshot' | 'isStrategist'>;
-  pipeline?: Pick<PipelineChain, 'report' | 'isAuthor'>;
+  pipeline?: Pick<PipelineChain, 'report' | 'isAuthor' | 'proposeRequest'>;
 };
 
 export function profileTools(
@@ -758,8 +758,8 @@ export const TOOL_GROUPS = {
   },
   pipeline: {
     summary:
-      'report on a request of the Entrada walking to an epic: its pauta and whether it needs a prototype',
-    tools: ['report_request'],
+      'propose the request card for the Entrada at the end of a talk with the owner, and report on a request walking to an epic: its pauta and whether it needs a prototype',
+    tools: ['propose_request', 'report_request'],
   },
   roadmap: {
     summary:

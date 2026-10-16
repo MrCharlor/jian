@@ -77,7 +77,30 @@ export const pipelineReportSchema = z.strictObject({
   missing: z.string().trim().min(1).max(1000).optional(),
 });
 
+/** A request the author proposes from a talk with the owner, before it exists on the Entrada. */
+export const requestProposalSchema = z.strictObject({
+  pautaId: z.uuid(),
+  title: z.string().trim().min(1).max(200),
+  /** Origem, telas, decisões and the prototype link, as the developers will read them. */
+  description: z.string().trim().min(1).max(12000),
+  kind: z.enum(['implementacao', 'suporte', 'qa']).default('implementacao'),
+});
+
+export const requestDraftSchema = z.strictObject({
+  id: z.uuid(),
+  number: z.number().int().positive(),
+  pautaId: z.uuid(),
+  pautaTitle: z.string().optional(),
+  title: z.string(),
+  description: z.string(),
+  kind: z.enum(['implementacao', 'suporte', 'qa']),
+  state: z.enum(['rascunho', 'criado', 'descartado']),
+  workId: z.string().optional(),
+  createdAt: z.iso.datetime(),
+});
+
 export type PipelineStage = z.infer<typeof pipelineStageSchema>;
+export type RequestDraft = z.infer<typeof requestDraftSchema>;
 export type Pipeline = z.infer<typeof pipelineRecordSchema>;
 export type PipelineSettings = z.infer<typeof pipelineSettingsSchema>;
 export type PipelineReport = z.infer<typeof pipelineReportSchema>;

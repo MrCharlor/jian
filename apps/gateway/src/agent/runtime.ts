@@ -303,7 +303,10 @@ export class AgentRuntime {
       // Only the Curator keeps the base; every other agent just reads it.
       if (!(await this.services.knowledge?.isCurator(profileId))) delete tools.propose_knowledge;
       // Only the chain's author reports on the requests walking to an epic.
-      if (!(await this.services.pipeline?.isAuthor(profileId))) delete tools.report_request;
+      if (!(await this.services.pipeline?.isAuthor(profileId))) {
+        delete tools.report_request;
+        delete tools.propose_request;
+      }
       // Only the Estrategista keeps the roadmap; every other agent just reads it.
       if (!(await this.services.roadmap?.isStrategist(profileId))) {
         delete tools.propose_roadmap;

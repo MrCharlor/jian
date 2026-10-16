@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { GatewayError } from '../core/errors.js';
 import type { ChannelParams, ContactParams, ProfileParams, SessionParams } from '../http/params.js';
 import type { Mentions } from '../mentions/service.js';
+import type { PipelineChain } from '../pipeline/service.js';
 import type { Channels } from './service.js';
 import type { WhatsAppConnections } from './whatsapp/connections.js';
 
@@ -10,6 +11,7 @@ type ChannelRouteServices = {
   channels?: Channels;
   whatsapp?: WhatsAppConnections;
   mentions?: Pick<Mentions, 'receive'>;
+  pipeline?: Pick<PipelineChain, 'poke'>;
 };
 
 export function registerChannelRoutes(app: FastifyInstance, deps: ChannelRouteServices): void {
@@ -147,6 +149,19 @@ export function registerChannelRoutes(app: FastifyInstance, deps: ChannelRouteSe
       }
 
       return reply.code(202).send(await deps.mentions.receive(request.body));
+    },
+  );
+
+  // A card moved on the Entrada, posted by the tracker's automation with the channel's token:
+  // the chain from Priorizado to an epic looks at once (B23).
+  app.post<{ Params: { channelId: string } }>(
+    '/v1/ingress/:channelId/entry',
+    async (request, reply) => {
+      await channels().authenticate(request.params.channelId, request.headers);
+
+      if (!deps.pipeline) throw new GatewayError(503, 'The Entrada is not followed here');
+
+      return reply.code(202).send(deps.pipeline.poke());
     },
   );
 

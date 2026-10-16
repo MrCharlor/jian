@@ -1495,6 +1495,26 @@ export const pipelines = pgTable(
 );
 
 /**
+ * A request the author wrote from a talk with the owner (B23): it reaches the Entrada only on the
+ * owner's OK in the inbox, linked to its pauta.
+ */
+export const requestDrafts = pgTable('request_drafts', {
+  id: uuid('id').primaryKey(),
+  number: integer('number').notNull().unique(),
+  pautaId: uuid('pauta_id')
+    .notNull()
+    .references(() => pautas.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  kind: text('kind').notNull(),
+  state: text('state').notNull(),
+  workId: text('work_id'),
+  proposedBy: text('proposed_by'),
+  createdAt,
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * The owner's inbox (B26): one number for each thing that waits for them, whatever its queue.
  * The item itself stays in its queue; this row only numbers it and says when it was decided.
  */

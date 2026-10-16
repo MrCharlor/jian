@@ -19,6 +19,7 @@ export const inboxKindLabel: Record<InboxItem['kind'], string> = {
   priorizacao: 'Priorização',
   prototipo: 'Protótipo',
   epico: 'Épico',
+  pedido: 'Pedido para a Entrada',
 };
 
 const minutes = (value: number) =>
